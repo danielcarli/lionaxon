@@ -13,11 +13,21 @@ Simples de aprender em uma tarde. O mesmo programa no Windows, no macOS e no Lin
 
 [English](../README.md) · **Português (Brasil)**
 
-![Versão 0.9.0](https://img.shields.io/badge/vers%C3%A3o-0.9.0-23272b)
+![Versão 0.9.1](https://img.shields.io/badge/vers%C3%A3o-0.9.1-23272b)
 ![Experimental](https://img.shields.io/badge/status-experimental-b5532d)
 ![Plataformas: Windows, macOS, Linux](https://img.shields.io/badge/plataforma-Windows%20%7C%20macOS%20%7C%20Linux-23272b)
 ![10 línguas](https://img.shields.io/badge/l%C3%ADnguas-10-d0673f)
 ![Licença: GPL-3.0](https://img.shields.io/badge/licen%C3%A7a-GPL--3.0-b5532d)
+
+<p>
+  <a href="https://github.com/danielcarli/lionaxon/releases/latest/download/LionAxon-Setup.exe"><img src="https://img.shields.io/badge/Windows-Baixar%20.exe-b5532d?style=for-the-badge&labelColor=23272b" alt="LionAxon-Setup.exe"></a>
+  <a href="https://github.com/danielcarli/lionaxon/releases/latest/download/LionAxon-mac-universal.dmg"><img src="https://img.shields.io/badge/macOS-Baixar%20.dmg-b5532d?style=for-the-badge&labelColor=23272b" alt="LionAxon-mac-universal.dmg"></a>
+  <a href="https://github.com/danielcarli/lionaxon/releases/latest/download/lionaxon_amd64.deb"><img src="https://img.shields.io/badge/Linux-Baixar%20.deb-b5532d?style=for-the-badge&labelColor=23272b" alt="lionaxon_amd64.deb"></a>
+  <a href="https://github.com/danielcarli/lionaxon/releases/latest/download/lionaxon.x86_64.rpm"><img src="https://img.shields.io/badge/Linux-Baixar%20.rpm-b5532d?style=for-the-badge&labelColor=23272b" alt="lionaxon.x86_64.rpm"></a>
+  <a href="https://github.com/danielcarli/lionaxon/releases/latest/download/LionAxon-x86_64.AppImage"><img src="https://img.shields.io/badge/Linux-Baixar%20AppImage-b5532d?style=for-the-badge&labelColor=23272b" alt="LionAxon-x86_64.AppImage"></a>
+</p>
+
+<sub><a href="https://github.com/danielcarli/lionaxon/releases">Todas as versões</a> · <a href="#baixar">Como instalar</a></sub>
 
 <img src="screenshots/pt-BR/axonometric.png" alt="LionAxon: as etapas de um diagrama de partido à esquerda, o desenho axonométrico no meio, as propriedades à direita" width="900">
 
@@ -117,13 +127,23 @@ Software livre (GPL-3.0). Sem conta, sem assinatura, sem telemetria, e funciona 
 
 Os exemplos que vêm com o programa estão em inglês e português; nas demais línguas eles abrem em inglês. As traduções além do inglês e do português do Brasil ainda não passaram por revisão de falantes nativos: correções são bem-vindas.
 
-## Como começar
+## Baixar
 
-O LionAxon é **experimental** (versão 0.9): já faz um diagrama de partido inteiro e exporta, mas o formato do arquivo e o comportamento ainda podem mudar antes da 1.0.
+Baixe o instalador do seu sistema. Os links trazem sempre a **versão mais recente**; cada instalador já contém o programa inteiro, então nada mais é baixado durante a instalação.
 
-**Instaladores.** Um workflow do GitHub Actions (`.github/workflows/release.yml`) gera instaladores para Windows, macOS e Linux quando uma tag de versão é enviada. Eles ainda não são assinados, então o sistema pede confirmação na primeira execução. Procure em *Releases*.
+- **Windows 10/11** (x64): um assistente de instalação que deixa escolher a pasta. → [`LionAxon-Setup.exe`](https://github.com/danielcarli/lionaxon/releases/latest/download/LionAxon-Setup.exe) · ou a versão portátil, sem instalação: [`LionAxon-win-x64.zip`](https://github.com/danielcarli/lionaxon/releases/latest/download/LionAxon-win-x64.zip)
+- **macOS 12+** (Apple Silicon e Intel): abra o `.dmg` e arraste o LionAxon para Aplicativos. → [`LionAxon-mac-universal.dmg`](https://github.com/danielcarli/lionaxon/releases/latest/download/LionAxon-mac-universal.dmg)
+- **Linux** (x64): `.deb` para Ubuntu, Debian, Mint…, `.rpm` para Fedora, RHEL, openSUSE…, ou o AppImage para qualquer distribuição, sem instalação. → [`.deb`](https://github.com/danielcarli/lionaxon/releases/latest/download/lionaxon_amd64.deb) · [`.rpm`](https://github.com/danielcarli/lionaxon/releases/latest/download/lionaxon.x86_64.rpm) · [AppImage](https://github.com/danielcarli/lionaxon/releases/latest/download/LionAxon-x86_64.AppImage)
 
-**A partir do código**, com o [Node.js](https://nodejs.org) (LTS):
+> Os instaladores ainda não são assinados com um certificado pago. Na primeira execução, o Windows pode mostrar "O Windows protegeu o computador" (**Mais informações › Executar assim mesmo**) e o macOS pede para liberar o programa em **Ajustes do Sistema › Privacidade e Segurança › Abrir Mesmo Assim**. As somas de verificação de cada arquivo estão em [`SHA256SUMS.txt`](https://github.com/danielcarli/lionaxon/releases/latest/download/SHA256SUMS.txt).
+
+O LionAxon é **experimental** (versão 0.9): já faz um diagrama de partido inteiro e exporta, mas o formato do arquivo e o comportamento ainda podem mudar antes da 1.0. Para saber se há versão mais nova, clique no número da versão, no canto inferior direito do programa.
+
+Os instaladores são gerados pelo GitHub Actions a cada tag de versão (`.github/workflows/release.yml`), em máquinas Windows, macOS e Linux, a partir do código deste repositório.
+
+### A partir do código
+
+Com o [Node.js](https://nodejs.org) (LTS):
 
 ```sh
 npm install
@@ -228,7 +248,7 @@ Código, comentários, identificadores e documentação em inglês. A interface 
 - **Depois** — pátios e união de volumes; lajes soltas e pilotis; sombras sobre volumes e terreno; cortes na prancha; desenhar formas novas no visualizador 3D; paleta de comandos; instaladores assinados.
 - **1.0** — DXF de entrada e saída; manual e tutoriais na ordem de um ateliê de projeto; traduções revisadas.
 
-O histórico completo está no [CHANGELOG](../CHANGELOG.md) — versão atual: **0.9.0**.
+O histórico completo está no [CHANGELOG](../CHANGELOG.md) — versão atual: **0.9.1**.
 
 ## Créditos
 

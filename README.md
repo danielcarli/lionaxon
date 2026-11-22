@@ -13,11 +13,21 @@ Simple to learn in an afternoon. The same app on Windows, macOS and Linux. Free.
 
 **English** · [Português (Brasil)](docs/README.pt-BR.md)
 
-![Version 0.9.0](https://img.shields.io/badge/version-0.9.0-23272b)
+![Version 0.9.1](https://img.shields.io/badge/version-0.9.1-23272b)
 ![Experimental](https://img.shields.io/badge/status-experimental-b5532d)
 ![Platforms: Windows, macOS, Linux](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-23272b)
 ![10 languages](https://img.shields.io/badge/languages-10-d0673f)
 ![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-b5532d)
+
+<p>
+  <a href="https://github.com/danielcarli/lionaxon/releases/latest/download/LionAxon-Setup.exe"><img src="https://img.shields.io/badge/Windows-Download%20.exe-b5532d?style=for-the-badge&labelColor=23272b" alt="LionAxon-Setup.exe"></a>
+  <a href="https://github.com/danielcarli/lionaxon/releases/latest/download/LionAxon-mac-universal.dmg"><img src="https://img.shields.io/badge/macOS-Download%20.dmg-b5532d?style=for-the-badge&labelColor=23272b" alt="LionAxon-mac-universal.dmg"></a>
+  <a href="https://github.com/danielcarli/lionaxon/releases/latest/download/lionaxon_amd64.deb"><img src="https://img.shields.io/badge/Linux-Download%20.deb-b5532d?style=for-the-badge&labelColor=23272b" alt="lionaxon_amd64.deb"></a>
+  <a href="https://github.com/danielcarli/lionaxon/releases/latest/download/lionaxon.x86_64.rpm"><img src="https://img.shields.io/badge/Linux-Download%20.rpm-b5532d?style=for-the-badge&labelColor=23272b" alt="lionaxon.x86_64.rpm"></a>
+  <a href="https://github.com/danielcarli/lionaxon/releases/latest/download/LionAxon-x86_64.AppImage"><img src="https://img.shields.io/badge/Linux-Download%20AppImage-b5532d?style=for-the-badge&labelColor=23272b" alt="LionAxon-x86_64.AppImage"></a>
+</p>
+
+<sub><a href="https://github.com/danielcarli/lionaxon/releases">All versions</a> · <a href="#download">How to install</a></sub>
 
 <img src="docs/screenshots/axonometric.png" alt="LionAxon: the steps of a parti diagram on the left, the axonometric drawing in the middle, the properties on the right" width="900">
 
@@ -117,13 +127,23 @@ Free software (GPL-3.0). No account, no subscription, no telemetry, and it works
 
 The examples that come with the app are in English and Portuguese; in the languages other than these two they open in English. The translations other than English and Brazilian Portuguese were made without native review yet: corrections are welcome.
 
-## Get started
+## Download
 
-LionAxon is **experimental** (version 0.9): it already makes a whole parti diagram and exports it, but the file format and the behaviour may still change before 1.0.
+Download the installer for your system. The links always bring the **latest version**; every installer holds the whole app, so nothing else is downloaded while it installs.
 
-**Installers.** A GitHub Actions workflow (`.github/workflows/release.yml`) builds installers for Windows, macOS and Linux when a version tag is pushed. They are not signed yet, so the system will ask for confirmation on the first run. Look for them under *Releases*.
+- **Windows 10/11** (x64): a setup wizard that lets you choose the folder. → [`LionAxon-Setup.exe`](https://github.com/danielcarli/lionaxon/releases/latest/download/LionAxon-Setup.exe) · or the portable version, with no installation: [`LionAxon-win-x64.zip`](https://github.com/danielcarli/lionaxon/releases/latest/download/LionAxon-win-x64.zip)
+- **macOS 12+** (Apple Silicon and Intel): open the `.dmg` and drag LionAxon to Applications. → [`LionAxon-mac-universal.dmg`](https://github.com/danielcarli/lionaxon/releases/latest/download/LionAxon-mac-universal.dmg)
+- **Linux** (x64): `.deb` for Ubuntu, Debian, Mint…, `.rpm` for Fedora, RHEL, openSUSE…, or the AppImage for any distribution, with no installation. → [`.deb`](https://github.com/danielcarli/lionaxon/releases/latest/download/lionaxon_amd64.deb) · [`.rpm`](https://github.com/danielcarli/lionaxon/releases/latest/download/lionaxon.x86_64.rpm) · [AppImage](https://github.com/danielcarli/lionaxon/releases/latest/download/LionAxon-x86_64.AppImage)
 
-**From the source**, with [Node.js](https://nodejs.org) (LTS):
+> The installers are not signed with a paid certificate yet. On first launch, Windows may show "Windows protected your PC" (**More info › Run anyway**) and macOS asks you to allow the app in **System Settings › Privacy & Security › Open Anyway**. The checksums of every file are in [`SHA256SUMS.txt`](https://github.com/danielcarli/lionaxon/releases/latest/download/SHA256SUMS.txt).
+
+LionAxon is **experimental** (version 0.9): it already makes a whole parti diagram and exports it, but the file format and the behaviour may still change before 1.0. To know whether there is a newer version, click the version number in the bottom-right corner of the app.
+
+The installers are built by GitHub Actions for each version tag (`.github/workflows/release.yml`), on Windows, macOS and Linux machines, from the code of this repository.
+
+### From the source
+
+With [Node.js](https://nodejs.org) (LTS):
 
 ```sh
 npm install
@@ -264,7 +284,8 @@ Privacy: no account, no telemetry. LionAxon uses the network only when you click
 | `npm run shots` | The screenshots of this README (`-- --lang=pt-BR --out=docs/screenshots/pt-BR` for another language) |
 | `npm run inspect -- <project.lionaxon>` | Describe a project as JSON |
 | `npm run examples` | Rebuild the example projects |
-| `npm run dist` | Build installers with electron-builder (the release workflow does it for the three systems) |
+| `npm run dist` | Build the installers of the system you are on with electron-builder, into `dist/` (the release workflow does it for the three systems) |
+| `npm run release:files` | Write `manifest.txt`, `SHA256SUMS.txt` and the release notes beside the installers in `dist/` |
 
 Code, comments, identifiers and documentation are in English. The interface is translated in `src/nls/<language>.json`; `npm test` fails if a language misses a key or a placeholder. To add a language, copy `en.json`, translate it and add a line to `src/nls/locales.json`.
 
@@ -280,7 +301,7 @@ Code, comments, identifiers and documentation are in English. The interface is t
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) — current version: **0.9.0**.
+See [CHANGELOG.md](CHANGELOG.md) — current version: **0.9.1**.
 
 ## Credits
 

@@ -1,7 +1,9 @@
-# Installers for Windows, macOS and Linux, built by GitHub when a version tag is pushed (v0.9.0…),
-# or by hand from the Actions tab. Each system builds its own; the files are attached to a draft release
-# (for a tag) and kept as artifacts of the run. Nothing is signed: Windows and macOS will warn on the
-# first opening until the app has a certificate.
+# Installers for Windows, macOS and Linux, built by GitHub when a version tag is pushed (v0.9.1…),
+# or by hand from the Actions tab (then the files are only kept as artifacts of the run).
+# Each system builds its own installers, with fixed names; a last job writes manifest.txt (read by the
+# app when asked to look for a new version), SHA256SUMS.txt and the notes, and publishes the release.
+# The links of the README point to releases/latest/download/<name>.
+# Nothing is signed: Windows and macOS warn on the first opening until the app has a certificate.
 name: release
 on:
   push:
@@ -17,12 +19,14 @@ jobs:
         include:
           - { os: windows-latest, args: '--win nsis zip --x64' }
           - { os: macos-latest, args: '--mac dmg --universal' }
-          - { os: ubuntu-latest, args: '--linux AppImage deb --x64' }
+          - { os: ubuntu-latest, args: '--linux AppImage deb rpm --x64' }
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y rpm
       - run: npm ci || npm install
       - run: npm test
       - run: npx --yes electron-builder@26.18.0 ${{ matrix.args }} --publish never
@@ -30,21 +34,48 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
       - uses: actions/upload-artifact@v4
         with:
-          name: LionAxon-${{ matrix.os }}
+          name: installers-${{ runner.os }}
           path: |
-            dist/*.exe
-            dist/*.zip
-            dist/*.dmg
-            dist/*.AppImage
-            dist/*.deb
+            dist/LionAxon-Setup.exe
+            dist/LionAxon-win-x64.zip
+            dist/LionAxon-mac-universal.dmg
+            dist/LionAxon-x86_64.AppImage
+            dist/lionaxon_amd64.deb
+            dist/lionaxon.x86_64.rpm
           if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: installers-*
+          path: release
+          merge-multiple: true
+      - name: The tag is the version of package.json
+        if: startsWith(github.ref, 'refs/tags/')
+        run: test "v$(node -p "require('./package.json').version")" = "${GITHUB_REF_NAME}"
+      - run: node tools/make-release.mjs release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release
+          path: release/*
       - if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          draft: true
+          name: LionAxon ${{ github.ref_name }}
+          body_path: release/RELEASE-NOTES.md
+          fail_on_unmatched_files: true
           files: |
-            dist/*.exe
-            dist/*.zip
-            dist/*.dmg
-            dist/*.AppImage
-            dist/*.deb
+            release/LionAxon-Setup.exe
+            release/LionAxon-win-x64.zip
+            release/LionAxon-mac-universal.dmg
+            release/LionAxon-x86_64.AppImage
+            release/lionaxon_amd64.deb
+            release/lionaxon.x86_64.rpm
+            release/manifest.txt
+            release/SHA256SUMS.txt

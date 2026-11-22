@@ -2,6 +2,21 @@
 
 All notable changes to LionAxon are documented here. The project follows [Semantic Versioning](https://semver.org).
 
+## [0.9.1] — 2026-11-22
+
+Installers, and the links to download them.
+
+### Added
+- **Installers for each version**, built by the release workflow on Windows, macOS and Linux machines when a version tag is pushed, and published in the release: `LionAxon-Setup.exe` (setup wizard) and `LionAxon-win-x64.zip` (portable), `LionAxon-mac-universal.dmg`, `lionaxon_amd64.deb`, `lionaxon.x86_64.rpm` and `LionAxon-x86_64.AppImage`. The names are fixed, so `releases/latest/download/<name>` always brings the latest version. Every installer holds the whole app.
+- **Download buttons and a Download section in the README** (English and Portuguese), with how to install on each system and what the first-launch warnings mean.
+- `manifest.txt`, `SHA256SUMS.txt` and the release notes (the section of the version in this changelog) are written by `tools/make-release.mjs` and published with the installers. The app's *Check now* reads `manifest.txt`, so it starts working with the first published release.
+
+### Changed
+- The release is published at once (it was a draft), and only if the tag is the version of `package.json`.
+
+### Notes
+- The installers are not signed. They have not been built or tried on real machines before this version: the first run of the workflow is the first test.
+
 ## [0.9.0] — 2026-11-21
 
 Reaching what is behind, and writing labels where they are.
