@@ -180,7 +180,7 @@ export class CommandService {
   // ---- lock, hide, align
 
   /** Locks or unlocks objects (the selection by default): a locked object is not picked or moved in the drawing. */
-  setLocked(locked, ids = [...this.doc.selection]) { this.setProps({ locked: !!locked }, ids); if (locked) this.doc.clearSelection(); }
+  setLocked(locked, ids = [...this.doc.selection]) { this.setProps({ locked: !!locked }, ids); }
   setHidden(hidden, ids = [...this.doc.selection]) { this.setProps({ hidden: !!hidden }, ids); }
 
   /** Shows and unlocks everything in the step. */
@@ -193,6 +193,37 @@ export class CommandService {
    * Lines the selected objects up in plan. `how`: 'left' | 'centerX' | 'right' (along X) or 'bottom' |
    * 'centerY' | 'top' (along Y), against the bounds of the whole selection.
    */
+  /**
+   * Moves an object by [dx, dy, dz] to bring one of its faces into the plane of another (the align tool).
+   * Volumes standing on it go along on the ground. Returns true, or why not: 'locked', 'stacked' (a volume that
+   * stands on another cannot change its height), 'nothing' (the faces are already in the same plane).
+   */
+  alignFace(id, [dx, dy, dz]) {
+    const o = this.doc.byId(id);
+    if (!o) return 'nothing';
+    if (o.locked) return 'locked';
+    if (Math.abs(dx) + Math.abs(dy) + Math.abs(dz) < 1e-6) return 'nothing';
+    if (Math.abs(dz) > 1e-6 && o.type === 'volume' && o.on) return 'stacked';
+    const round = (v) => Math.round(v * 1000) / 1000;
+    // on the ground, what stands on it moves with it
+    const ids = new Set([id]);
+    let grew = Math.abs(dx) + Math.abs(dy) > 1e-6;
+    while (grew) {
+      grew = false;
+      for (const v of this.doc.objects) if (v.type === 'volume' && v.on && ids.has(v.on) && !ids.has(v.id)) { ids.add(v.id); grew = true; }
+    }
+    this.doc.run('object.align', (_p, step) => {
+      for (const x of step.objects) {
+        if (!ids.has(x.id)) continue;
+        x.x = round(x.x + dx); x.y = round(x.y + dy);
+        if (x.id !== id || Math.abs(dz) < 1e-6) continue;
+        if (x.type === 'slope') { x.zFrom = round(x.zFrom + dz); x.zTo = round(x.zTo + dz); } else x.z = round((x.z || 0) + dz);
+      }
+      return [id];
+    });
+    return true;
+  }
+
   alignSelection(how) {
     const sel = this.doc.selected().filter((o) => boundsOf(o));
     if (sel.length < 2) return;
@@ -252,7 +283,7 @@ export class CommandService {
   }
 
   nudge(dx, dy) {
-    const sel = this.doc.selected();
+    const sel = this.doc.selected().filter((o) => !o.locked);
     if (!sel.length) return;
     this.doc.run('object.nudge', (_p, step) => {
       const ids = withStacked(step, sel.map((o) => o.id));
@@ -266,7 +297,7 @@ export class CommandService {
 
   /** Turns the selected volumes, cuts, platforms and slopes; what is stacked on them turns with them. */
   rotateSelection(deg) {
-    const sel = this.doc.selected().filter((o) => ROTATABLE.has(o.type));
+    const sel = this.doc.selected().filter((o) => ROTATABLE.has(o.type) && !o.locked);
     if (!sel.length) return;
     this.doc.run('object.rotate', (_p, step) => {
       const byId = new Map(step.objects.map((o) => [o.id, o]));

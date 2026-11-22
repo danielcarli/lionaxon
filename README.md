@@ -13,7 +13,7 @@ Simple to learn in an afternoon. The same app on Windows, macOS and Linux. Free.
 
 **English** · [Português (Brasil)](docs/README.pt-BR.md)
 
-![Version 0.10.0](https://img.shields.io/badge/version-0.10.0-23272b)
+![Version 0.12.0](https://img.shields.io/badge/version-0.12.0-23272b)
 ![Experimental](https://img.shields.io/badge/status-experimental-b5532d)
 ![Platforms: Windows, macOS, Linux](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-23272b)
 ![10 languages](https://img.shields.io/badge/languages-10-d0673f)
@@ -45,7 +45,7 @@ Every architecture project starts with the same question: *why does the building
 
 ### Simple
 
-Nine tools and one idea: *each step is a copy of the one before; change only what that step tells.* What changed takes the accent colour by itself. No layers, no cameras, no render settings.
+Ten tools and one idea: *each step is a copy of the one before; change only what that step tells.* What changed takes the accent colour by itself. No layers, no cameras, no render settings.
 
 </td>
 <td width="33%" valign="top">
@@ -79,6 +79,7 @@ Free software (GPL-3.0). No account, no subscription, no telemetry, and it works
 **Tell the story**
 - **Steps** with title and text, reordered by dragging; changes applied to the following steps with one click; signs between steps (+ − = →).
 - **Categories** with colour *and* hatch (circulation, stair core, theatre…), so the legend reads in grey print and for people who do not tell colours apart.
+- **Align faces** (`L`): click the face to align to, then the face of another shape, and it moves until the two lie in the same plane — sides with sides, tops with tops.
 - **Arrows, people, labels, dimension lines and trees** — people at their real height, to give the scale. Double-click a label to write its text right on the drawing.
 
 **Shape the site**
@@ -118,6 +119,10 @@ Free software (GPL-3.0). No account, no subscription, no telemetry, and it works
 <td><img src="docs/screenshots/sheet-blocks.png" alt="A sheet with text blocks on the right and the legend along the foot"><br><sub>Text blocks and the legend along the foot</sub></td>
 </tr>
 <tr>
+<td><img src="docs/screenshots/align-faces.png" alt="The align tool: one face picked, another about to come to it"><br><sub>Align faces: the reference, then the face that comes to it</sub></td>
+<td><img src="docs/screenshots/pick-behind.png" alt="Tab picks the volume behind another"><br><sub><code>Tab</code> reaches what is behind</sub></td>
+</tr>
+<tr>
 <td><img src="docs/screenshots/hatches.png" alt="Categories with hatches"><br><sub>Categories with colour and hatch</sub></td>
 <td><img src="docs/screenshots/dark.png" alt="The dark theme"><br><sub>Light and dark themes</sub></td>
 </tr>
@@ -130,7 +135,7 @@ Free software (GPL-3.0). No account, no subscription, no telemetry, and it works
 | **Systems** | Windows 10 and 11 · macOS · Linux — the same interface, the same shortcuts, the same files |
 | **Languages** | English · Português (Brasil) · Português (Portugal) · Español · Français · Deutsch · Italiano · 简体中文 · 日本語 · 한국어 — the app follows the system language, or the one you pick in the status bar |
 | **Files** | One `.lionaxon` file per project: readable JSON, a few kilobytes, with any image underneath kept inside |
-| **Offline** | Everything works without a network. The only connection is the version check, and only when you ask for it |
+| **Offline** | Everything works without a network. The only connections are the version check and the update, and only when you click |
 
 The examples that come with the app are in English and Portuguese; in the languages other than these two they open in English. The translations other than English and Brazilian Portuguese were made without native review yet: corrections are welcome.
 
@@ -144,7 +149,7 @@ Download the installer for your system. The links always bring the **latest vers
 
 > The installers are not signed with a paid certificate yet. On first launch, Windows may show "Windows protected your PC" (**More info › Run anyway**) and macOS asks you to allow the app in **System Settings › Privacy & Security › Open Anyway**. The checksums of every file are in [`SHA256SUMS.txt`](https://github.com/danielcarli/lionaxon/releases/latest/download/SHA256SUMS.txt).
 
-LionAxon is **experimental** (version 0.10): it already makes a whole parti diagram and exports it, but the file format and the behaviour may still change before 1.0. To know whether there is a newer version, click the version number in the bottom-right corner of the app.
+LionAxon is **experimental** (version 0.12): it already makes a whole parti diagram and exports it, but the file format and the behaviour may still change before 1.0. **Updating from the app.** Click the version number in the bottom-right corner, then *Check now*: if there is a newer version, *Update now* downloads the installer of your copy (the setup wizard, the `.dmg`, the AppImage, the `.deb` or the `.rpm`), checks its SHA-256 against the release and opens it. Both steps happen only when you click.
 
 The installers are built by GitHub Actions for each version tag (`.github/workflows/release.yml`), on Windows, macOS and Linux machines, from the code of this repository.
 
@@ -171,6 +176,7 @@ The app opens on a start screen with six examples — from the five-step parti t
 |---|---|
 | `V` `B` `S` `G` `A` `P` `T` | Select · volume · subtract · terrain · arrow · person · label |
 | `D` · `E` | Dimension line · tree |
+| `L` | Align faces: the face to align to, then the face to bring to it |
 | `Enter` · double-click | End an outline drawn point by point |
 | `N` | New reference plane (in the elevation) |
 | `Delete` · `Ctrl+D` | Delete · duplicate the selection |
@@ -259,7 +265,7 @@ src/
   platform/              main-process services
     project/             open and save .lionaxon files, examples, recovery copy
     export/              write SVG and PNG, print the PDF (hidden window, fonts embedded)
-    update/ · nls/       version check (only when asked), i18n for the main process
+    update/ · nls/       version check and update with the installer of each system (only when asked), i18n for the main process
   code/
     electron-main/       entry point: window, app:// protocol, service wiring
     electron-sandbox/    preload bridge
@@ -280,7 +286,7 @@ tools/                   tests, the inspector, the example builder
 
 Security: `contextIsolation` and `sandbox` on, no `nodeIntegration`, a strict Content Security Policy. The main process only writes where the person chose in a native dialog, or to the file they opened.
 
-Privacy: no account, no telemetry. LionAxon uses the network only when you click the version (bottom-right corner) and press *Check now*.
+Privacy: no account, no telemetry. LionAxon uses the network only when you click the version (bottom-right corner) and press *Check now* or *Update now*.
 
 ## Development
 
@@ -299,6 +305,8 @@ Code, comments, identifiers and documentation are in English. The interface is t
 
 ## Roadmap
 
+- **0.12** ✓ — updating from the app, with the installer of each system; locked objects can be picked to be unlocked; panes keep their scroll.
+- **0.11** ✓ — the align tool: one face brought into the plane of another.
 - **0.10** ✓ — openings on the walls; ridge direction and roof colour; own colours; paved floors with joints; arrows between levels; notes and marks on labels; text blocks and the legend along the foot on the sheet; flat areas now show over a site with thickness.
 - **0.9** ✓ — `Tab` picks the object behind another; the text of a label written on the drawing.
 - **0.8** ✓ — the interface in ten languages; editing in the 3D viewer (select, move, heights) inside a frame of its own; code identifiers all in English, with old files still opening.
@@ -310,7 +318,7 @@ Code, comments, identifiers and documentation are in English. The interface is t
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) — current version: **0.10.0**.
+See [CHANGELOG.md](CHANGELOG.md) — current version: **0.12.0**.
 
 ## Credits
 

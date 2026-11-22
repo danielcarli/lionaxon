@@ -51,6 +51,8 @@ contextBridge.exposeInMainWorld('host', {
   // new versions (the app's only network access, and only when asked)
   update: {
     check: () => ipcRenderer.invoke('update:check'),
+    install: () => ipcRenderer.invoke('update:install'),
+    onProgress: on('update:progress'),
     openReleasePage: () => ipcRenderer.invoke('update:openReleasePage'),
   },
 });

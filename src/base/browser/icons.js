@@ -56,6 +56,7 @@ const paths = {
   poly: '<path d="M5 6.5h8.5v5H19V19H5z"/>',
   area: '<path d="M3 16.5l7-4 11 4-7 4z"/><path d="M8.2 14.5l8.6 3.2" stroke-dasharray="2 2"/>',
   tree: '<path d="M12 21v-7"/><circle cx="12" cy="9" r="5.5"/><path d="M12 15.5l2.5-2.5"/>',
+  alignFaces: '<path d="M12 3v18"/><path d="M4 6h8v5H4z"/><path d="M12 13h6v5h-6z" stroke-dasharray="2 2"/><path d="M20 15.5h-1.5"/>',
   door: '<path d="M6 20V9a6 6 0 0 1 12 0v11"/><path d="M4 20h16"/>',
   dim: '<path d="M4 8v10M20 8v10M4 13h16"/><path d="M6.5 10.5L4 13l2.5 2.5M17.5 10.5L20 13l-2.5 2.5"/>',
   sunIcon: '<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/>',

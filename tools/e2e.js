@@ -35,6 +35,26 @@ process.env.LIONAXON_WIDTH = '1440';
 process.env.LIONAXON_HEIGHT = '900';
 fs.mkdirSync(process.env.LIONAXON_TEST_DIR, { recursive: true });
 
+// a local "release" for the update test: a manifest and one installer, which can be served tampered with
+const http = require('http');
+const crypto = require('crypto');
+const RELEASE = { port: 21000 + (process.pid % 20000), hits: [], tampered: false, installer: crypto.randomBytes(300000) };
+RELEASE.manifest = `version=99.0.0\nfile=LionAxon-x86_64.AppImage sha256=${crypto.createHash('sha256').update(RELEASE.installer).digest('hex')} size=${RELEASE.installer.length}\n`;
+http.createServer((req, res) => {
+  RELEASE.hits.push(req.url);
+  if (req.url === '/manifest.txt') { res.writeHead(200, { 'Content-Type': 'text/plain' }); res.end(RELEASE.manifest); return; }
+  if (req.url === '/LionAxon-x86_64.AppImage') {
+    const body = Buffer.from(RELEASE.installer);
+    if (RELEASE.tampered) body[1000] ^= 0xff;
+    res.writeHead(200, { 'Content-Length': body.length });
+    res.end(body);
+    return;
+  }
+  res.writeHead(404); res.end();
+}).listen(RELEASE.port, '127.0.0.1').unref();
+process.env.LIONAXON_UPDATE_BASE = `http://127.0.0.1:${RELEASE.port}`;
+process.env.LIONAXON_UPDATE_KIND = 'linux-appimage';
+
 const { app, BrowserWindow } = require('electron');
 app.commandLine.appendSwitch('lang', LANG);
 require(path.join(ROOT, 'src', 'code', 'electron-main', 'main.js'));
@@ -297,6 +317,9 @@ async function phase1(win, js) {
   await cycle08(win, js);
   await labelEdit08(win, js);
   await features10(win, js);
+  await alignFaces11(win, js);
+  await fixes12(win, js);
+  await update12(win, js);
 
   // ---- leave unsaved work behind for phase 2
   await js(`${S}.document.switchTo(${S}.document.tabs.findIndex((t) => t.project.name === 'E2E test')); true`);
@@ -495,9 +518,11 @@ async function usability06(win, js) {
   await key(win, 'Escape');
   await right(await P([10, 10, 0]));
   check('the right button opens the menu of the object (and selects it)', await js(`!!document.querySelector('.context-menu') && document.querySelectorAll('.context-menu .menu-entry').length >= 9`) && JSON.stringify(await ids()) === '["a"]');
-  check('picking Lock locks it', await pick('Ctrl+L') && (await obj('a')).locked === true && (await ids()).length === 0 && !(await js(`!!document.querySelector('.context-menu')`)));
-  await click(win, await P([10, 10, 0]));
-  check('a locked object is not picked in the drawing', (await ids()).length === 0);
+  check('picking Lock locks it (it stays selected, to be unlocked)', await pick('Ctrl+L') && (await obj('a')).locked === true && JSON.stringify(await ids()) === '["a"]' && !(await js(`!!document.querySelector('.context-menu')`)));
+  await key(win, 'Escape');
+  await drag(win, await P([10, 10, 0]), await P([14, 10, 0]), 6);
+  check('a locked object is not moved in the drawing', (await obj('a')).x === 10);
+  await key(win, 'Escape');
   await key(win, 'A', ['control']);
   check('…nor by Select all', JSON.stringify((await ids()).sort()) === '["b","c"]');
   await key(win, 'Escape');
@@ -1303,6 +1328,144 @@ async function features10(win, js) {
 }
 
 // ---------------------------------------------------------------------------------------------
+// 0.11: the align tool — the face to align to, then the face of another shape, which moves into its plane
+
+async function alignFaces11(win, js) {
+  const D = `${S}.document`, C = `${S}.commands`, V = 'window.lionaxon.views.axon';
+  await js(`${C}.newProject(); true`);
+  await sleep(400);
+  await js(`${S}.layout.setTab('axon'); true`);
+  const add = (o) => js(`(async () => { const m = await import('../services/model/common/model.js'); const o = m.normalizeObject(${JSON.stringify(o)}); ${D}.run('object.add', (_p, step) => { step.objects.push(o); return []; }); return o.id; })()`);
+  await add({ type: 'volume', id: 'v-a', x: 10, y: 10, w: 8, d: 6, h: 6 });   // x 6..14, y 7..13
+  await add({ type: 'volume', id: 'v-b', x: 21, y: 12.5, w: 6, d: 4, h: 3 }); // x 18..24, y 10.5..14.5
+  await add({ type: 'volume', id: 'v-top', x: 21, y: 12.5, w: 2, d: 2, h: 2, on: 'v-b' });
+  await add({ type: 'volume', id: 'v-rot', x: 30, y: 24, w: 6, d: 4, h: 3, rot: 30 });
+  await sleep(300);
+  await js(`${V}.fit(); true`);
+  await sleep(400);
+  // a point of a face on the screen: the middle of the wall of a box that looks to the front (−y) or to the right (+x), or of its top
+  const at = (id, which) => js(`(async () => { const p = await import('../../base/common/geometry/projection.js'); const v = ${V}, o = ${D}.byId('${id}'); const e = v.extentOf(o);
+    const w = ${JSON.stringify(which)} === 'front' ? [o.x, o.y - o.d / 2, (e.z0 + e.z1) / 2] : ${JSON.stringify(which)} === 'right' ? [o.x + o.w / 2, o.y, (e.z0 + e.z1) / 2] : [o.x, o.y, e.z1];
+    return JSON.stringify(v.clientAt(p.project(v.view, w))); })()`).then(JSON.parse);
+  const pos = (id) => js(`JSON.stringify((() => { const o = ${D}.byId('${id}'); return [o.x, o.y, o.z, o.w, o.d, o.h]; })())`).then(JSON.parse);
+  await key(win, 'L');
+  await sleep(200);
+  check('align: L takes the tool, with its hint', await js(`${S}.layout.tool === 'align' && /face/i.test(document.querySelector('.status-hint').textContent) && !!document.querySelector('[data-view=axon] .toolbar [data-tool=align], [data-view=axon] .toolbar button[aria-pressed=true]')`));
+  // the front wall of A is the reference; the front wall of B comes to it
+  await click(win, await at('v-a', 'front'));
+  await sleep(250);
+  check('align: the first click marks the face to align to; nothing moves', await js(`!!document.querySelector('[data-view=axon] .align-ref')`) && JSON.stringify(await pos('v-b')) === JSON.stringify([21, 12.5, 0, 6, 4, 3]));
+  await click(win, await at('v-b', 'front'));
+  await sleep(300);
+  let b = await pos('v-b');
+  check('align: the second click brings that face into the same plane (it moves straight, keeps its size)', b[0] === 21 && Math.abs(b[1] - b[4] / 2 - 7) < 1e-6 && b[3] === 6 && b[4] === 4, JSON.stringify(b));
+  check('align: what stands on it goes along', (await pos('v-top'))[1] === b[1]);
+  check('align: the reference did not move, and the tool waits for a new one', JSON.stringify((await pos('v-a')).slice(0, 2)) === '[10,10]' && await js(`!document.querySelector('[data-view=axon] .align-ref') && ${S}.layout.tool === 'align'`));
+  await key(win, 'Z', ['control']);
+  await sleep(200);
+  check('align: one undo takes it back', (await pos('v-b'))[1] === 12.5 && (await pos('v-top'))[1] === 12.5);
+  // tops: B rises to the height of A
+  await click(win, await at('v-a', 'top'));
+  await click(win, await at('v-b', 'right'));
+  await sleep(300);
+  check('align: a top and a side are not parallel — nothing moves, and it says so', JSON.stringify(await pos('v-b')) === JSON.stringify([21, 12.5, 0, 6, 4, 3]) && await js(`!!document.querySelector('.notification, .toast')`));
+  // (the tower on B hides its top: align the right wall of B to the right wall of A instead, then tops with the rotated box)
+  await key(win, 'Escape');
+  await key(win, 'L');
+  await click(win, await at('v-a', 'right'));
+  await click(win, await at('v-b', 'right'));
+  await sleep(300);
+  b = await pos('v-b');
+  check('align: right walls: B slides along x until they are flush', Math.abs(b[0] + b[3] / 2 - 14) < 1e-6 && b[1] === 12.5, JSON.stringify(b));
+  await click(win, await at('v-a', 'top'));
+  await click(win, await at('v-rot', 'top'));
+  await sleep(300);
+  const r = await pos('v-rot');
+  check('align: tops: the other shape is raised until its top is level with the reference', r[2] + r[5] === 6 && r[0] === 30 && r[1] === 24, JSON.stringify(r));
+  await click(win, await at('v-a', 'front'));
+  await click(win, await at('v-rot', 'top'));
+  await sleep(200);
+  check('align: a turned box keeps its place when its faces are not parallel to the reference', JSON.stringify((await pos('v-rot')).slice(0, 3)) === JSON.stringify(r.slice(0, 3)));
+  check('align: a volume standing on another cannot have its top aligned', await js(`${C}.alignFace('v-top', [0, 0, 1])`) === 'stacked' && await js(`${C}.setProps({ locked: true }, ['v-b']); ${C}.alignFace('v-b', [1, 0, 0])`) === 'locked');
+  await key(win, 'Escape');
+  await sleep(150);
+  check('align: Esc goes back to selecting', await js(`${S}.layout.tool === 'select' && !document.querySelector('[data-view=axon] .align-ref, [data-view=axon] .align-hover')`));
+}
+
+// ---------------------------------------------------------------------------------------------
+// 0.12: a locked object can be picked to be unlocked; a pane keeps its scroll; updating from the app
+
+async function fixes12(win, js) {
+  const D = `${S}.document`, C = `${S}.commands`, V = 'window.lionaxon.views.axon';
+  await js(`${C}.newProject(); true`);
+  await sleep(400);
+  await js(`${S}.layout.setTab('axon'); ${S}.layout.setTool('select'); true`);
+  await js(`(async () => { const m = await import('../services/model/common/model.js'); const o = m.normalizeObject({ type: 'platform', id: 'g-p', x: 14, y: 14, w: 12, d: 10, z: 2 }); ${D}.run('object.add', (_p, step) => { step.objects.push(o); return ['g-p']; }); return true; })()`);
+  await sleep(300);
+  await js(`${V}.fit(); true`);
+  await sleep(300);
+  const at = await js(`(async () => { const p = await import('../../base/common/geometry/projection.js'); return JSON.stringify(${V}.clientAt(p.project(${V}.view, [14, 14, 2]))); })()`).then(JSON.parse);
+  await js(`document.querySelector('.properties .name-row .icon-button').click(); true`);
+  await sleep(250);
+  check('lock: the padlock of the panel locks a platform; it stays selected, without handles, and says so', await js(`${D}.byId('g-p').locked === true && ${D}.selection.has('g-p') && !document.querySelector('[data-view=axon] [data-handle]') && !!document.querySelector('.properties .locked-note [data-action=unlock]')`));
+  await key(win, 'Escape');
+  await sleep(150);
+  await click(win, at);
+  await sleep(250);
+  check('lock: a click on the locked platform selects it again', await js(`${D}.selection.has('g-p') && !!document.querySelector('.properties .locked-note')`));
+  const before = await js(`JSON.stringify([${D}.byId('g-p').x, ${D}.byId('g-p').y])`);
+  await drag(win, at, [at[0] + 80, at[1] + 10], 8);
+  await key(win, 'ArrowRight');
+  await sleep(250);
+  check('lock: …but a drag or the arrows do not move it', await js(`JSON.stringify([${D}.byId('g-p').x, ${D}.byId('g-p').y])`) === before);
+  await click(win, at);
+  await sleep(200);
+  await js(`document.querySelector('.properties .locked-note [data-action=unlock]').click(); true`);
+  await sleep(250);
+  check('lock: "Unlock" in the panel frees it, and the handles are back', await js(`!${D}.byId('g-p').locked && !document.querySelector('.properties .locked-note') && !!document.querySelector('[data-view=axon] [data-handle]')`));
+
+  // a pane keeps its place when what it shows is rebuilt
+  await js(`${S}.layout.setActivity('project'); true`);
+  await sleep(400);
+  const scroll = await js(`(() => { const b = [...document.querySelectorAll('.sidebar .pane-body')].find((e) => e.offsetParent && e.scrollHeight > e.clientHeight + 40); if (!b) return null; b.scrollTop = b.scrollHeight; return b.scrollTop; })()`);
+  await js(`(() => { const b = [...document.querySelectorAll('.sidebar .style-card, .sidebar [data-style]')]; b[b.length - 2].click(); return true; })()`);
+  await sleep(500);
+  const after = await js(`[...document.querySelectorAll('.sidebar .pane-body')].find((e) => e.offsetParent && e.scrollHeight > e.clientHeight + 40)?.scrollTop`);
+  check('pane: choosing a drawing style does not throw the project pane back to its top', scroll > 100 && Math.abs(after - scroll) < 40, JSON.stringify([scroll, after]));
+  await js(`${S}.layout.setActivity('steps'); true`);
+}
+
+async function update12(win, js) {
+  const U = `${S}.update`;
+  const { installKind, parseManifest } = require(path.join(ROOT, 'src', 'platform', 'update', 'electron-main', 'updateMainService.js'));
+  const probe = (o) => installKind({ platform: 'linux', packaged: true, exePath: '/opt/LionAxon/lionaxon', env: {}, exists: () => false, ...o });
+  check('update: each kind of copy is told apart', installKind({ packaged: false }) === 'source'
+    && probe({ platform: 'win32', exePath: 'C:\\Program Files\\LionAxon\\LionAxon.exe', exists: (p) => /Uninstall LionAxon\.exe$/.test(p) }) === 'win-setup'
+    && probe({ platform: 'win32', exePath: 'D:\\apps\\LionAxon\\LionAxon.exe' }) === 'portable'
+    && probe({ platform: 'darwin' }) === 'mac-dmg' && probe({ env: { APPIMAGE: '/home/a/LionAxon.AppImage' } }) === 'linux-appimage'
+    && probe({ exists: (p) => p === '/var/lib/dpkg/info/lionaxon.list' }) === 'linux-deb' && probe({ exists: (p) => p === '/var/lib/rpm' }) === 'linux-rpm' && probe({}) === 'portable');
+  check('update: the manifest gives the version and each file with its checksum', parseManifest(RELEASE.manifest).files.get('LionAxon-x86_64.AppImage').size === 300000 && parseManifest('hello') === null);
+  check('update: nothing went to the network before the click', RELEASE.hits.length === 0, RELEASE.hits.join(' '));
+  await js(`document.querySelector('.status-version').click(); true`);
+  await sleep(1300);
+  check('update: opening the window asks nothing either', RELEASE.hits.length === 0 && await js(`!!document.querySelector('.update-dialog') && !document.querySelector('.update-dialog [data-action=update-now]')`));
+  await js(`${U}.check().then(() => true)`);
+  await sleep(300);
+  check('update: "Check now" finds the new version and offers to update this copy', RELEASE.hits.join() === '/manifest.txt' && await js(`${U}.status === 'available' && ${U}.info.latest === '99.0.0' && ${U}.info.canInstall && !!document.querySelector('.update-dialog [data-action=update-now]') && !!document.querySelector('.update-dialog .update-how')`));
+  const file = path.join(process.env.LIONAXON_TEST_DIR, 'LionAxon-x86_64.AppImage.new');
+  RELEASE.tampered = true;
+  await js(`document.querySelector('.update-dialog [data-action=update-now]').click(); true`);
+  for (let i = 0; i < 40 && await js(`${U}.status === 'downloading'`); i++) await sleep(150);
+  check('update: a file that is not the one of the release is discarded, and the window says so', await js(`${U}.status === 'failed' && ${U}.result.error === 'checksum' && !!document.querySelector('.update-dialog [data-action=update-now]')`) && !fs.existsSync(file) && !fs.existsSync(file + '.part'));
+  RELEASE.tampered = false;
+  await js(`document.querySelector('.update-dialog [data-action=update-now]').click(); true`);
+  for (let i = 0; i < 40 && await js(`${U}.status === 'downloading'`); i++) await sleep(150);
+  check('update: the right file is kept, checked, and the window says what happens next', await js(`${U}.status === 'ready' && ${U}.result.how === 'appimage' && ${U}.progress.received === 300000 && /again/i.test(document.querySelector('.update-dialog [data-status=ready]').textContent)`) && fs.existsSync(file) && fs.readFileSync(file).equals(RELEASE.installer));
+  await js(`document.querySelector('.update-dialog .btn-secondary').click(); true`);
+  await sleep(300);
+}
+
+// ---------------------------------------------------------------------------------------------
 // screenshots for the README
 
 async function shots(win, js) {
@@ -1500,6 +1663,35 @@ async function shots(win, js) {
     : [{ title: 'Strategy', text: 'The house follows the two streets and opens the back of the lot to the garden.' }, { title: 'Assessment', text: '+ Winter sun in the garden.\n+ The garage closes the yard.\n− Less area on the ground floor.' }])));
   await sleep(900);
   await shot('sheet-blocks.png');
+  // 0.11: the align tool, with the face to align to picked and the mouse over the face that will come to it
+  await js(`${S}.commands.example('parti').then(() => true)`);
+  await sleep(500);
+  await js(`${S}.document.setStep(1); ${S}.layout.setTab('axon'); ${S}.layout.setActivity('steps'); true`);
+  await sleep(300);
+  await js(`window.lionaxon.views.axon.fit(); ${S}.layout.setTool('align'); true`);
+  await sleep(400);
+  {
+    const mid = (id, which) => js(`(async () => { const p = await import('../../base/common/geometry/projection.js'); const v = window.lionaxon.views.axon, o = ${S}.document.byId('${id}'); const e = v.extentOf(o);
+      const w = '${which}' === 'front' ? [o.x, o.y - o.d / 2, (e.z0 + e.z1) / 2] : [o.x + o.w / 2, o.y, (e.z0 + e.z1) / 2]; return JSON.stringify(v.clientAt(p.project(v.view, w))); })()`).then(JSON.parse);
+    await click(win, await mid('v-east', 'front'));
+    await sleep(200);
+    await mouse(win, 'mouseMove', await mid('v-link-e', 'front'));
+    await sleep(300);
+    win.webContents.invalidate();
+    await sleep(300);
+    await shot('align-faces.png');
+    await key(win, 'Escape');
+  }
+  // 0.12: the versions window with a new version found and the way this copy is updated
+  await js(`document.querySelector('.status-version').click(); true`);
+  await sleep(1300);
+  await js(`${S}.update.check().then(() => true)`);
+  await sleep(500);
+  win.webContents.invalidate();
+  await sleep(300);
+  await shot('update.png');
+  await js(`document.querySelector('.update-dialog .btn-secondary').click(); true`);
+  await sleep(300);
   check('screenshots written', fs.existsSync(path.join(dir, 'sheet.png')));
 }
 

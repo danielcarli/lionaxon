@@ -19,8 +19,11 @@ const problems = [];
 // keys used with a literal string, plus the families built at run time
 const used = new Set();
 const dynamic = {
-  'tool.': ['select', 'box', 'cut', 'terrain', 'arrow', 'person', 'label', 'tree', 'dim'],
-  'tool.hint.': ['select', 'box', 'cut', 'terrain', 'arrow', 'person', 'label', 'tree', 'dim', 'site', 'poly'],
+  'tool.': ['select', 'box', 'cut', 'terrain', 'arrow', 'person', 'label', 'tree', 'dim', 'align'],
+  'update.how.': ['win-setup', 'mac-dmg', 'linux-appimage', 'linux-deb', 'linux-rpm', 'page'],
+  'update.ready.': ['wizard', 'dmg', 'appimage', 'package'],
+  'alignFaces.': ['notParallel', 'locked', 'stacked', 'nothing'],
+  'tool.hint.': ['select', 'box', 'cut', 'terrain', 'arrow', 'person', 'label', 'tree', 'dim', 'site', 'poly', 'align'],
   'roof.': ['flat', 'gable', 'shed', 'hip'],
   'area.': ['street', 'green', 'water', 'paving'],
   'tree.': ['round', 'conifer'],

@@ -51,8 +51,14 @@ export function clear(el) {
 
 /** Replaces all children (accepts nested arrays and ignores null/false). */
 export function setChildren(el, ...children) {
+  // rebuilding what a scrolled pane shows must not throw the person back to its top: an emptied element
+  // loses its scroll, so the place of each scrolled ancestor (and of the element itself) is kept and put back
+  const scrolled = [];
+  for (let n = el; n && n.nodeType === 1 && n !== document.body; n = n.parentElement) if (n.scrollTop || n.scrollLeft) scrolled.push([n, n.scrollTop, n.scrollLeft]);
   clear(el);
-  return append(el, children);
+  append(el, children);
+  for (const [n, top, left] of scrolled) { n.scrollTop = top; n.scrollLeft = left; }
+  return el;
 }
 
 export function cssVar(name, el = document.documentElement) {

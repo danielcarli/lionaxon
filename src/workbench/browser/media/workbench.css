@@ -598,3 +598,13 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 4px; }
 .opening-add { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .sheet-block { display: grid; gap: 4px; padding: 8px; border: 1px solid var(--border); border-radius: 8px; }
 .sheet-block-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px; align-items: center; }
+
+/* the installer of a new version on its way */
+.update-progress { height: 6px; border-radius: 3px; background: var(--bg-subtle); overflow: hidden; margin: 8px 0 4px; }
+.update-progress > span { display: block; height: 100%; background: var(--accent); transition: width 0.15s linear; }
+
+/* a locked object says so at the top of its form */
+.locked-note { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 7px 9px; margin: 2px 0 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-subtle); font-size: 12.5px; color: var(--text-secondary, var(--text-muted)); }
+.locked-note > span:first-child { display: inline-flex; color: var(--accent); }
+.update-dialog .cm-actions { flex-wrap: wrap; }
+.update-dialog .cm-actions .btn { white-space: nowrap; }

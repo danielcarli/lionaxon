@@ -214,7 +214,8 @@ export class OrbitView {
     if (e.target.closest?.('[data-handle]')) return { handle: 'h' };
     const el = e.target.closest?.('[data-id]');
     const o = el ? this.doc.byId(el.dataset.id) : null;
-    return o && !o.locked ? { id: this.cycle.resolve(o.id) } : {};
+    if (o?.locked) return { locked: o.id };
+    return o ? { id: this.cycle.resolve(o.id) } : {};
   }
 
   /** The selected objects and the volumes standing on them, as they are now. */
@@ -353,7 +354,7 @@ export class OrbitView {
         if (this.doc.selection.has(hit.id)) { this.drag = { ...base, kind: 'move', id: hit.id, start: this.#group(), moved: false }; this.canvas.classList.add('editing'); }
         return;
       }
-      this.drag = { ...base, kind: pan ? 'pan' : 'orbit' };
+      this.drag = { ...base, kind: pan ? 'pan' : 'orbit', lockedId: hit.locked || null };
       this.canvas.classList.add(pan ? 'panning' : 'orbiting');
     });
     svg.addEventListener('pointermove', (e) => this.#move(e));
@@ -362,7 +363,11 @@ export class OrbitView {
       const d = this.drag;
       if ((d?.kind === 'move' || d?.kind === 'height') && d.moved) this.doc.end();
       // a click on the paper (not a drag): nothing is selected any more
-      if (d?.kind === 'orbit' && Math.hypot(e.clientX - d.sx, e.clientY - d.sy) < CLICK_PX && this.doc.selection.size) this.doc.clearSelection();
+      if (d?.kind === 'orbit' && Math.hypot(e.clientX - d.sx, e.clientY - d.sy) < CLICK_PX) {
+        // a click on a locked shape selects it (to unlock it); a click on the paper clears the selection
+        if (d.lockedId && this.doc.byId(d.lockedId)) this.doc.select([d.lockedId]);
+        else if (this.doc.selection.size) this.doc.clearSelection();
+      }
       end();
     });
     svg.addEventListener('pointercancel', () => { if ((this.drag?.kind === 'move' || this.drag?.kind === 'height') && this.drag.moved) this.doc.end(); end(); });

@@ -1,4 +1,4 @@
-# Installers for Windows, macOS and Linux, built by GitHub when a version tag is pushed (v0.10.0…),
+# Installers for Windows, macOS and Linux, built by GitHub when a version tag is pushed (v0.12.0…),
 # or by hand from the Actions tab (then the files are only kept as artifacts of the run).
 # Each system builds its own installers, with fixed names; a last job writes manifest.txt (read by the
 # app when asked to look for a new version), SHA256SUMS.txt and the notes, and publishes the release.
@@ -22,8 +22,8 @@ jobs:
           - { os: ubuntu-latest, args: '--linux AppImage deb rpm --x64' }
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with: { node-version: 22 }
       - if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y rpm
@@ -32,7 +32,7 @@ jobs:
       - run: npx --yes electron-builder@26.18.0 ${{ matrix.args }} --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: installers-${{ runner.os }}
           path: |
@@ -48,10 +48,10 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with: { node-version: 22 }
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           pattern: installers-*
           path: release
@@ -60,7 +60,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         run: test "v$(node -p "require('./package.json').version")" = "${GITHUB_REF_NAME}"
       - run: node tools/make-release.mjs release
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: release
           path: release/*

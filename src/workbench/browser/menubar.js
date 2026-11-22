@@ -71,6 +71,8 @@ export function buildMenus(s) {
         SEP,
         { label: t('align.distributeX'), run: () => cmd.distributeSelection('x'), disabled: () => doc.selection.size < 3 },
         { label: t('align.distributeY'), run: () => cmd.distributeSelection('y'), disabled: () => doc.selection.size < 3 },
+        SEP,
+        { label: t('tool.align'), key: 'L', run: () => { layout.setTab('axon'); layout.setTool('align'); } },
       ] },
       SEP,
       { label: t('edit.rename') + '…', key: 'F2', run: () => s.properties.focus('name'), disabled: () => doc.selection.size !== 1 },

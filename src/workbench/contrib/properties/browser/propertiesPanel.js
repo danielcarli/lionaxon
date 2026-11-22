@@ -76,11 +76,17 @@ export class PropertiesPanel {
 
   /** A name of its own for the object (shown in the lists instead of "Box 3"), and its lock and eye. */
   #nameField(o) {
-    if (o.type === 'label') return null;
-    return h('div.name-row',
+    if (o.type === 'label') return o.locked ? this.#lockedNote(o) : null;
+    return [o.locked ? this.#lockedNote(o) : null, h('div.name-row',
       textField(o.name || '', (v) => this.set({ name: v }), { placeholder: elementName(o, this.doc, true), key: 'name' }),
       h('button.icon-button', { class: o.locked ? 'icon-button on' : 'icon-button', title: o.locked ? t('edit.unlock') : t('edit.lock'), 'aria-pressed': String(!!o.locked), html: icon(o.locked ? 'lock' : 'unlock', 15), onclick: () => this.cmd.setProps({ locked: !o.locked }, [o.id]) }),
-      h('button.icon-button', { class: o.hidden ? 'icon-button on' : 'icon-button', title: o.hidden ? t('edit.show') : t('edit.hide'), 'aria-pressed': String(!!o.hidden), html: icon(o.hidden ? 'eyeOff' : 'eye', 15), onclick: () => this.cmd.setProps({ hidden: !o.hidden }, [o.id]) }));
+      h('button.icon-button', { class: o.hidden ? 'icon-button on' : 'icon-button', title: o.hidden ? t('edit.show') : t('edit.hide'), 'aria-pressed': String(!!o.hidden), html: icon(o.hidden ? 'eyeOff' : 'eye', 15), onclick: () => this.cmd.setProps({ hidden: !o.hidden }, [o.id]) }))];
+  }
+
+  /** A locked object says so at the top of its form, with the way out. */
+  #lockedNote(o) {
+    return h('div.locked-note', h('span', { html: icon('lock', 14) }), h('span', t('edit.lockedNote')),
+      h('button.btn.btn-secondary.btn-sm', { 'data-action': 'unlock', onclick: () => this.cmd.setProps({ locked: false }, [o.id]) }, t('edit.unlock')));
   }
 
   #stepForm() {

@@ -2,6 +2,43 @@
 
 All notable changes to LionAxon are documented here. The project follows [Semantic Versioning](https://semver.org).
 
+## [0.12.0] — 2026-11-22
+
+Updating from the app, as in the other apps of the Lion family, and two things found in use.
+
+### Added
+- **Update now**: in the versions window (the version number, bottom-right corner), after *Check now* finds a newer version, *Update now* downloads the installer of this copy, keeps it only if its SHA-256 and size are the ones of the release's `manifest.txt`, shows the progress and opens it:
+  - Windows, installed by the setup wizard: the new wizard is opened and LionAxon closes to be replaced;
+  - macOS: the `.dmg` goes to Downloads and is opened;
+  - Linux: the AppImage is replaced where it is and LionAxon opens again; the `.deb` or the `.rpm` goes to Downloads and is opened in the system's software installer;
+  - any other copy (the source, the portable `.zip`): the download page, as before.
+  The window says which of these applies before anything is downloaded. Nothing is checked or downloaded on its own: only when the person clicks.
+- A locked object says so at the top of its form, with an **Unlock** button.
+
+### Fixed
+- **A locked object could not be picked again to be unlocked**: a click on it went through to the paper, so its padlock was out of reach (only the right-button menu and the element list could unlock it). A click now selects it — without handles, and it still cannot be dragged, nudged or turned. Locking keeps the selection.
+- **Choosing a drawing style threw the project pane back to its top**, and so did any other change in a scrolled pane: panes now keep their scroll when what they show is rebuilt.
+
+### Notes
+- The update was tested here against a local copy of a release (the check, a tampered download discarded, the right file kept). Opening the real installers on Windows and macOS, and replacing a real AppImage, could not be tried here.
+- The portable `.zip` on Windows is told from the installed copy by the uninstaller that the wizard leaves beside the program.
+
+## [0.11.0] — 2026-11-22
+
+Aligning faces, as the Align tool of BIM programs does.
+
+### Added
+- **Align faces** (`L`, in the toolbar of the drawing and in *Edit › Align*): the first click picks the face to align to, the second the face of another shape, which moves straight until the two lie in the same plane. Upright sides are aligned by sliding on the ground, tops by changing the height of the base. The face picked is filled, the one under the mouse is outlined; after each pair the tool waits for a new reference, and `Esc` goes back to selecting.
+  - It works on volumes (boxes, free outlines, turned or not), subtractions, platforms, slopes (their sides) and flat areas; a locked shape may be the reference.
+  - What stands on a shape goes along with it; one undo takes the move back.
+  - Faces that are not parallel are left alone, with a notice; so is the top of a volume that stands on another (its height comes from the one below) and a locked shape.
+
+### Changed
+- The release and CI workflows use the versions of the GitHub actions made for Node 24 (`checkout@v6`, `setup-node@v6`, `upload-artifact@v6`, `download-artifact@v7`), to end the deprecation warnings. Not run yet.
+
+### Notes
+- Round sides (cylinders) lie in no plane: only their tops can be aligned. The align tool works in the axonometric tab.
+
 ## [0.10.0] — 2026-11-22
 
 What a real design sheet asked for: redoing the eight moves of a theatre's parti showed what was missing.

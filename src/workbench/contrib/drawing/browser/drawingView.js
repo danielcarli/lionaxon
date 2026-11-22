@@ -31,13 +31,14 @@ import { parseNumber } from '../../../browser/widgets.js';
 
 const SEL = '#2f74e8';
 import { PickCycle } from './pickCycle.js';
+import { facesOf, faceAt, alignDelta, ALIGNABLE } from './alignFaces.js';
 const NS = 'http://www.w3.org/2000/svg';
 const r3 = (v) => Math.round(v * 1000) / 1000;
 const escHtml = (x) => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const FONT_UI = "'Plus Jakarta Sans', system-ui, sans-serif";
 
-const TOOLS = ['select', 'box', 'cut', 'terrain', 'arrow', 'dim', 'person', 'tree', 'label'];
-const TOOL_ICONS = { select: 'select', box: 'box', cut: 'cut', terrain: 'terrain', arrow: 'arrow', person: 'person', label: 'text', tree: 'tree', dim: 'dim' };
+const TOOLS = ['select', 'align', 'box', 'cut', 'terrain', 'arrow', 'dim', 'person', 'tree', 'label'];
+const TOOL_ICONS = { select: 'select', box: 'box', cut: 'cut', terrain: 'terrain', arrow: 'arrow', person: 'person', label: 'text', tree: 'tree', dim: 'dim', align: 'alignFaces' };
 export const TOOL_KEYS = { select: 'V', box: 'B', cut: 'S', terrain: 'G', arrow: 'A', person: 'P', label: 'T', tree: 'E', dim: 'D' };
 const SHAPE_ICONS = { box: 'box', cylinder: 'cylinder', sphere: 'sphere', cone: 'cone', pyramid: 'pyramid', poly: 'poly' };
 const TERRAIN_ICONS = { platform: 'platform', slope: 'slope', area: 'area' };
@@ -103,6 +104,8 @@ export class DrawingView {
         h('button.icon-button', { title: t('drawing.fit') + ' (F)', html: icon('fit', 16), onclick: () => this.fit() })));
     this.element = h('div.editor-view', { 'data-view': mode }, this.toolbar, this.wrap);
     this.cycle = new PickCycle(this); // Tab: the next object under the same spot
+    this.alignRef = null;      // align tool: the face picked to align to ({ id, face })
+    this.alignHover = null;    // align tool: the face under the mouse
     this.guides = [];          // lines shown while an object being moved lines up with another
     this.listHover = null;     // the object under the mouse in the element list
 
@@ -128,7 +131,7 @@ export class DrawingView {
     });
     this.layout.onDidChange((what) => {
       if (what === 'tab') this.closeLabel?.(true);
-      if (what === 'tool') { this.canvas.dataset.tool = this.layout.tool; this.preview = null; this.poly = null; this.#renderToolbar(); if (this.visible) this.render(); }
+      if (what === 'tool') { this.canvas.dataset.tool = this.layout.tool; this.preview = null; this.poly = null; this.alignRef = null; this.alignHover = null; this.#renderToolbar(); if (this.visible) this.render(); }
       // after the editor has shown this view (its listener runs after this one), so it has a size
       if (what === 'tab') queueMicrotask(() => { if (this.visible) { this.render(); if (!this.cam) this.fit(); } });
       if (what === 'terrainMesh') { this.#renderToolbar(); if (this.visible) this.render(); else this.stale = true; }
@@ -332,6 +335,12 @@ export class DrawingView {
     const byId = indexById(this.doc.objects);
     let s = '';
     const P = (p) => project(view, p);
+    // align tool: the face to align to (filled), and the face under the mouse
+    if (this.layout.tool === 'align') {
+      const facePath = (f) => 'M' + f.pts.map((q) => P(q).map(r3).join(' ')).join('L') + 'Z';
+      if (this.alignHover && this.alignHover.face !== this.alignRef?.face) s += `<path class="align-hover" d="${facePath(this.alignHover.face)}" fill="${SEL}" fill-opacity="0.12" stroke="${SEL}" stroke-width="${r3(px * 1.4)}" stroke-dasharray="${r3(px * 5)} ${r3(px * 3)}" pointer-events="none"/>`;
+      if (this.alignRef) s += `<path class="align-ref" d="${facePath(this.alignRef.face)}" fill="${SEL}" fill-opacity="0.3" stroke="${SEL}" stroke-width="${r3(px * 2.2)}" stroke-linejoin="round" pointer-events="none"/>`;
+    }
     const line = (pts) => 'M' + pts.map((p) => `${r3(p[0])} ${r3(p[1])}`).join('L');
     // the object under the mouse in the element list: a lighter outline
     const hover = this.listHover && !this.doc.selection.has(this.listHover) ? byId.get(this.listHover) : null;
@@ -368,7 +377,8 @@ export class DrawingView {
     }
     if (this.elev) s = this.#levelsMarkup(px) + s;
     else if (this.under.firstChild) this.under.innerHTML = '';
-    if (objs.length === 1 && (this.elev ? this.elevTool === 'select' : this.layout.tool === 'select')) s += this.#handlesMarkup(objs[0], byId, px);
+    // a locked object shows where it is, without the handles that would change it
+    if (objs.length === 1 && !objs[0].locked && (this.elev ? this.elevTool === 'select' : this.layout.tool === 'select')) s += this.#handlesMarkup(objs[0], byId, px);
     if (this.preview) s += this.#previewMarkup(px);
     for (const [a, b] of this.guides) s += `<path d="${line([P(a), P(b)])}" stroke="${GUIDE}" stroke-width="${r3(px * 1.1)}" pointer-events="none"/>`;
     if (this.drag?.kind === 'marquee' && this.drag.box) {
@@ -673,6 +683,33 @@ export class DrawingView {
     return { id: this.cycle.resolve(el.dataset.id), top, surface: el.dataset.id };
   }
 
+  /** Align tool: the face of an object under the mouse ({ id, face, locked }), or null. */
+  #faceUnder(e) {
+    if (this.mode !== 'axon' || !this.cam) return null;
+    const hit = this.#hit(e);
+    const id = hit.surface || hit.id || hit.locked;
+    const o = id && this.doc.byId(id);
+    if (!o || !ALIGNABLE.includes(o.type)) return null;
+    const [X, Y] = this.toDrawing(e);
+    const face = faceAt(facesOf(o, this.extentOf(o)), this.view, X, Y);
+    return face ? { id: o.id, face, locked: !!o.locked } : null;
+  }
+
+  /** Align tool, a click: the first face is where to align to, the second one is brought to it. */
+  #alignClick(e) {
+    const hit = this.#faceUnder(e);
+    if (!hit) { this.alignRef = null; this.#renderOverlay(); return; }
+    if (!this.alignRef || hit.id === this.alignRef.id) { this.alignRef = hit; this.#renderOverlay(); return; }
+    const delta = alignDelta(this.alignRef.face, hit.face);
+    if (!delta) { this.s.notifications.warn(t('alignFaces.notParallel'), 5000); return; }
+    const done = this.s.commands.alignFace(hit.id, delta);
+    if (done !== true) { this.s.notifications.warn(t('alignFaces.' + done), 5000); return; }
+    // the next pair starts from a new face
+    this.alignRef = null;
+    this.alignHover = null;
+    this.#renderOverlay();
+  }
+
   #snap(v, e, g = this.doc.project.grid) {
     return e.altKey ? Math.round(v * 100) / 100 : Math.round(v / g) * g;
   }
@@ -926,6 +963,7 @@ export class DrawingView {
     this.cycle.setPoint(e);
     if (this.elev) { this.#elevDown(e); return; }
     const tool = this.layout.tool;
+    if (tool === 'align') { this.#alignClick(e); return; }
     const hit = this.#hit(e);
     const doc = this.doc;
 
@@ -939,6 +977,8 @@ export class DrawingView {
       }
       if (!e.shiftKey) doc.clearSelection();
       this.#startMarquee(e);
+      // a click (not a drag) on a locked object selects it, so that it can be unlocked; it still cannot be moved
+      this.drag.lockedId = hit.locked || null;
       return;
     }
 
@@ -1034,6 +1074,11 @@ export class DrawingView {
       const el = e.target.closest?.('.ax-terrain[data-id]');
       const id = el ? el.dataset.id : null;
       if (id !== this.hoverId) { this.hoverId = id; this.#markTerrain(); }
+      if (this.layout.tool === 'align') {
+        const f = this.#faceUnder(e);
+        const same = f?.id === this.alignHover?.id && f?.face.d === this.alignHover?.face.d && f?.face.n.join() === this.alignHover?.face.n.join();
+        if (!same) { this.alignHover = f; this.#renderOverlay(); }
+      }
     }
     if (!d && this.poly && this.cam) {
       const cur = this.#ground(e, this.poly.z).map((v) => this.#snap(v, e));
@@ -1217,7 +1262,7 @@ export class DrawingView {
     this.badge.textContent = '';
     if (!d) return;
     if (d.kind === 'pan') { if (d.menu) this.#contextMenu(e, d.menu); return; }
-    if (d.kind === 'marquee') { this.#renderOverlay(); return; }
+    if (d.kind === 'marquee') { if (!d.box && d.lockedId && this.doc.byId(d.lockedId)) this.doc.select([d.lockedId]); this.#renderOverlay(); return; }
     if (d.kind === 'move') { if (d.moved) this.doc.end(); if (this.guides.length) { this.guides = []; this.#renderOverlay(); } return; }
     if (d.kind === 'handle') { this.doc.end(); return; }
     if (d.kind === 'level') {
