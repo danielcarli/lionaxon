@@ -1,0 +1,537 @@
+{
+  "format": "lionaxon",
+  "schemaVersion": 2,
+  "name": "House on the slope",
+  "site": {
+    "w": 24,
+    "d": 36,
+    "mode": "fill",
+    "dims": true,
+    "thickness": 2
+  },
+  "underlay": null,
+  "sun": {
+    "on": false,
+    "lat": -30,
+    "month": 6,
+    "day": 21,
+    "hour": 15,
+    "opacity": 0.2
+  },
+  "levels": [
+    {
+      "id": "L0",
+      "name": "Street",
+      "z": 0
+    },
+    {
+      "id": "L1",
+      "name": "Garden",
+      "z": 3
+    }
+  ],
+  "north": 0,
+  "northPlace": "drawing",
+  "northHalftone": true,
+  "grid": 1,
+  "style": "peach",
+  "catPatterns": false,
+  "view": {
+    "az": -45
+  },
+  "categories": [
+    {
+      "id": "k-living",
+      "name": "Living",
+      "color": "#f6c9a9"
+    },
+    {
+      "id": "k-bedrooms",
+      "name": "Bedrooms",
+      "color": "#b9cfa3"
+    }
+  ],
+  "steps": [
+    {
+      "id": "s-1",
+      "title": "Sloping site",
+      "text": "The plot rises 3 m from the street to the garden at the back.",
+      "highlight": false,
+      "explode": {
+        "on": false,
+        "gap": 4,
+        "floors": false
+      },
+      "views": [],
+      "ghostPrev": false,
+      "op": "",
+      "objects": [
+        {
+          "type": "platform",
+          "id": "g-garden",
+          "x": 12,
+          "y": 28,
+          "w": 24,
+          "d": 16,
+          "rot": 0,
+          "z": 0,
+          "level": "L1"
+        },
+        {
+          "type": "slope",
+          "id": "r-hillside",
+          "x": 12,
+          "y": 14,
+          "w": 24,
+          "d": 12,
+          "rot": 0,
+          "from": "L0",
+          "zFrom": 0,
+          "to": "L1",
+          "zTo": 0
+        },
+        {
+          "type": "person",
+          "id": "p-1",
+          "x": 4,
+          "y": 3,
+          "z": 0,
+          "level": null,
+          "pose": 0
+        }
+      ]
+    },
+    {
+      "id": "s-2",
+      "title": "Volume set into the slope",
+      "text": "The house is set into the slope: the ground floor opens to the street, the upper floor to the garden.",
+      "highlight": true,
+      "explode": {
+        "on": false,
+        "gap": 4,
+        "floors": false
+      },
+      "views": [],
+      "ghostPrev": false,
+      "op": "",
+      "objects": [
+        {
+          "type": "platform",
+          "id": "g-garden",
+          "x": 12,
+          "y": 28,
+          "w": 24,
+          "d": 16,
+          "rot": 0,
+          "z": 0,
+          "level": "L1"
+        },
+        {
+          "type": "slope",
+          "id": "r-hillside",
+          "x": 12,
+          "y": 14,
+          "w": 24,
+          "d": 12,
+          "rot": 0,
+          "from": "L0",
+          "zFrom": 0,
+          "to": "L1",
+          "zTo": 0
+        },
+        {
+          "type": "person",
+          "id": "p-1",
+          "x": 4,
+          "y": 3,
+          "z": 0,
+          "level": null,
+          "pose": 0
+        },
+        {
+          "type": "volume",
+          "id": "v-house",
+          "x": 12,
+          "y": 20,
+          "w": 10,
+          "d": 14,
+          "h": 6,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": null,
+          "floors": 2,
+          "cat": null,
+          "state": "normal",
+          "shape": "box"
+        }
+      ]
+    },
+    {
+      "id": "s-3",
+      "title": "Cantilever",
+      "text": "The bedrooms reach out over the entrance and give shade.",
+      "highlight": true,
+      "explode": {
+        "on": false,
+        "gap": 4,
+        "floors": false
+      },
+      "views": [],
+      "ghostPrev": false,
+      "op": "",
+      "objects": [
+        {
+          "type": "platform",
+          "id": "g-garden",
+          "x": 12,
+          "y": 28,
+          "w": 24,
+          "d": 16,
+          "rot": 0,
+          "z": 0,
+          "level": "L1"
+        },
+        {
+          "type": "slope",
+          "id": "r-hillside",
+          "x": 12,
+          "y": 14,
+          "w": 24,
+          "d": 12,
+          "rot": 0,
+          "from": "L0",
+          "zFrom": 0,
+          "to": "L1",
+          "zTo": 0
+        },
+        {
+          "type": "person",
+          "id": "p-1",
+          "x": 4,
+          "y": 3,
+          "z": 0,
+          "level": null,
+          "pose": 0
+        },
+        {
+          "type": "volume",
+          "id": "v-house",
+          "x": 12,
+          "y": 20,
+          "w": 10,
+          "d": 14,
+          "h": 6,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": null,
+          "floors": 2,
+          "cat": null,
+          "state": "normal",
+          "shape": "box"
+        },
+        {
+          "type": "volume",
+          "id": "v-cantilever",
+          "x": 12,
+          "y": 15,
+          "w": 10,
+          "d": 12,
+          "h": 3,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": "v-house",
+          "floors": 1,
+          "cat": "k-bedrooms",
+          "state": "normal",
+          "shape": "box"
+        }
+      ]
+    },
+    {
+      "id": "s-4",
+      "title": "Patio and access",
+      "text": "A round patio lights the middle; the way in is step-free from the pavement.",
+      "highlight": true,
+      "explode": {
+        "on": false,
+        "gap": 4,
+        "floors": false
+      },
+      "views": [],
+      "ghostPrev": false,
+      "op": "",
+      "objects": [
+        {
+          "type": "platform",
+          "id": "g-garden",
+          "x": 12,
+          "y": 28,
+          "w": 24,
+          "d": 16,
+          "rot": 0,
+          "z": 0,
+          "level": "L1"
+        },
+        {
+          "type": "slope",
+          "id": "r-hillside",
+          "x": 12,
+          "y": 14,
+          "w": 24,
+          "d": 12,
+          "rot": 0,
+          "from": "L0",
+          "zFrom": 0,
+          "to": "L1",
+          "zTo": 0
+        },
+        {
+          "type": "person",
+          "id": "p-1",
+          "x": 4,
+          "y": 3,
+          "z": 0,
+          "level": null,
+          "pose": 0
+        },
+        {
+          "type": "volume",
+          "id": "v-house",
+          "x": 12,
+          "y": 20,
+          "w": 10,
+          "d": 14,
+          "h": 6,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": null,
+          "floors": 2,
+          "cat": "k-living",
+          "state": "normal",
+          "shape": "box"
+        },
+        {
+          "type": "volume",
+          "id": "v-cantilever",
+          "x": 12,
+          "y": 15,
+          "w": 10,
+          "d": 12,
+          "h": 3,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": "v-house",
+          "floors": 1,
+          "cat": "k-bedrooms",
+          "state": "normal",
+          "shape": "box"
+        },
+        {
+          "type": "cut",
+          "id": "c-yard",
+          "x": 12,
+          "y": 23,
+          "w": 5,
+          "d": 5,
+          "h": 6,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "target": "v-house",
+          "shape": "cylinder"
+        },
+        {
+          "type": "person",
+          "id": "p-2",
+          "x": 6,
+          "y": 4,
+          "z": 0,
+          "level": null,
+          "pose": 3
+        },
+        {
+          "type": "arrow",
+          "id": "a-access",
+          "x1": 4,
+          "y1": 2,
+          "x2": 10,
+          "y2": 11,
+          "z": 0.2,
+          "level": null,
+          "bend": 1,
+          "color": "blue",
+          "dashed": false,
+          "heads": 1,
+          "width": 0.35,
+          "layer": "ground"
+        },
+        {
+          "type": "label",
+          "id": "l-yard",
+          "x": 12,
+          "y": 23,
+          "z": 6,
+          "level": null,
+          "dx": 7,
+          "dy": -6,
+          "text": "patio",
+          "size": 1.3,
+          "font": "hand",
+          "caps": false
+        }
+      ]
+    },
+    {
+      "id": "s-5",
+      "title": "Exploded view",
+      "text": "Floors and cantilever pulled apart.",
+      "highlight": true,
+      "explode": {
+        "on": true,
+        "gap": 3,
+        "floors": true
+      },
+      "views": [],
+      "ghostPrev": false,
+      "op": "",
+      "objects": [
+        {
+          "type": "platform",
+          "id": "g-garden",
+          "x": 12,
+          "y": 28,
+          "w": 24,
+          "d": 16,
+          "rot": 0,
+          "z": 0,
+          "level": "L1"
+        },
+        {
+          "type": "slope",
+          "id": "r-hillside",
+          "x": 12,
+          "y": 14,
+          "w": 24,
+          "d": 12,
+          "rot": 0,
+          "from": "L0",
+          "zFrom": 0,
+          "to": "L1",
+          "zTo": 0
+        },
+        {
+          "type": "person",
+          "id": "p-1",
+          "x": 4,
+          "y": 3,
+          "z": 0,
+          "level": null,
+          "pose": 0
+        },
+        {
+          "type": "volume",
+          "id": "v-house",
+          "x": 12,
+          "y": 20,
+          "w": 10,
+          "d": 14,
+          "h": 6,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": null,
+          "floors": 2,
+          "cat": "k-living",
+          "state": "normal",
+          "shape": "box"
+        },
+        {
+          "type": "volume",
+          "id": "v-cantilever",
+          "x": 12,
+          "y": 15,
+          "w": 10,
+          "d": 12,
+          "h": 3,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": "v-house",
+          "floors": 1,
+          "cat": "k-bedrooms",
+          "state": "normal",
+          "shape": "box"
+        },
+        {
+          "type": "cut",
+          "id": "c-yard",
+          "x": 12,
+          "y": 23,
+          "w": 5,
+          "d": 5,
+          "h": 6,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "target": "v-house",
+          "shape": "cylinder"
+        },
+        {
+          "type": "person",
+          "id": "p-2",
+          "x": 6,
+          "y": 4,
+          "z": 0,
+          "level": null,
+          "pose": 3
+        },
+        {
+          "type": "arrow",
+          "id": "a-access",
+          "x1": 4,
+          "y1": 2,
+          "x2": 10,
+          "y2": 11,
+          "z": 0.2,
+          "level": null,
+          "bend": 1,
+          "color": "blue",
+          "dashed": false,
+          "heads": 1,
+          "width": 0.35,
+          "layer": "ground"
+        },
+        {
+          "type": "label",
+          "id": "l-yard",
+          "x": 12,
+          "y": 23,
+          "z": 6,
+          "level": null,
+          "dx": 7,
+          "dy": -6,
+          "text": "patio",
+          "size": 1.3,
+          "font": "hand",
+          "caps": false
+        }
+      ]
+    }
+  ],
+  "sheet": {
+    "layout": "grid",
+    "cols": 3,
+    "paper": "A3",
+    "orientation": "landscape",
+    "scale": 0,
+    "title": "House on the slope",
+    "subtitle": "Placement study",
+    "legend": true,
+    "texts": true
+  }
+}

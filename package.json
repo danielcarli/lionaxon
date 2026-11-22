@@ -1,0 +1,94 @@
+{
+  "name": "lionaxon",
+  "version": "0.8.0",
+  "description": "LionAxon — party diagrams and massing studies for architecture: simple volumes on a site, steps that tell how the design came about, and a vector sheet ready to print.",
+  "main": "src/code/electron-main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node tools/test-unit.mjs && node tools/check-i18n.mjs",
+    "test:e2e": "electron tools/e2e.js",
+    "shots": "electron tools/e2e.js --shots",
+    "inspect": "node tools/inspect.mjs",
+    "examples": "node tools/examples/build.mjs",
+    "vendor": "node tools/vendor.mjs",
+    "dist": "npx --yes electron-builder@26.18.0 --publish never",
+    "dist:win": "npx --yes electron-builder@26.18.0 --win nsis zip --x64 --publish never"
+  },
+  "author": "LionAxon Team",
+  "license": "GPL-3.0-or-later",
+  "devDependencies": {
+    "electron": "^45.4.1",
+    "esbuild": "^0.25.12",
+    "polygon-clipping": "0.15.7"
+  },
+  "productName": "LionAxon",
+  "build": {
+    "appId": "br.dmdc.lionaxon",
+    "productName": "LionAxon",
+    "copyright": "Copyright © 2026 LionAxon Team",
+    "directories": {
+      "buildResources": "build",
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "examples/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "fileAssociations": [
+      {
+        "ext": "lionaxon",
+        "name": "LionAxon project",
+        "role": "Editor"
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "zip"
+      ],
+      "icon": "src/workbench/browser/media/icon.png",
+      "artifactName": "LionAxon-win-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "license": "LICENSE",
+      "artifactName": "LionAxon-Setup-${arch}.${ext}"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
+      "category": "public.app-category.graphics-design",
+      "icon": "src/workbench/browser/media/icon.png",
+      "identity": "-",
+      "artifactName": "LionAxon-mac-${arch}.${ext}"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Graphics",
+      "icon": "src/workbench/browser/media/icon.png",
+      "executableName": "lionaxon",
+      "artifactName": "LionAxon-${version}-linux-${arch}.${ext}"
+    }
+  },
+  "contributors": [
+    "Daniel Michelon De Carli (creator)"
+  ],
+  "homepage": "https://github.com/danielcarli/lionaxon",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/danielcarli/lionaxon.git"
+  }
+}

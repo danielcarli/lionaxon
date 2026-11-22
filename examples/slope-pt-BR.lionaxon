@@ -1,0 +1,537 @@
+{
+  "format": "lionaxon",
+  "schemaVersion": 2,
+  "name": "Casa no talude",
+  "site": {
+    "w": 24,
+    "d": 36,
+    "mode": "fill",
+    "dims": true,
+    "thickness": 2
+  },
+  "underlay": null,
+  "sun": {
+    "on": false,
+    "lat": -30,
+    "month": 6,
+    "day": 21,
+    "hour": 15,
+    "opacity": 0.2
+  },
+  "levels": [
+    {
+      "id": "L0",
+      "name": "Rua",
+      "z": 0
+    },
+    {
+      "id": "L1",
+      "name": "Jardim",
+      "z": 3
+    }
+  ],
+  "north": 0,
+  "northPlace": "drawing",
+  "northHalftone": true,
+  "grid": 1,
+  "style": "peach",
+  "catPatterns": false,
+  "view": {
+    "az": -45
+  },
+  "categories": [
+    {
+      "id": "k-living",
+      "name": "Estar",
+      "color": "#f6c9a9"
+    },
+    {
+      "id": "k-bedrooms",
+      "name": "Quartos",
+      "color": "#b9cfa3"
+    }
+  ],
+  "steps": [
+    {
+      "id": "s-1",
+      "title": "Terreno inclinado",
+      "text": "O lote sobe 3 m da rua até o jardim, pelos fundos.",
+      "highlight": false,
+      "explode": {
+        "on": false,
+        "gap": 4,
+        "floors": false
+      },
+      "views": [],
+      "ghostPrev": false,
+      "op": "",
+      "objects": [
+        {
+          "type": "platform",
+          "id": "g-garden",
+          "x": 12,
+          "y": 28,
+          "w": 24,
+          "d": 16,
+          "rot": 0,
+          "z": 0,
+          "level": "L1"
+        },
+        {
+          "type": "slope",
+          "id": "r-hillside",
+          "x": 12,
+          "y": 14,
+          "w": 24,
+          "d": 12,
+          "rot": 0,
+          "from": "L0",
+          "zFrom": 0,
+          "to": "L1",
+          "zTo": 0
+        },
+        {
+          "type": "person",
+          "id": "p-1",
+          "x": 4,
+          "y": 3,
+          "z": 0,
+          "level": null,
+          "pose": 0
+        }
+      ]
+    },
+    {
+      "id": "s-2",
+      "title": "Volume encaixado",
+      "text": "A casa se encaixa na encosta: o térreo abre para a rua, o andar de cima para o jardim.",
+      "highlight": true,
+      "explode": {
+        "on": false,
+        "gap": 4,
+        "floors": false
+      },
+      "views": [],
+      "ghostPrev": false,
+      "op": "",
+      "objects": [
+        {
+          "type": "platform",
+          "id": "g-garden",
+          "x": 12,
+          "y": 28,
+          "w": 24,
+          "d": 16,
+          "rot": 0,
+          "z": 0,
+          "level": "L1"
+        },
+        {
+          "type": "slope",
+          "id": "r-hillside",
+          "x": 12,
+          "y": 14,
+          "w": 24,
+          "d": 12,
+          "rot": 0,
+          "from": "L0",
+          "zFrom": 0,
+          "to": "L1",
+          "zTo": 0
+        },
+        {
+          "type": "person",
+          "id": "p-1",
+          "x": 4,
+          "y": 3,
+          "z": 0,
+          "level": null,
+          "pose": 0
+        },
+        {
+          "type": "volume",
+          "id": "v-house",
+          "x": 12,
+          "y": 20,
+          "w": 10,
+          "d": 14,
+          "h": 6,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": null,
+          "floors": 2,
+          "cat": null,
+          "state": "normal",
+          "shape": "box"
+        }
+      ]
+    },
+    {
+      "id": "s-3",
+      "title": "Balanço",
+      "text": "Os quartos avançam sobre a entrada e fazem sombra.",
+      "highlight": true,
+      "explode": {
+        "on": false,
+        "gap": 4,
+        "floors": false
+      },
+      "views": [],
+      "ghostPrev": false,
+      "op": "",
+      "objects": [
+        {
+          "type": "platform",
+          "id": "g-garden",
+          "x": 12,
+          "y": 28,
+          "w": 24,
+          "d": 16,
+          "rot": 0,
+          "z": 0,
+          "level": "L1"
+        },
+        {
+          "type": "slope",
+          "id": "r-hillside",
+          "x": 12,
+          "y": 14,
+          "w": 24,
+          "d": 12,
+          "rot": 0,
+          "from": "L0",
+          "zFrom": 0,
+          "to": "L1",
+          "zTo": 0
+        },
+        {
+          "type": "person",
+          "id": "p-1",
+          "x": 4,
+          "y": 3,
+          "z": 0,
+          "level": null,
+          "pose": 0
+        },
+        {
+          "type": "volume",
+          "id": "v-house",
+          "x": 12,
+          "y": 20,
+          "w": 10,
+          "d": 14,
+          "h": 6,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": null,
+          "floors": 2,
+          "cat": null,
+          "state": "normal",
+          "shape": "box"
+        },
+        {
+          "type": "volume",
+          "id": "v-cantilever",
+          "x": 12,
+          "y": 15,
+          "w": 10,
+          "d": 12,
+          "h": 3,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": "v-house",
+          "floors": 1,
+          "cat": "k-bedrooms",
+          "state": "normal",
+          "shape": "box"
+        }
+      ]
+    },
+    {
+      "id": "s-4",
+      "title": "Pátio e acesso",
+      "text": "Um pátio redondo ilumina o centro; o acesso é acessível desde a calçada.",
+      "highlight": true,
+      "explode": {
+        "on": false,
+        "gap": 4,
+        "floors": false
+      },
+      "views": [],
+      "ghostPrev": false,
+      "op": "",
+      "objects": [
+        {
+          "type": "platform",
+          "id": "g-garden",
+          "x": 12,
+          "y": 28,
+          "w": 24,
+          "d": 16,
+          "rot": 0,
+          "z": 0,
+          "level": "L1"
+        },
+        {
+          "type": "slope",
+          "id": "r-hillside",
+          "x": 12,
+          "y": 14,
+          "w": 24,
+          "d": 12,
+          "rot": 0,
+          "from": "L0",
+          "zFrom": 0,
+          "to": "L1",
+          "zTo": 0
+        },
+        {
+          "type": "person",
+          "id": "p-1",
+          "x": 4,
+          "y": 3,
+          "z": 0,
+          "level": null,
+          "pose": 0
+        },
+        {
+          "type": "volume",
+          "id": "v-house",
+          "x": 12,
+          "y": 20,
+          "w": 10,
+          "d": 14,
+          "h": 6,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": null,
+          "floors": 2,
+          "cat": "k-living",
+          "state": "normal",
+          "shape": "box"
+        },
+        {
+          "type": "volume",
+          "id": "v-cantilever",
+          "x": 12,
+          "y": 15,
+          "w": 10,
+          "d": 12,
+          "h": 3,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": "v-house",
+          "floors": 1,
+          "cat": "k-bedrooms",
+          "state": "normal",
+          "shape": "box"
+        },
+        {
+          "type": "cut",
+          "id": "c-yard",
+          "x": 12,
+          "y": 23,
+          "w": 5,
+          "d": 5,
+          "h": 6,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "target": "v-house",
+          "shape": "cylinder"
+        },
+        {
+          "type": "person",
+          "id": "p-2",
+          "x": 6,
+          "y": 4,
+          "z": 0,
+          "level": null,
+          "pose": 3
+        },
+        {
+          "type": "arrow",
+          "id": "a-access",
+          "x1": 4,
+          "y1": 2,
+          "x2": 10,
+          "y2": 11,
+          "z": 0.2,
+          "level": null,
+          "bend": 1,
+          "color": "blue",
+          "dashed": false,
+          "heads": 1,
+          "width": 0.35,
+          "layer": "ground"
+        },
+        {
+          "type": "label",
+          "id": "l-yard",
+          "x": 12,
+          "y": 23,
+          "z": 6,
+          "level": null,
+          "dx": 7,
+          "dy": -6,
+          "text": "pátio",
+          "size": 1.3,
+          "font": "hand",
+          "caps": false
+        }
+      ]
+    },
+    {
+      "id": "s-5",
+      "title": "Vista explodida",
+      "text": "Pavimentos e balanço separados.",
+      "highlight": true,
+      "explode": {
+        "on": true,
+        "gap": 3,
+        "floors": true
+      },
+      "views": [],
+      "ghostPrev": false,
+      "op": "",
+      "objects": [
+        {
+          "type": "platform",
+          "id": "g-garden",
+          "x": 12,
+          "y": 28,
+          "w": 24,
+          "d": 16,
+          "rot": 0,
+          "z": 0,
+          "level": "L1"
+        },
+        {
+          "type": "slope",
+          "id": "r-hillside",
+          "x": 12,
+          "y": 14,
+          "w": 24,
+          "d": 12,
+          "rot": 0,
+          "from": "L0",
+          "zFrom": 0,
+          "to": "L1",
+          "zTo": 0
+        },
+        {
+          "type": "person",
+          "id": "p-1",
+          "x": 4,
+          "y": 3,
+          "z": 0,
+          "level": null,
+          "pose": 0
+        },
+        {
+          "type": "volume",
+          "id": "v-house",
+          "x": 12,
+          "y": 20,
+          "w": 10,
+          "d": 14,
+          "h": 6,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": null,
+          "floors": 2,
+          "cat": "k-living",
+          "state": "normal",
+          "shape": "box"
+        },
+        {
+          "type": "volume",
+          "id": "v-cantilever",
+          "x": 12,
+          "y": 15,
+          "w": 10,
+          "d": 12,
+          "h": 3,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": "v-house",
+          "floors": 1,
+          "cat": "k-bedrooms",
+          "state": "normal",
+          "shape": "box"
+        },
+        {
+          "type": "cut",
+          "id": "c-yard",
+          "x": 12,
+          "y": 23,
+          "w": 5,
+          "d": 5,
+          "h": 6,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "target": "v-house",
+          "shape": "cylinder"
+        },
+        {
+          "type": "person",
+          "id": "p-2",
+          "x": 6,
+          "y": 4,
+          "z": 0,
+          "level": null,
+          "pose": 3
+        },
+        {
+          "type": "arrow",
+          "id": "a-access",
+          "x1": 4,
+          "y1": 2,
+          "x2": 10,
+          "y2": 11,
+          "z": 0.2,
+          "level": null,
+          "bend": 1,
+          "color": "blue",
+          "dashed": false,
+          "heads": 1,
+          "width": 0.35,
+          "layer": "ground"
+        },
+        {
+          "type": "label",
+          "id": "l-yard",
+          "x": 12,
+          "y": 23,
+          "z": 6,
+          "level": null,
+          "dx": 7,
+          "dy": -6,
+          "text": "pátio",
+          "size": 1.3,
+          "font": "hand",
+          "caps": false
+        }
+      ]
+    }
+  ],
+  "sheet": {
+    "layout": "grid",
+    "cols": 3,
+    "paper": "A3",
+    "orientation": "landscape",
+    "scale": 0,
+    "title": "Casa no talude",
+    "subtitle": "Estudo de implantação",
+    "legend": true,
+    "texts": true
+  }
+}

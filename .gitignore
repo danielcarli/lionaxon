@@ -1,0 +1,8 @@
+node_modules
+dist/
+*.log
+shots/
+# the message of the next commit, written beside the code (never committed)
+commit.txt
+# the script that publishes a version to GitHub (git-publish.cmd/.sh: add, commit with commit.txt, tag, push)
+git-publish.*

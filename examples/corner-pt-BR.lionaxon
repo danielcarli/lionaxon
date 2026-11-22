@@ -1,0 +1,1015 @@
+{
+  "format": "lionaxon",
+  "schemaVersion": 2,
+  "name": "Casa no lote de esquina",
+  "site": {
+    "w": 30,
+    "d": 30,
+    "mode": "fill",
+    "dims": true,
+    "thickness": 0,
+    "pts": [
+      [
+        0,
+        0
+      ],
+      [
+        30,
+        0
+      ],
+      [
+        30,
+        22
+      ],
+      [
+        24,
+        30
+      ],
+      [
+        0,
+        30
+      ]
+    ]
+  },
+  "underlay": null,
+  "sun": {
+    "on": true,
+    "lat": -30,
+    "month": 6,
+    "day": 21,
+    "hour": 14,
+    "opacity": 0.18
+  },
+  "levels": [
+    {
+      "id": "L0",
+      "name": "",
+      "z": 0
+    }
+  ],
+  "north": 0,
+  "northPlace": "drawing",
+  "northHalftone": false,
+  "grid": 1,
+  "style": "beige",
+  "catPatterns": false,
+  "view": {
+    "az": -45
+  },
+  "categories": [
+    {
+      "id": "k-house",
+      "name": "Casa",
+      "color": "#e8c9a0"
+    },
+    {
+      "id": "k-garage",
+      "name": "Garagem",
+      "color": "#b9c7d6"
+    }
+  ],
+  "steps": [
+    {
+      "id": "s-1",
+      "title": "Lote e entorno",
+      "text": "Um lote de esquina chanfrada, entre vizinhos de dois a quatro pavimentos.",
+      "highlight": false,
+      "explode": {
+        "on": false,
+        "gap": 4,
+        "floors": false
+      },
+      "views": [],
+      "ghostPrev": false,
+      "op": "",
+      "objects": [
+        {
+          "type": "area",
+          "id": "e-street-south",
+          "x": 16,
+          "y": -5,
+          "w": 72,
+          "d": 8,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "kind": "street"
+        },
+        {
+          "type": "area",
+          "id": "e-street-east",
+          "x": 37,
+          "y": 18,
+          "w": 8,
+          "d": 54,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "kind": "street"
+        },
+        {
+          "type": "volume",
+          "id": "n-west",
+          "x": -9,
+          "y": 15,
+          "w": 12,
+          "d": 26,
+          "h": 9,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": null,
+          "floors": 3,
+          "cat": null,
+          "state": "context",
+          "shape": "box"
+        },
+        {
+          "type": "volume",
+          "id": "n-north",
+          "x": 13,
+          "y": 38,
+          "w": 26,
+          "d": 10,
+          "h": 6,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": null,
+          "floors": 2,
+          "cat": null,
+          "state": "context",
+          "shape": "box"
+        },
+        {
+          "type": "volume",
+          "id": "n-east",
+          "x": 49,
+          "y": 20,
+          "w": 12,
+          "d": 22,
+          "h": 12,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": null,
+          "floors": 4,
+          "cat": null,
+          "state": "context",
+          "shape": "box"
+        },
+        {
+          "type": "tree",
+          "id": "t-1",
+          "x": 26,
+          "y": 3,
+          "z": 0,
+          "level": null,
+          "size": 4,
+          "h": 6,
+          "kind": "round"
+        },
+        {
+          "type": "tree",
+          "id": "t-2",
+          "x": 20,
+          "y": 26,
+          "z": 0,
+          "level": null,
+          "size": 5,
+          "h": 8,
+          "kind": "round"
+        },
+        {
+          "type": "tree",
+          "id": "t-3",
+          "x": 3,
+          "y": 27,
+          "z": 0,
+          "level": null,
+          "size": 3.5,
+          "h": 7,
+          "kind": "conifer"
+        },
+        {
+          "type": "person",
+          "id": "p-1",
+          "x": 14,
+          "y": -2,
+          "z": 0,
+          "level": null,
+          "pose": 1
+        },
+        {
+          "type": "dim",
+          "id": "d-chamfer",
+          "x1": 30,
+          "y1": 22,
+          "x2": 24,
+          "y2": 30,
+          "z": 0,
+          "level": null,
+          "offset": -2.5
+        }
+      ]
+    },
+    {
+      "id": "s-2",
+      "title": "Volume em L",
+      "text": "A casa acompanha as duas ruas e abre o fundo do lote.",
+      "highlight": true,
+      "explode": {
+        "on": false,
+        "gap": 4,
+        "floors": false
+      },
+      "views": [],
+      "ghostPrev": false,
+      "op": "+",
+      "objects": [
+        {
+          "type": "area",
+          "id": "e-street-south",
+          "x": 16,
+          "y": -5,
+          "w": 72,
+          "d": 8,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "kind": "street"
+        },
+        {
+          "type": "area",
+          "id": "e-street-east",
+          "x": 37,
+          "y": 18,
+          "w": 8,
+          "d": 54,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "kind": "street"
+        },
+        {
+          "type": "volume",
+          "id": "n-west",
+          "x": -9,
+          "y": 15,
+          "w": 12,
+          "d": 26,
+          "h": 9,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": null,
+          "floors": 3,
+          "cat": null,
+          "state": "context",
+          "shape": "box"
+        },
+        {
+          "type": "volume",
+          "id": "n-north",
+          "x": 13,
+          "y": 38,
+          "w": 26,
+          "d": 10,
+          "h": 6,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": null,
+          "floors": 2,
+          "cat": null,
+          "state": "context",
+          "shape": "box"
+        },
+        {
+          "type": "volume",
+          "id": "n-east",
+          "x": 49,
+          "y": 20,
+          "w": 12,
+          "d": 22,
+          "h": 12,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": null,
+          "floors": 4,
+          "cat": null,
+          "state": "context",
+          "shape": "box"
+        },
+        {
+          "type": "tree",
+          "id": "t-1",
+          "x": 26,
+          "y": 3,
+          "z": 0,
+          "level": null,
+          "size": 4,
+          "h": 6,
+          "kind": "round"
+        },
+        {
+          "type": "tree",
+          "id": "t-2",
+          "x": 20,
+          "y": 26,
+          "z": 0,
+          "level": null,
+          "size": 5,
+          "h": 8,
+          "kind": "round"
+        },
+        {
+          "type": "tree",
+          "id": "t-3",
+          "x": 3,
+          "y": 27,
+          "z": 0,
+          "level": null,
+          "size": 3.5,
+          "h": 7,
+          "kind": "conifer"
+        },
+        {
+          "type": "person",
+          "id": "p-1",
+          "x": 14,
+          "y": -2,
+          "z": 0,
+          "level": null,
+          "pose": 1
+        },
+        {
+          "type": "volume",
+          "id": "v-house",
+          "x": 13,
+          "y": 14,
+          "w": 18,
+          "d": 20,
+          "h": 6,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": null,
+          "floors": 2,
+          "cat": null,
+          "state": "normal",
+          "shape": "poly",
+          "pts": [
+            [
+              -9,
+              -10
+            ],
+            [
+              9,
+              -10
+            ],
+            [
+              9,
+              -2
+            ],
+            [
+              -1,
+              -2
+            ],
+            [
+              -1,
+              10
+            ],
+            [
+              -9,
+              10
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s-3",
+      "title": "Garagem",
+      "text": "Um anexo de duas águas fecha o pátio.",
+      "highlight": true,
+      "explode": {
+        "on": false,
+        "gap": 4,
+        "floors": false
+      },
+      "views": [],
+      "ghostPrev": false,
+      "op": "+",
+      "objects": [
+        {
+          "type": "area",
+          "id": "e-street-south",
+          "x": 16,
+          "y": -5,
+          "w": 72,
+          "d": 8,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "kind": "street"
+        },
+        {
+          "type": "area",
+          "id": "e-street-east",
+          "x": 37,
+          "y": 18,
+          "w": 8,
+          "d": 54,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "kind": "street"
+        },
+        {
+          "type": "volume",
+          "id": "n-west",
+          "x": -9,
+          "y": 15,
+          "w": 12,
+          "d": 26,
+          "h": 9,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": null,
+          "floors": 3,
+          "cat": null,
+          "state": "context",
+          "shape": "box"
+        },
+        {
+          "type": "volume",
+          "id": "n-north",
+          "x": 13,
+          "y": 38,
+          "w": 26,
+          "d": 10,
+          "h": 6,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": null,
+          "floors": 2,
+          "cat": null,
+          "state": "context",
+          "shape": "box"
+        },
+        {
+          "type": "volume",
+          "id": "n-east",
+          "x": 49,
+          "y": 20,
+          "w": 12,
+          "d": 22,
+          "h": 12,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": null,
+          "floors": 4,
+          "cat": null,
+          "state": "context",
+          "shape": "box"
+        },
+        {
+          "type": "tree",
+          "id": "t-1",
+          "x": 26,
+          "y": 3,
+          "z": 0,
+          "level": null,
+          "size": 4,
+          "h": 6,
+          "kind": "round"
+        },
+        {
+          "type": "tree",
+          "id": "t-2",
+          "x": 20,
+          "y": 26,
+          "z": 0,
+          "level": null,
+          "size": 5,
+          "h": 8,
+          "kind": "round"
+        },
+        {
+          "type": "tree",
+          "id": "t-3",
+          "x": 3,
+          "y": 27,
+          "z": 0,
+          "level": null,
+          "size": 3.5,
+          "h": 7,
+          "kind": "conifer"
+        },
+        {
+          "type": "person",
+          "id": "p-1",
+          "x": 14,
+          "y": -2,
+          "z": 0,
+          "level": null,
+          "pose": 1
+        },
+        {
+          "type": "volume",
+          "id": "v-house",
+          "x": 13,
+          "y": 14,
+          "w": 18,
+          "d": 20,
+          "h": 6,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": null,
+          "floors": 2,
+          "cat": null,
+          "state": "normal",
+          "shape": "poly",
+          "pts": [
+            [
+              -9,
+              -10
+            ],
+            [
+              9,
+              -10
+            ],
+            [
+              9,
+              -2
+            ],
+            [
+              -1,
+              -2
+            ],
+            [
+              -1,
+              10
+            ],
+            [
+              -9,
+              10
+            ]
+          ]
+        },
+        {
+          "type": "volume",
+          "id": "v-garage",
+          "x": 21,
+          "y": 18,
+          "w": 6,
+          "d": 8,
+          "h": 3,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": null,
+          "floors": 1,
+          "cat": null,
+          "state": "normal",
+          "shape": "box",
+          "roof": "gable",
+          "roofH": 2
+        }
+      ]
+    },
+    {
+      "id": "s-4",
+      "title": "Recuo",
+      "text": "A ala norte encurta para o sol de inverno entrar; o tracejado mostra o que saiu.",
+      "highlight": true,
+      "explode": {
+        "on": false,
+        "gap": 4,
+        "floors": false
+      },
+      "views": [],
+      "ghostPrev": true,
+      "op": "−",
+      "objects": [
+        {
+          "type": "area",
+          "id": "e-street-south",
+          "x": 16,
+          "y": -5,
+          "w": 72,
+          "d": 8,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "kind": "street"
+        },
+        {
+          "type": "area",
+          "id": "e-street-east",
+          "x": 37,
+          "y": 18,
+          "w": 8,
+          "d": 54,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "kind": "street"
+        },
+        {
+          "type": "volume",
+          "id": "n-west",
+          "x": -9,
+          "y": 15,
+          "w": 12,
+          "d": 26,
+          "h": 9,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": null,
+          "floors": 3,
+          "cat": null,
+          "state": "context",
+          "shape": "box"
+        },
+        {
+          "type": "volume",
+          "id": "n-north",
+          "x": 13,
+          "y": 38,
+          "w": 26,
+          "d": 10,
+          "h": 6,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": null,
+          "floors": 2,
+          "cat": null,
+          "state": "context",
+          "shape": "box"
+        },
+        {
+          "type": "volume",
+          "id": "n-east",
+          "x": 49,
+          "y": 20,
+          "w": 12,
+          "d": 22,
+          "h": 12,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": null,
+          "floors": 4,
+          "cat": null,
+          "state": "context",
+          "shape": "box"
+        },
+        {
+          "type": "tree",
+          "id": "t-1",
+          "x": 26,
+          "y": 3,
+          "z": 0,
+          "level": null,
+          "size": 4,
+          "h": 6,
+          "kind": "round"
+        },
+        {
+          "type": "tree",
+          "id": "t-2",
+          "x": 20,
+          "y": 26,
+          "z": 0,
+          "level": null,
+          "size": 5,
+          "h": 8,
+          "kind": "round"
+        },
+        {
+          "type": "tree",
+          "id": "t-3",
+          "x": 3,
+          "y": 27,
+          "z": 0,
+          "level": null,
+          "size": 3.5,
+          "h": 7,
+          "kind": "conifer"
+        },
+        {
+          "type": "person",
+          "id": "p-1",
+          "x": 14,
+          "y": -2,
+          "z": 0,
+          "level": null,
+          "pose": 1
+        },
+        {
+          "type": "volume",
+          "id": "v-house",
+          "x": 13,
+          "y": 11,
+          "w": 18,
+          "d": 14,
+          "h": 6,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": null,
+          "floors": 2,
+          "cat": null,
+          "state": "normal",
+          "shape": "poly",
+          "pts": [
+            [
+              -9,
+              -7
+            ],
+            [
+              9,
+              -7
+            ],
+            [
+              9,
+              1
+            ],
+            [
+              -1,
+              1
+            ],
+            [
+              -1,
+              7
+            ],
+            [
+              -9,
+              7
+            ]
+          ]
+        },
+        {
+          "type": "volume",
+          "id": "v-garage",
+          "x": 21,
+          "y": 18,
+          "w": 6,
+          "d": 8,
+          "h": 3,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": null,
+          "floors": 1,
+          "cat": null,
+          "state": "normal",
+          "shape": "box",
+          "roof": "gable",
+          "roofH": 2
+        }
+      ]
+    },
+    {
+      "id": "s-5",
+      "title": "Resultado",
+      "text": "Casa, garagem e jardim; sombras de 21 de junho às 14 h.",
+      "highlight": true,
+      "explode": {
+        "on": false,
+        "gap": 4,
+        "floors": false
+      },
+      "views": [],
+      "ghostPrev": false,
+      "op": "=",
+      "objects": [
+        {
+          "type": "area",
+          "id": "e-street-south",
+          "x": 16,
+          "y": -5,
+          "w": 72,
+          "d": 8,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "kind": "street"
+        },
+        {
+          "type": "area",
+          "id": "e-street-east",
+          "x": 37,
+          "y": 18,
+          "w": 8,
+          "d": 54,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "kind": "street"
+        },
+        {
+          "type": "volume",
+          "id": "n-west",
+          "x": -9,
+          "y": 15,
+          "w": 12,
+          "d": 26,
+          "h": 9,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": null,
+          "floors": 3,
+          "cat": null,
+          "state": "context",
+          "shape": "box"
+        },
+        {
+          "type": "volume",
+          "id": "n-north",
+          "x": 13,
+          "y": 38,
+          "w": 26,
+          "d": 10,
+          "h": 6,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": null,
+          "floors": 2,
+          "cat": null,
+          "state": "context",
+          "shape": "box"
+        },
+        {
+          "type": "volume",
+          "id": "n-east",
+          "x": 49,
+          "y": 20,
+          "w": 12,
+          "d": 22,
+          "h": 12,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": null,
+          "floors": 4,
+          "cat": null,
+          "state": "context",
+          "shape": "box"
+        },
+        {
+          "type": "tree",
+          "id": "t-1",
+          "x": 26,
+          "y": 3,
+          "z": 0,
+          "level": null,
+          "size": 4,
+          "h": 6,
+          "kind": "round"
+        },
+        {
+          "type": "tree",
+          "id": "t-2",
+          "x": 20,
+          "y": 26,
+          "z": 0,
+          "level": null,
+          "size": 5,
+          "h": 8,
+          "kind": "round"
+        },
+        {
+          "type": "tree",
+          "id": "t-3",
+          "x": 3,
+          "y": 27,
+          "z": 0,
+          "level": null,
+          "size": 3.5,
+          "h": 7,
+          "kind": "conifer"
+        },
+        {
+          "type": "person",
+          "id": "p-1",
+          "x": 14,
+          "y": -2,
+          "z": 0,
+          "level": null,
+          "pose": 1
+        },
+        {
+          "type": "volume",
+          "id": "v-house",
+          "x": 13,
+          "y": 11,
+          "w": 18,
+          "d": 14,
+          "h": 6,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": null,
+          "floors": 2,
+          "cat": "k-house",
+          "state": "normal",
+          "shape": "poly",
+          "pts": [
+            [
+              -9,
+              -7
+            ],
+            [
+              9,
+              -7
+            ],
+            [
+              9,
+              1
+            ],
+            [
+              -1,
+              1
+            ],
+            [
+              -1,
+              7
+            ],
+            [
+              -9,
+              7
+            ]
+          ]
+        },
+        {
+          "type": "volume",
+          "id": "v-garage",
+          "x": 21,
+          "y": 18,
+          "w": 6,
+          "d": 8,
+          "h": 3,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": null,
+          "floors": 1,
+          "cat": "k-garage",
+          "state": "normal",
+          "shape": "box",
+          "roof": "gable",
+          "roofH": 2
+        },
+        {
+          "type": "area",
+          "id": "e-garden",
+          "x": 8,
+          "y": 23,
+          "w": 10,
+          "d": 8,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "kind": "green"
+        },
+        {
+          "type": "label",
+          "id": "l-garden",
+          "x": 8,
+          "y": 26,
+          "z": 0,
+          "level": null,
+          "dx": -12,
+          "dy": -9,
+          "text": "Jardim ao norte",
+          "size": 1.5,
+          "font": "hand",
+          "caps": false
+        }
+      ]
+    }
+  ],
+  "sheet": {
+    "layout": "grid",
+    "cols": 3,
+    "paper": "A3",
+    "orientation": "landscape",
+    "scale": 0,
+    "title": "Casa no lote de esquina",
+    "subtitle": "Entorno, sol e partido",
+    "legend": true,
+    "texts": true
+  }
+}

@@ -1,0 +1,587 @@
+{
+  "format": "lionaxon",
+  "schemaVersion": 2,
+  "name": "Torre e embasamento",
+  "site": {
+    "w": 30,
+    "d": 30,
+    "mode": "dashed",
+    "dims": true,
+    "thickness": 0
+  },
+  "underlay": null,
+  "sun": {
+    "on": false,
+    "lat": -30,
+    "month": 6,
+    "day": 21,
+    "hour": 15,
+    "opacity": 0.2
+  },
+  "levels": [
+    {
+      "id": "L0",
+      "name": "Térreo",
+      "z": 0
+    }
+  ],
+  "north": 0,
+  "northPlace": "header",
+  "northHalftone": false,
+  "grid": 1,
+  "style": "lavender",
+  "catPatterns": false,
+  "view": {
+    "az": -45
+  },
+  "categories": [
+    {
+      "id": "k-shops",
+      "name": "Comércio",
+      "color": "#f3d98b"
+    },
+    {
+      "id": "k-housing",
+      "name": "Habitação",
+      "color": "#d7ccef"
+    },
+    {
+      "id": "k-crown",
+      "name": "Coroamento",
+      "color": "#8a68c6"
+    }
+  ],
+  "steps": [
+    {
+      "id": "s-1",
+      "title": "Embasamento",
+      "text": "Um embasamento de dois pavimentos ocupa o lote e alinha com a rua.",
+      "highlight": false,
+      "explode": {
+        "on": false,
+        "gap": 4,
+        "floors": false
+      },
+      "views": [],
+      "ghostPrev": false,
+      "op": "",
+      "objects": [
+        {
+          "type": "volume",
+          "id": "v-base",
+          "x": 15,
+          "y": 15,
+          "w": 26,
+          "d": 26,
+          "h": 6,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": null,
+          "floors": 2,
+          "cat": null,
+          "state": "normal",
+          "shape": "box"
+        },
+        {
+          "type": "person",
+          "id": "p-1",
+          "x": 3,
+          "y": 2,
+          "z": 0,
+          "level": null,
+          "pose": 1
+        },
+        {
+          "type": "person",
+          "id": "p-2",
+          "x": 4.5,
+          "y": 1.2,
+          "z": 0,
+          "level": null,
+          "pose": 0
+        }
+      ]
+    },
+    {
+      "id": "s-2",
+      "title": "Torre",
+      "text": "A torre sobe do centro do embasamento, afastada das divisas.",
+      "highlight": true,
+      "explode": {
+        "on": false,
+        "gap": 4,
+        "floors": false
+      },
+      "views": [],
+      "ghostPrev": false,
+      "op": "",
+      "objects": [
+        {
+          "type": "volume",
+          "id": "v-base",
+          "x": 15,
+          "y": 15,
+          "w": 26,
+          "d": 26,
+          "h": 6,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": null,
+          "floors": 2,
+          "cat": null,
+          "state": "normal",
+          "shape": "box"
+        },
+        {
+          "type": "person",
+          "id": "p-1",
+          "x": 3,
+          "y": 2,
+          "z": 0,
+          "level": null,
+          "pose": 1
+        },
+        {
+          "type": "person",
+          "id": "p-2",
+          "x": 4.5,
+          "y": 1.2,
+          "z": 0,
+          "level": null,
+          "pose": 0
+        },
+        {
+          "type": "volume",
+          "id": "v-tower",
+          "x": 15,
+          "y": 15,
+          "w": 12,
+          "d": 12,
+          "h": 36,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": "v-base",
+          "floors": 12,
+          "cat": null,
+          "state": "normal",
+          "shape": "box"
+        }
+      ]
+    },
+    {
+      "id": "s-3",
+      "title": "Recuos",
+      "text": "Recuos nos cantos altos aliviam a silhueta; uma passagem marca a entrada.",
+      "highlight": true,
+      "explode": {
+        "on": false,
+        "gap": 4,
+        "floors": false
+      },
+      "views": [],
+      "ghostPrev": false,
+      "op": "",
+      "objects": [
+        {
+          "type": "volume",
+          "id": "v-base",
+          "x": 15,
+          "y": 15,
+          "w": 26,
+          "d": 26,
+          "h": 6,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": null,
+          "floors": 2,
+          "cat": null,
+          "state": "normal",
+          "shape": "box"
+        },
+        {
+          "type": "person",
+          "id": "p-1",
+          "x": 3,
+          "y": 2,
+          "z": 0,
+          "level": null,
+          "pose": 1
+        },
+        {
+          "type": "person",
+          "id": "p-2",
+          "x": 4.5,
+          "y": 1.2,
+          "z": 0,
+          "level": null,
+          "pose": 0
+        },
+        {
+          "type": "volume",
+          "id": "v-tower",
+          "x": 15,
+          "y": 15,
+          "w": 12,
+          "d": 12,
+          "h": 36,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": "v-base",
+          "floors": 12,
+          "cat": null,
+          "state": "normal",
+          "shape": "box"
+        },
+        {
+          "type": "cut",
+          "id": "c-setback-1",
+          "x": 20,
+          "y": 10,
+          "w": 4,
+          "d": 4,
+          "h": 12,
+          "rot": 0,
+          "z": 30,
+          "level": null,
+          "target": "v-tower",
+          "shape": "box"
+        },
+        {
+          "type": "cut",
+          "id": "c-setback-2",
+          "x": 10,
+          "y": 20,
+          "w": 4,
+          "d": 4,
+          "h": 12,
+          "rot": 0,
+          "z": 30,
+          "level": null,
+          "target": "v-tower",
+          "shape": "box"
+        },
+        {
+          "type": "cut",
+          "id": "c-entry",
+          "x": 15,
+          "y": 3,
+          "w": 8,
+          "d": 4,
+          "h": 3,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "target": "v-base",
+          "shape": "box"
+        }
+      ]
+    },
+    {
+      "id": "s-4",
+      "title": "Coroamento",
+      "text": "Uma pirâmide coroa a torre; os usos ganham cor. À direita, a torre vista de perto do chão.",
+      "highlight": true,
+      "explode": {
+        "on": false,
+        "gap": 4,
+        "floors": false
+      },
+      "views": [
+        {
+          "az": 315,
+          "el": 35.2644
+        },
+        {
+          "az": 235,
+          "el": 8
+        }
+      ],
+      "ghostPrev": false,
+      "op": "",
+      "objects": [
+        {
+          "type": "volume",
+          "id": "v-base",
+          "x": 15,
+          "y": 15,
+          "w": 26,
+          "d": 26,
+          "h": 6,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": null,
+          "floors": 2,
+          "cat": "k-shops",
+          "state": "normal",
+          "shape": "box"
+        },
+        {
+          "type": "person",
+          "id": "p-1",
+          "x": 3,
+          "y": 2,
+          "z": 0,
+          "level": null,
+          "pose": 1
+        },
+        {
+          "type": "person",
+          "id": "p-2",
+          "x": 4.5,
+          "y": 1.2,
+          "z": 0,
+          "level": null,
+          "pose": 0
+        },
+        {
+          "type": "volume",
+          "id": "v-tower",
+          "x": 15,
+          "y": 15,
+          "w": 12,
+          "d": 12,
+          "h": 36,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": "v-base",
+          "floors": 12,
+          "cat": "k-housing",
+          "state": "normal",
+          "shape": "box"
+        },
+        {
+          "type": "cut",
+          "id": "c-setback-1",
+          "x": 20,
+          "y": 10,
+          "w": 4,
+          "d": 4,
+          "h": 12,
+          "rot": 0,
+          "z": 30,
+          "level": null,
+          "target": "v-tower",
+          "shape": "box"
+        },
+        {
+          "type": "cut",
+          "id": "c-setback-2",
+          "x": 10,
+          "y": 20,
+          "w": 4,
+          "d": 4,
+          "h": 12,
+          "rot": 0,
+          "z": 30,
+          "level": null,
+          "target": "v-tower",
+          "shape": "box"
+        },
+        {
+          "type": "cut",
+          "id": "c-entry",
+          "x": 15,
+          "y": 3,
+          "w": 8,
+          "d": 4,
+          "h": 3,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "target": "v-base",
+          "shape": "box"
+        },
+        {
+          "type": "volume",
+          "id": "v-crown",
+          "x": 15,
+          "y": 15,
+          "w": 12,
+          "d": 12,
+          "h": 6,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": "v-tower",
+          "floors": 1,
+          "cat": "k-crown",
+          "state": "normal",
+          "shape": "pyramid"
+        },
+        {
+          "type": "label",
+          "id": "l-crown",
+          "x": 15,
+          "y": 15,
+          "z": 48,
+          "level": null,
+          "dx": 7,
+          "dy": -5,
+          "text": "Coroamento",
+          "size": 1.6,
+          "font": "condensed",
+          "caps": true
+        }
+      ]
+    },
+    {
+      "id": "s-5",
+      "title": "Vista explodida",
+      "text": "Embasamento, torre e coroamento separados.",
+      "highlight": true,
+      "explode": {
+        "on": true,
+        "gap": 8,
+        "floors": false
+      },
+      "views": [],
+      "ghostPrev": false,
+      "op": "",
+      "objects": [
+        {
+          "type": "volume",
+          "id": "v-base",
+          "x": 15,
+          "y": 15,
+          "w": 26,
+          "d": 26,
+          "h": 6,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": null,
+          "floors": 2,
+          "cat": "k-shops",
+          "state": "normal",
+          "shape": "box"
+        },
+        {
+          "type": "person",
+          "id": "p-1",
+          "x": 3,
+          "y": 2,
+          "z": 0,
+          "level": null,
+          "pose": 1
+        },
+        {
+          "type": "person",
+          "id": "p-2",
+          "x": 4.5,
+          "y": 1.2,
+          "z": 0,
+          "level": null,
+          "pose": 0
+        },
+        {
+          "type": "volume",
+          "id": "v-tower",
+          "x": 15,
+          "y": 15,
+          "w": 12,
+          "d": 12,
+          "h": 36,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": "v-base",
+          "floors": 12,
+          "cat": "k-housing",
+          "state": "normal",
+          "shape": "box"
+        },
+        {
+          "type": "cut",
+          "id": "c-setback-1",
+          "x": 20,
+          "y": 10,
+          "w": 4,
+          "d": 4,
+          "h": 12,
+          "rot": 0,
+          "z": 30,
+          "level": null,
+          "target": "v-tower",
+          "shape": "box"
+        },
+        {
+          "type": "cut",
+          "id": "c-setback-2",
+          "x": 10,
+          "y": 20,
+          "w": 4,
+          "d": 4,
+          "h": 12,
+          "rot": 0,
+          "z": 30,
+          "level": null,
+          "target": "v-tower",
+          "shape": "box"
+        },
+        {
+          "type": "cut",
+          "id": "c-entry",
+          "x": 15,
+          "y": 3,
+          "w": 8,
+          "d": 4,
+          "h": 3,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "target": "v-base",
+          "shape": "box"
+        },
+        {
+          "type": "volume",
+          "id": "v-crown",
+          "x": 15,
+          "y": 15,
+          "w": 12,
+          "d": 12,
+          "h": 6,
+          "rot": 0,
+          "z": 0,
+          "level": null,
+          "on": "v-tower",
+          "floors": 1,
+          "cat": "k-crown",
+          "state": "normal",
+          "shape": "pyramid"
+        },
+        {
+          "type": "label",
+          "id": "l-crown",
+          "x": 15,
+          "y": 15,
+          "z": 48,
+          "level": null,
+          "dx": 7,
+          "dy": -5,
+          "text": "Coroamento",
+          "size": 1.6,
+          "font": "condensed",
+          "caps": true
+        }
+      ]
+    }
+  ],
+  "sheet": {
+    "layout": "vertical",
+    "cols": 3,
+    "paper": "A4",
+    "orientation": "portrait",
+    "scale": 0,
+    "title": "Torre e embasamento",
+    "subtitle": "Evolução da volumetria",
+    "legend": true,
+    "texts": true
+  }
+}
