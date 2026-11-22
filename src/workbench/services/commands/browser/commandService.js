@@ -8,7 +8,7 @@
 // base for a command palette and for agents later.
 import { t } from '../../../../base/common/nls.js';
 import { newId, clone, createCategory } from './commandHelpers.js';
-import { GROUND_LEVEL, stepAngles, normalizeAngle, MAX_VIEWS, EXTRA_KEYS, baseOf, indexById, elevationOf, normalizeObject, isLine, polyFromWorld, polyWorld } from '../../model/common/model.js';
+import { GROUND_LEVEL, stepAngles, normalizeAngle, MAX_VIEWS, EXTRA_KEYS, baseOf, indexById, elevationOf, normalizeObject, createOpening, isLine, polyFromWorld, polyWorld } from '../../model/common/model.js';
 import { rectRing } from '../../../../base/common/geometry/polygon.js';
 
 const CATEGORY_COLORS = ['#e59aa6', '#8fa9cc', '#8aa346', '#e8b464', '#a68bc9', '#6fb3a8', '#d98a6c', '#9a948c'];
@@ -27,18 +27,33 @@ export class CommandService {
   deleteSelection() {
     if (!this.doc.selection.size) return;
     const ids = new Set(this.doc.selection);
-    this.doc.run('object.delete', (_p, step) => { step.objects = step.objects.filter((o) => !ids.has(o.id)); return []; });
+    // what is drawn on the walls of a deleted volume goes with it
+    this.doc.run('object.delete', (_p, step) => { step.objects = step.objects.filter((o) => !ids.has(o.id) && !(o.type === 'opening' && ids.has(o.on))); return []; });
+  }
+
+  /** Draws a door, a window, an arch or a round opening in the middle of a wall of a box (the selected one). */
+  addOpening(kind, side = 'front', volume = this.doc.selected()[0]) {
+    if (!volume || volume.type !== 'volume' || volume.shape !== 'box') return null;
+    const len = side === 'front' || side === 'back' ? volume.w : volume.d;
+    const size = { door: [Math.min(1.2, len), Math.min(2.4, volume.h), 0], window: [Math.min(1.6, len), Math.min(1.4, volume.h), Math.min(1, volume.h / 3)], arch: [Math.min(2, len), Math.min(3, volume.h), 0], oculus: [Math.min(1.2, len), Math.min(1.2, volume.h), Math.max(0, volume.h - 1.8)] }[kind];
+    if (!size) return null;
+    const o = createOpening({ on: volume.id, side, kind, w: size[0], h: size[1], z: size[2] });
+    this.doc.run('object.add', (_p, step) => { step.objects.push(o); return [o.id]; });
+    return o.id;
   }
 
   duplicateSelection(offset = 2) {
-    const sel = this.doc.selected();
+    const picked = this.doc.selected();
+    const pickedIds = new Set(picked.map((o) => o.id));
+    // the openings of a duplicated volume are duplicated with it
+    const sel = [...picked, ...this.doc.objects.filter((o) => o.type === 'opening' && pickedIds.has(o.on) && !pickedIds.has(o.id))];
     if (!sel.length) return;
     const g = this.doc.project.grid;
     const map = new Map(sel.map((o) => [o.id, newId(o.type[0])]));
     this.doc.run('object.duplicate', (_p, step) => {
       const copies = sel.map((o) => {
         const c = { ...clone(o), id: map.get(o.id) };
-        if (isLine(c)) { c.x1 += offset * g; c.x2 += offset * g; c.y1 -= offset * g; c.y2 -= offset * g; }
+        if (c.type === 'opening') { /* it stays on its wall */ } else if (isLine(c)) { c.x1 += offset * g; c.x2 += offset * g; c.y1 -= offset * g; c.y2 -= offset * g; }
         else { c.x += offset * g; c.y -= offset * g; }
         if (c.type === 'volume' && c.on && map.has(c.on)) c.on = map.get(c.on);
         return c;
@@ -96,7 +111,7 @@ export class CommandService {
       for (const src of clip.objects) {
         const { absZ, ...rest } = clone(src);
         const c = normalizeObject({ ...rest, id: map.get(src.id) });
-        if (isLine(c)) { c.x1 = round(c.x1 + off); c.x2 = round(c.x2 + off); c.y1 = round(c.y1 - off); c.y2 = round(c.y2 - off); }
+        if (c.type === 'opening') { /* it stays on its wall */ } else if (isLine(c)) { c.x1 = round(c.x1 + off); c.x2 = round(c.x2 + off); c.y1 = round(c.y1 - off); c.y2 = round(c.y2 - off); }
         else { c.x = round(c.x + off); c.y = round(c.y - off); }
         if (c.type === 'volume') {
           if (c.on && map.has(c.on)) c.on = map.get(c.on);
@@ -211,7 +226,7 @@ export class CommandService {
           if (done.has(sid) || (sid !== id && moves.has(sid))) continue;
           done.add(sid);
           const o = step.objects.find((x) => x.id === sid);
-          if (isLine(o)) { if (axis) { o.y1 = round(o.y1 + dv); o.y2 = round(o.y2 + dv); } else { o.x1 = round(o.x1 + dv); o.x2 = round(o.x2 + dv); } }
+          if (o.type === 'opening') { /* it stays on its wall */ } else if (isLine(o)) { if (axis) { o.y1 = round(o.y1 + dv); o.y2 = round(o.y2 + dv); } else { o.x1 = round(o.x1 + dv); o.x2 = round(o.x2 + dv); } }
           else if (axis) o.y = round(o.y + dv); else o.x = round(o.x + dv);
         }
       }
@@ -243,7 +258,7 @@ export class CommandService {
       const ids = withStacked(step, sel.map((o) => o.id));
       for (const o of step.objects) {
         if (!ids.has(o.id)) continue;
-        if (isLine(o)) { o.x1 = round(o.x1 + dx); o.x2 = round(o.x2 + dx); o.y1 = round(o.y1 + dy); o.y2 = round(o.y2 + dy); }
+        if (o.type === 'opening') { /* it stays on its wall */ } else if (isLine(o)) { o.x1 = round(o.x1 + dx); o.x2 = round(o.x2 + dx); o.y1 = round(o.y1 + dy); o.y2 = round(o.y2 + dy); }
         else { o.x = round(o.x + dx); o.y = round(o.y + dy); }
       }
     });
@@ -283,6 +298,13 @@ export class CommandService {
           // a roof is kept only when there is one
           if (k === 'roof' && o.type === 'volume') { if (v && v !== 'flat') { o.roof = v; o.roofH ??= 3; } else { delete o.roof; delete o.roofH; } continue; }
           if (k === 'roofH' && o.roof) { o.roofH = v; continue; }
+          // what an object only carries when it has it: a colour of its own, the direction and colour of a roof,
+          // the height where an arrow ends, the note and the mark of a label, the joints of a floor
+          if (OPTIONAL[k]?.includes(o.type)) {
+            const keep = k === 'z2' ? v !== null && v !== '' && Number.isFinite(Number(v)) && Number(v) !== o.z : k === 'roofDir' ? v === 'w' || v === 'd' : k === 'joints' ? Number(v) > 0 : !!v;
+            if (!keep) delete o[k]; else o[k] = k === 'z2' || k === 'joints' ? Number(v) : v;
+            continue;
+          }
           if (EXTRA_KEYS.includes(k)) { if (v) o[k] = k === 'name' ? String(v).trim().slice(0, 80) : true; else delete o[k]; }
           else if (k in o && k !== 'id' && k !== 'type') o[k] = v;
         }
@@ -355,7 +377,7 @@ export class CommandService {
         // the site starts at (0, 0): everything drawn moves with it
         if (Math.abs(x0) > 1e-9 || Math.abs(y0) > 1e-9) {
           for (const st of p.steps) for (const o of st.objects) {
-            if (isLine(o)) { o.x1 = round(o.x1 - x0); o.x2 = round(o.x2 - x0); o.y1 = round(o.y1 - y0); o.y2 = round(o.y2 - y0); }
+            if (o.type === 'opening') { /* it stays on its wall */ } else if (isLine(o)) { o.x1 = round(o.x1 - x0); o.x2 = round(o.x2 - x0); o.y1 = round(o.y1 - y0); o.y2 = round(o.y2 - y0); }
             else { o.x = round(o.x - x0); o.y = round(o.y - y0); }
           }
           if (p.underlay) { p.underlay.x = round(p.underlay.x - x0); p.underlay.y = round(p.underlay.y - y0); }
@@ -573,11 +595,15 @@ async function shrinkImage(dataUrl, max = 2200) {
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
   return { src: canvas.toDataURL('image/jpeg', 0.86), ratio: img.naturalHeight / img.naturalWidth };
 }
+/** Fields kept only when set, and the kinds of object that may have them. */
+const OPTIONAL = { color: ['volume'], roofColor: ['volume'], roofDir: ['volume'], z2: ['arrow'], note: ['label'], mark: ['label'], joints: ['area'] };
+
 /** What was copied (shared by every open diagram). */
 let clipboard = null;
 
 /** Bounds in plan of an object: [x0, y0, x1, y1] (null for what has no place of its own). */
 function boundsOf(o) {
+  if (o.type === 'opening') return null;
   if (isLine(o)) return [Math.min(o.x1, o.x2), Math.min(o.y1, o.y2), Math.max(o.x1, o.x2), Math.max(o.y1, o.y2)];
   if (o.w == null) return o.x == null ? null : [o.x, o.y, o.x, o.y];
   const ring = rectRing(o.x, o.y, o.w, o.shape === 'sphere' ? o.w : o.d, o.rot || 0);

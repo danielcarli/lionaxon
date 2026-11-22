@@ -2,6 +2,29 @@
 
 All notable changes to LionAxon are documented here. The project follows [Semantic Versioning](https://semver.org).
 
+## [0.10.0] — 2026-11-22
+
+What a real design sheet asked for: redoing the eight moves of a theatre's parti showed what was missing.
+
+### Added
+- **Openings on the walls**: doors, windows, arches and round openings drawn on a wall of a box, without cutting it. They are added from the properties of the box (on the wall that faces you), have their own form (kind, wall, place along it, sill, size), go with their volume when it moves, turns or is duplicated, and are deleted with it. They may reach into the gable of a roof.
+- **Roofs**: the **ridge** along the width or the depth (or the longer side, as before), so a row of volumes can share one roof line; a **colour of its own** for the slopes.
+- **A colour of its own** for a volume, instead of the one of its category or of the style; it stays out of the legend.
+- **Paved floors**: flat areas may have joints every so many metres.
+- **Arrows between levels**: an arrow may end at another height than where it starts.
+- **Labels**: a second, quieter line under the text (a note), and a mark at the point (! × + −).
+- **Sheet**: the **legend along the foot** in a row, instead of the column under the title; **text blocks** in a column on the right (title and text; a line that starts with + or − is drawn as a point for or against). The drawings make room for them.
+
+### Fixed
+- **Flat areas did not show over a site with thickness**: the top of the block of earth covered them. They are now drawn on the top they lie on.
+- **Streets, paving and context volumes were lighter than the paper instead of darker** (the shade went the wrong way), so on white paper they could not be seen.
+- `tools/inspect.mjs` failed on projects with volumes on a reference plane.
+- The legend along the foot uses the whole width of the paper.
+
+### Notes
+- Still to come from the same test: several sheets and alternatives in one project, a small drawing beside the main one, free terrain (L-shaped levels, contour lines, volumes that dig), stairs, zoning plans with named rooms, materials (stone, tiles).
+- Openings are for boxes only, and are not drawn in plan.
+
 ## [0.9.1] — 2026-11-22
 
 Installers, and the links to download them.

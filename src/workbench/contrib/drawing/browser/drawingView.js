@@ -1085,7 +1085,7 @@ export class DrawingView {
         for (const o of step.objects) {
           const s0 = d.start.get(o.id);
           if (!s0) continue;
-          if (isLine(o)) { o.x1 = r3(s0.x1 + dx); o.y1 = r3(s0.y1 + dy); o.x2 = r3(s0.x2 + dx); o.y2 = r3(s0.y2 + dy); }
+          if (o.type === 'opening') { /* it stays on its wall */ } else if (isLine(o)) { o.x1 = r3(s0.x1 + dx); o.y1 = r3(s0.y1 + dy); o.x2 = r3(s0.x2 + dx); o.y2 = r3(s0.y2 + dy); }
           else { o.x = r3(s0.x + dx); o.y = r3(s0.y + dy); }
         }
       });
@@ -1372,7 +1372,7 @@ export class DrawingView {
         const s0 = d.start.get(o.id);
         if (!s0) continue;
         const dx = view.e1[0] * along, dy = view.e1[1] * along;
-        if (isLine(o)) { o.x1 = r3(s0.x1 + dx); o.y1 = r3(s0.y1 + dy); o.x2 = r3(s0.x2 + dx); o.y2 = r3(s0.y2 + dy); }
+        if (o.type === 'opening') { /* it stays on its wall */ } else if (isLine(o)) { o.x1 = r3(s0.x1 + dx); o.y1 = r3(s0.y1 + dy); o.x2 = r3(s0.x2 + dx); o.y2 = r3(s0.y2 + dy); }
         else { o.x = r3(s0.x + dx); o.y = r3(s0.y + dy); }
         if (o.id !== d.id || Math.abs(dz) < 1e-9 || o.type === 'slope') continue;
         // the grabbed object changes height (what is stacked on it follows by itself)

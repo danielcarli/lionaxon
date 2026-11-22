@@ -11,7 +11,7 @@ import { h, setChildren } from '../../../../base/browser/dom.js';
 import { icon } from '../../../../base/browser/icons.js';
 import { t, tn } from '../../../../base/common/nls.js';
 import { numField, segmented, selectField, checkbox, textField, row, section } from '../../../browser/widgets.js';
-import { indexById, baseOf, elevationOf, slopeEnds, heightOf, formatElevation, SHAPES, LABEL_FONT_IDS, GROUND_LEVEL, ROOFS, AREA_KINDS, TREE_KINDS, STEP_OPS } from '../../../services/model/common/model.js';
+import { indexById, baseOf, elevationOf, slopeEnds, heightOf, formatElevation, SHAPES, LABEL_FONT_IDS, GROUND_LEVEL, ROOFS, AREA_KINDS, TREE_KINDS, STEP_OPS, OPENING_KINDS, OPENING_SIDES, LABEL_MARKS } from '../../../services/model/common/model.js';
 import { getStyle } from '../../../services/render/common/styles.js';
 import { LABEL_FONTS } from '../../../services/render/common/fonts.js';
 import { levelName } from '../../drawing/browser/drawingView.js';
@@ -56,7 +56,7 @@ export class PropertiesPanel {
     const forms = {
       volume: () => this.#volumeForm(o), cut: () => this.#cutForm(o), platform: () => this.#platformForm(o), slope: () => this.#slopeForm(o),
       arrow: () => this.#arrowForm(o), person: () => this.#personForm(o), label: () => this.#labelForm(o),
-      area: () => this.#areaForm(o), tree: () => this.#treeForm(o), dim: () => this.#dimForm(o),
+      area: () => this.#areaForm(o), tree: () => this.#treeForm(o), dim: () => this.#dimForm(o), opening: () => this.#openingForm(o),
     };
     setChildren(this.body, this.#nameField(o), forms[o.type](), this.#actions());
   }
@@ -65,6 +65,13 @@ export class PropertiesPanel {
 
   #num(label, key, o, extra = {}) {
     return numField({ label, value: o[key], unit: extra.unit ?? 'm', step: extra.step ?? this.doc.project.grid, key, title: extra.title, min: extra.min, max: extra.max, digits: extra.digits, disabled: extra.disabled, onCommit: (v) => this.set({ [key]: v }) });
+  }
+
+  /** A colour of its own (or none): a colour well and a button that takes it away. */
+  #colorRow(label, key, o, fallback) {
+    const well = h('input.color-well', { type: 'color', value: o[key] || fallback, 'data-key': key, title: label, onchange: () => this.set({ [key]: well.value }) });
+    return row(label, h('div.color-row', well,
+      o[key] ? h('button.btn.btn-ghost.btn-sm', { 'data-action': `clear-${key}`, onclick: () => this.set({ [key]: null }) }, t('color.none')) : h('span.pane-hint', t('color.unset'))));
   }
 
   /** A name of its own for the object (shown in the lists instead of "Box 3"), and its lock and eye. */
@@ -173,8 +180,14 @@ export class PropertiesPanel {
       o.shape === 'box' ? section(t('roof.title'), h('div.form',
         segmented(ROOFS.map((r) => [r, t('roof.' + r)]), o.roof || 'flat', (v) => this.set({ roof: v }), { title: t('roof.title') }),
         o.roof ? row(t('roof.height'), numField({ value: o.roofH, unit: 'm', step: 0.5, min: 0.1, max: 200, key: 'roofH', onCommit: (v) => this.set({ roofH: v }) })) : null,
+        o.roof && o.roof !== 'hip' ? row(t('roof.ridge'), segmented([['auto', t('roof.ridgeAuto')], ['w', t('roof.ridgeW')], ['d', t('roof.ridgeD')]], o.roofDir || 'auto', (v) => this.set({ roofDir: v }), { title: t('roof.ridge') })) : null,
+        o.roof ? this.#colorRow(t('roof.color'), 'roofColor', o, '#8e3a34') : null,
         o.roof ? h('p.pane-hint', t('roof.hint')) : null)) : null,
+      o.shape === 'box' ? section(t('opening.title'), h('div.form',
+        h('div.opening-add', OPENING_KINDS.map((k) => h('button.btn.btn-secondary.btn-sm', { 'data-action': `opening-${k}`, title: t('opening.addTip'), onclick: () => this.cmd.addOpening(k, this.#facingSide(o)) }, t('opening.' + k)))),
+        h('p.pane-hint', t('opening.hint')))) : null,
       section(t('props.look'), h('div.form', row(t('prop.category'), this.#categorySelect(o.cat)), this.#stateField(o.state),
+        this.#colorRow(t('prop.ownColor'), 'color', o, '#cfc3ad'),
         o.state === 'ghost' ? h('p.pane-hint', t('state.ghostHint')) : null,
         o.state === 'context' ? h('p.pane-hint', t('state.contextHint')) : null)),
       section(t('props.series'), h('div.form',
@@ -184,6 +197,39 @@ export class PropertiesPanel {
           selectField([['w', t('series.alongWidth')], ['d', t('series.alongDepth')]], 'w', (v) => { series.axis = v; })),
         h('button.btn.btn-secondary.btn-sm', { onclick: () => this.cmd.duplicateSeries(series.count, series.gap, series.axis) }, h('span', { html: icon('copy', 14) }), t('series.go')),
         h('p.pane-hint', t('series.hint')))),
+    ];
+  }
+
+  /** The wall of a box that faces the person in the axonometric view (the one a new opening goes to). */
+  #facingSide(v) {
+    const az = (this.doc.project.view.az * Math.PI) / 180;
+    const cam = [Math.cos(az), Math.sin(az)];
+    const a = (v.rot * Math.PI) / 180, c = Math.cos(a), sn = Math.sin(a);
+    const normals = { front: [0, -1], right: [1, 0], back: [0, 1], left: [-1, 0] };
+    let best = 'front', most = -Infinity;
+    for (const side of OPENING_SIDES) {
+      const [nx, ny] = normals[side];
+      const d = (nx * c - ny * sn) * cam[0] + (nx * sn + ny * c) * cam[1];
+      if (d > most + 1e-9) { most = d; best = side; }
+    }
+    return best;
+  }
+
+  #openingForm(o) {
+    const v = this.doc.byId(o.on);
+    const len = v ? (o.side === 'front' || o.side === 'back' ? v.w : v.d) : 0;
+    return [
+      h('p.pane-hint', { style: { margin: '2px 0 8px' } }, v ? t('opening.explain', { name: volumeName(v, this.doc) }) : t('opening.orphan')),
+      section(t('opening.kind'), segmented(OPENING_KINDS.map((k) => [k, t('opening.' + k)]), o.kind, (k) => this.set({ kind: k }), { title: t('opening.kind') })),
+      section(t('opening.wall'), h('div.form',
+        segmented(OPENING_SIDES.map((sd) => [sd, t('opening.side.' + sd)]), o.side, (sd) => this.set({ side: sd }), { title: t('opening.wall') }),
+        h('div.form-grid',
+          this.#num('↔', 'u', o, { step: 0.5, title: t('opening.along') }),
+          this.#num('Z', 'z', o, { step: 0.25, min: 0, title: t('opening.sill') })),
+        v ? h('p.pane-hint', t('opening.alongHint', { len: fmtZ(len) })) : null)),
+      section(t('props.size'), h('div.form-grid',
+        this.#num(t('prop.widthShort'), 'w', o, { min: 0.1, step: 0.25, title: t('prop.width') }),
+        o.kind === 'oculus' ? null : this.#num(t('prop.heightShort'), 'h', o, { min: 0.1, step: 0.25, title: t('prop.height') }))),
     ];
   }
 
@@ -245,7 +291,9 @@ export class PropertiesPanel {
       section(t('props.position'), h('div.form-grid', this.#num('X', 'x', o), this.#num('Y', 'y', o), this.#num('↻', 'rot', o, { unit: '°', step: 15, title: t('prop.rotation') }),
         this.#num('Z', 'z', o, { step: 0.5, title: t('prop.zOnPlane') })),
         h('div.form', { style: { marginTop: '6px' } }, this.#levelRow(o))),
-      section(t('props.size'), h('div.form-grid', this.#num(t('prop.widthShort'), 'w', o, { min: 0.1, title: t('prop.width') }), this.#num(t('prop.depthShort'), 'd', o, { min: 0.1, title: t('prop.depth') }))),
+      section(t('props.size'), h('div.form-grid', this.#num(t('prop.widthShort'), 'w', o, { min: 0.1, title: t('prop.width') }), this.#num(t('prop.depthShort'), 'd', o, { min: 0.1, title: t('prop.depth') })),
+        h('div.form', { style: { marginTop: '8px' } }, row(t('area.joints'), numField({ value: o.joints || 0, unit: 'm', step: 0.5, min: 0, max: 100, key: 'joints', onCommit: (v) => this.set({ joints: v }) })),
+          h('p.pane-hint', t('area.jointsHint')))),
     ];
   }
 
@@ -274,7 +322,8 @@ export class PropertiesPanel {
       ...this.doc.project.categories.map((c) => [c.id, c.color, c.name])];
     return [
       section(t('arrow.ends'), h('div.form-grid', this.#num('X₁', 'x1', o), this.#num('Y₁', 'y1', o), this.#num('X₂', 'x2', o), this.#num('Y₂', 'y2', o)),
-        h('div.form-grid', { style: { marginTop: '6px' } }, this.#num('Z', 'z', o, { step: 0.25, title: t('arrow.height') }), this.#num('⌒', 'bend', o, { step: 0.5, title: t('arrow.bend') })),
+        h('div.form-grid', { style: { marginTop: '6px' } }, this.#num('Z', 'z', o, { step: 0.25, title: t('arrow.height') }), this.#num('⌒', 'bend', o, { step: 0.5, title: t('arrow.bend') }),
+          numField({ label: 'Z₂', value: o.z2 ?? o.z, unit: 'm', step: 0.25, key: 'z2', title: t('arrow.heightEnd'), onCommit: (v) => this.set({ z2: v }) })),
         h('div.form', { style: { marginTop: '6px' } }, this.#levelRow(o))),
       section(t('arrow.look'), h('div.form',
         h('div.swatches', colors.map(([id, c, name]) => h('button.swatch-btn', { class: o.color === id ? 'swatch-btn active' : 'swatch-btn', title: name, style: { background: c }, onclick: () => this.set({ color: id }) }))),
@@ -299,7 +348,10 @@ export class PropertiesPanel {
   #labelForm(o) {
     return [
       section(t('label.text'), textField(o.text, (v) => this.set({ text: v }), { multiline: true, key: 'text', placeholder: t('label.default') }),
-        h('p.pane-hint', t('label.textHint'))),
+        h('p.pane-hint', t('label.textHint')),
+        h('div.form', { style: { marginTop: '8px' } },
+          textField(o.note || '', (v) => this.set({ note: v }), { multiline: true, key: 'note', placeholder: t('label.notePlaceholder') }),
+          row(t('label.mark'), segmented(LABEL_MARKS.map((m) => [m, m || '—']), o.mark || '', (m) => this.set({ mark: m }), { title: t('label.markTip') })))),
       section(t('label.font'), h('div.form',
         selectField(LABEL_FONT_IDS.map((id) => [id, LABEL_FONTS[id].name]), o.font, (v) => this.set({ font: v }), { 'data-key': 'font' }),
         h('div.font-sample', { style: { fontFamily: LABEL_FONTS[o.font]?.family, fontWeight: LABEL_FONTS[o.font]?.weight } }, o.caps ? (o.text || t('label.default')).split('\n')[0].toUpperCase() : (o.text || t('label.default')).split('\n')[0]),
@@ -321,6 +373,7 @@ export class PropertiesPanel {
       ['terrain', 'terrain', objs.filter((o) => o.type === 'platform' || o.type === 'slope' || o.type === 'area')],
       ['arrow', 'arrow', objs.filter((o) => o.type === 'arrow')],
       ['dim', 'dim', objs.filter((o) => o.type === 'dim')],
+      ['opening', 'door', objs.filter((o) => o.type === 'opening')],
       ['person', 'person', objs.filter((o) => o.type === 'person')],
       ['tree', 'tree', objs.filter((o) => o.type === 'tree')],
       ['label', 'text', objs.filter((o) => o.type === 'label')],
@@ -424,6 +477,7 @@ export function elementName(o, doc, generic = false) {
     case 'tree': return `${t('object.tree')} ${i} · ${t('tree.' + o.kind)}`;
     case 'person': return `${t('object.person')} ${i} · ${t('person.pose' + o.pose)}`;
     case 'label': return (o.text || t('label.default')).split('\n')[0];
+    case 'opening': return t('opening.' + o.kind);
     default: return o.id;
   }
 }

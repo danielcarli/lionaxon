@@ -710,6 +710,8 @@
     "title": "Escola em torno do pátio",
     "subtitle": "Partido",
     "legend": true,
-    "texts": true
+    "texts": true,
+    "legendPlace": "top",
+    "blocks": []
   }
 }

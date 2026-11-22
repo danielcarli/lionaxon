@@ -122,6 +122,11 @@ export function renderSheet(prj, opts) {
   const bh = Math.max(...[...boxes.values()].map((b) => b[3] - b[1]));
   const ink = prj.northHalftone ? style.muted : style.ink;
 
+  // ---- what takes room beside the steps: a column of text blocks on the right, the legend along the foot
+  const blocks = opts.only == null ? (sheet.blocks || []) : [];
+  const panelW = blocks.length ? Math.min(Math.max(62 * s, (W - 2 * m) * 0.24), 110 * s) : 0;
+  const Wc = panelW ? W - panelW - 9 * s : W;      // the right edge of what is laid out (plus the margin)
+  const legendBelow = sheet.legendPlace === 'bottom' && sheet.legend;
   // ---- header (every page: title and subtitle; the first page: also the legend and the north arrow)
   const legendItems = [];
   if (sheet.legend) {
@@ -130,6 +135,26 @@ export function renderSheet(prj, opts) {
     }
     if (highlighted.length && opts.only == null) legendItems.push({ color: style.accent, name: t('legend.changed'), arrow: false });
   }
+  /** The legend from (left, y): a column, or a row that wraps at `right`. Returns its markup and the y after it. */
+  const legendFlow = (left, right, y, inRow) => {
+    let legend = '';
+    let x = left;
+    for (const it of legendItems) {
+      const label = it.name.toUpperCase();
+      const wItem = 8 * s + label.length * 3.1 * s * 0.62 + 6 * s;
+      if (inRow && x > left && x + wItem > right) { x = left; y += 6 * s; }
+      const sym = it.arrow
+        ? `<path d="M${r2(x)} ${r2(y - 1.3 * s)}h${r2(5 * s)}M${r2(x + 3.6 * s)} ${r2(y - 2.4 * s)}l${r2(1.4 * s)} ${r2(1.1 * s)}M${r2(x + 5 * s)} ${r2(y + 0.9 * s)}h${r2(-5 * s)}M${r2(x + 1.4 * s)} ${r2(y - 0.2 * s)}l${r2(-1.4 * s)} ${r2(1.1 * s)}" stroke="${it.color}" stroke-width="${r2(0.45 * s)}" fill="none" stroke-linecap="round"/>`
+        : `<rect x="${r2(x)}" y="${r2(y - 2.6 * s)}" width="${r2(5 * s)}" height="${r2(4 * s)}" fill="${it.color}"/>`
+          + (it.hatch != null ? `<defs>${hatchPattern(`lx-leg${it.hatch}`, it.hatch, 1.5 * s, 0.14 * s, style.edge)}</defs><rect x="${r2(x)}" y="${r2(y - 2.6 * s)}" width="${r2(5 * s)}" height="${r2(4 * s)}" fill="url(#lx-leg${it.hatch})" stroke="${style.edge}" stroke-width="${r2(0.12 * s)}"/>` : '');
+      legend += sym + `<text x="${r2(x + 8 * s)}" y="${r2(y)}" font-size="${r2(3.1 * s)}" letter-spacing="${r2(0.2 * s)}" fill="${style.text}" dominant-baseline="central" dy="${r2(-0.4 * s)}">${esc(label)}</text>`;
+      if (inRow) x += wItem; else y += 6 * s;
+    }
+    return { markup: `<g id="legend">${legend}</g>`, y: inRow ? y + 6 * s : y };
+  };
+  // the legend along the foot takes as many rows as it needs
+  const legendRows = legendBelow && legendItems.length ? Math.round((legendFlow(m, W - m, 0, true).y) / (6 * s)) : 0;
+  const Hc = H - (legendRows ? legendRows * 6 * s + 4 * s : 0);
   const header = (first) => {
     let y = m;
     const left = m;
@@ -149,27 +174,15 @@ export function renderSheet(prj, opts) {
     // (with steps seen from different angles, each drawing has its own small north instead)
     if (prj.northPlace === 'header' && first && uniform) {
       const r = 5.5 * s;
-      out += northGlyph(view, prj.north, W - m - r, m + r, r, { ink, muted: style.muted, halftone: prj.northHalftone, s, id: 'north' });
+      out += northGlyph(view, prj.north, Wc - m - r, m + r, r, { ink, muted: style.muted, halftone: prj.northHalftone, s, id: 'north' });
     }
     out = `<g id="cabecalho">${out}</g>`;
-    // legend: a column under the subtitle (in a row across the page for the vertical layout)
-    if (first && legendItems.length) {
+    // legend: a column under the subtitle (a row across the page for the vertical layout), unless it goes to the foot
+    if (first && legendItems.length && !legendBelow) {
       y += 7 * s;
-      let legend = '';
-      let x = left;
-      for (const it of legendItems) {
-        const label = it.name.toUpperCase();
-        const wItem = 8 * s + label.length * 3.1 * s * 0.62 + 6 * s;
-        if (vertical && x > left && x + wItem > W - m) { x = left; y += 6 * s; }
-        const sym = it.arrow
-          ? `<path d="M${r2(x)} ${r2(y - 1.3 * s)}h${r2(5 * s)}M${r2(x + 3.6 * s)} ${r2(y - 2.4 * s)}l${r2(1.4 * s)} ${r2(1.1 * s)}M${r2(x + 5 * s)} ${r2(y + 0.9 * s)}h${r2(-5 * s)}M${r2(x + 1.4 * s)} ${r2(y - 0.2 * s)}l${r2(-1.4 * s)} ${r2(1.1 * s)}" stroke="${it.color}" stroke-width="${r2(0.45 * s)}" fill="none" stroke-linecap="round"/>`
-          : `<rect x="${r2(x)}" y="${r2(y - 2.6 * s)}" width="${r2(5 * s)}" height="${r2(4 * s)}" fill="${it.color}"/>`
-            + (it.hatch != null ? `<defs>${hatchPattern(`lx-leg${it.hatch}`, it.hatch, 1.5 * s, 0.14 * s, style.edge)}</defs><rect x="${r2(x)}" y="${r2(y - 2.6 * s)}" width="${r2(5 * s)}" height="${r2(4 * s)}" fill="url(#lx-leg${it.hatch})" stroke="${style.edge}" stroke-width="${r2(0.12 * s)}"/>` : '');
-        legend += sym + `<text x="${r2(x + 8 * s)}" y="${r2(y)}" font-size="${r2(3.1 * s)}" letter-spacing="${r2(0.2 * s)}" fill="${style.text}" dominant-baseline="central" dy="${r2(-0.4 * s)}">${esc(label)}</text>`;
-        if (vertical) x += wItem; else y += 6 * s;
-      }
-      out += `<g id="legend">${legend}</g>`;
-      y += vertical ? 3 * s : -3 * s;
+      const l = legendFlow(left, Wc - m, y, vertical);
+      out += l.markup;
+      y = l.y + (vertical ? -3 * s : -3 * s);
     }
     return { markup: out, top: y > m ? y + 10 * s : m };
   };
@@ -237,34 +250,34 @@ export function renderSheet(prj, opts) {
 
   if (vertical) {
     // ---- vertical: one step under the other, the drawing on the left, its caption on the right
-    const capW = Math.max(46 * s, (W - 2 * m) * 0.3);
+    const capW = Math.max(46 * s, (Wc - 2 * m) * 0.3);
     const gap = 8 * s, rowGap = 7 * s, gapIn = 6 * s;
-    const drawW = W - 2 * m - capW - gap;
+    const drawW = Wc - 2 * m - capW - gap;
     fitWidth = drawW;
     const capH = indexes.map((i) => captionHeight(prj.steps[i], capW));
     if (fixed) scale = 1000 / sheet.scale / axis;
     else {
       // the largest scale that fits every step on one page
-      const room = H - m - footerH - firstTop - (indexes.length - 1) * rowGap;
+      const room = Hc - m - footerH - firstTop - (indexes.length - 1) * rowGap;
       scale = Math.min((drawW - (K - 1) * gapIn) / (K * bw), Math.max(4 * s, room / indexes.length) / bh);
       for (let k = 0; k < 30; k++) { // rows taller than the drawing (long captions) take room too
         const total = indexes.reduce((sum, _, j) => sum + Math.max(bh * scale, capH[j]), 0) + (indexes.length - 1) * rowGap;
-        if (total <= H - m - footerH - firstTop + 1e-6) break;
+        if (total <= Hc - m - footerH - firstTop + 1e-6) break;
         scale *= 0.97;
       }
     }
     // a drawing too wide to share the line with its caption takes the whole width, the caption under it
     const widest = K * bw * scale + (K - 1) * gapIn;
     stacked = fixed && widest > drawW + 1e-6;
-    overflow = fixed && widest > W - 2 * m + 1e-6;
+    overflow = fixed && widest > Wc - 2 * m + 1e-6;
     const dw = bw * scale, dh = bh * scale;
     let page = [], y = firstTop;
     if (stacked) {
-      const fullW = W - 2 * m;
+      const fullW = Wc - 2 * m;
       const capHs = indexes.map((i) => captionHeight(prj.steps[i], Math.min(fullW, 110 * s)));
       indexes.forEach((stepIndex, j) => {
         const rowH = dh + capHs[j];
-        if (page.length && y + rowH > H - m - footerH + 1e-6) { pages.push(page); page = []; y = nextTop; }
+        if (page.length && y + rowH > Hc - m - footerH + 1e-6) { pages.push(page); page = []; y = nextTop; }
         const num = String(stepIndex + 1).padStart(2, '0');
         let g = drawings(stepIndex, m + Math.max(0, (fullW - groupW(stepIndex, dw, gapIn)) / 2), y, scale, dw, gapIn);
         g += caption(prj.steps[stepIndex], num, m, y + dh, Math.min(fullW, 110 * s), capHs[j]);
@@ -274,12 +287,12 @@ export function renderSheet(prj, opts) {
       pages.push(page);
     } else indexes.forEach((stepIndex, j) => {
       const rowH = Math.max(dh, capH[j]);
-      if (page.length && y + rowH > H - m - footerH + 1e-6) { pages.push(page); page = []; y = nextTop; }
+      if (page.length && y + rowH > Hc - m - footerH + 1e-6) { pages.push(page); page = []; y = nextTop; }
       const num = String(stepIndex + 1).padStart(2, '0');
       let g = drawings(stepIndex, m + Math.max(0, (drawW - groupW(stepIndex, dw, gapIn)) / 2), y + (rowH - dh) / 2, scale, dw, gapIn);
       g += caption(prj.steps[stepIndex], num, m + drawW + gap, y + Math.max(0, (rowH - capH[j]) / 2), capW, Math.max(rowH, capH[j]));
       // a thin rule between steps, and a small arrow down the caption column: one step leads to the next
-      if (j < indexes.length - 1 && y + rowH + rowGap + Math.max(dh, capH[j + 1]) <= H - m - footerH + 1e-6) {
+      if (j < indexes.length - 1 && y + rowH + rowGap + Math.max(dh, capH[j + 1]) <= Hc - m - footerH + 1e-6) {
         const ry = y + rowH + rowGap / 2;
         g += `<path d="M${r2(m)} ${r2(ry)}H${r2(m + drawW)}" stroke="${style.grid}" stroke-width="${r2(0.25 * s)}"/>`;
         const ax = m + drawW + gap + 2.5 * s;
@@ -317,33 +330,33 @@ export function renderSheet(prj, opts) {
       slots = Math.max(K, Math.ceil(total / wanted));
       while (!column && slots < total && flow(slots).length > wanted) slots++;
     }
-    fitWidth = W - 2 * m;
+    fitWidth = Wc - 2 * m;
     if (fixed) {
       scale = 1000 / sheet.scale / axis;
       // the steps flow into as many slots as fit across the paper
-      const fitSlots = Math.max(1, Math.floor((W - 2 * m + gapX) / (bw * scale + gapX)));
+      const fitSlots = Math.max(1, Math.floor((Wc - 2 * m + gapX) / (bw * scale + gapX)));
       slots = Math.max(1, Math.min(slots, fitSlots));
-      overflow = K * bw * scale + (K - 1) * gapX > W - 2 * m + 1e-6 || bh * scale + captionH > H - m - footerH - nextTop + 1e-6;
+      overflow = K * bw * scale + (K - 1) * gapX > Wc - 2 * m + 1e-6 || bh * scale + captionH > Hc - m - footerH - nextTop + 1e-6;
       slots = Math.max(slots, K);
     }
     const rowsAll = flow(slots);
     if (!fixed) {
-      const slotW0 = (W - 2 * m - (slots - 1) * gapX) / slots;
-      const maxCellH = (H - m - firstTop - (rowsAll.length - 1) * gapY) / rowsAll.length;
+      const slotW0 = (Wc - 2 * m - (slots - 1) * gapX) / slots;
+      const maxCellH = (Hc - m - firstTop - (rowsAll.length - 1) * gapY) / rowsAll.length;
       scale = Math.min(slotW0 / bw, Math.max(10 * s, maxCellH - captionH) / bh);
     }
-    const slotW = fixed ? Math.min(bw * scale, W - 2 * m) + Math.max(0, (W - 2 * m - slots * Math.min(bw * scale, W - 2 * m) - (slots - 1) * gapX) / slots) : (W - 2 * m - (slots - 1) * gapX) / slots;
+    const slotW = fixed ? Math.min(bw * scale, Wc - 2 * m) + Math.max(0, (Wc - 2 * m - slots * Math.min(bw * scale, Wc - 2 * m) - (slots - 1) * gapX) / slots) : (Wc - 2 * m - (slots - 1) * gapX) / slots;
     const dh = bh * scale;
     const cellH = dh + captionH;
     // rows that fit on each page (at least one)
-    const perPage = (top) => Math.max(1, Math.floor((H - m - footerH - top + gapY) / (cellH + gapY)));
+    const perPage = (top) => Math.max(1, Math.floor((Hc - m - footerH - top + gapY) / (cellH + gapY)));
     let k = 0;
     while (k < rowsAll.length) {
       const top = pages.length ? nextTop : firstTop;
       const rowsHere = fixed ? Math.min(perPage(top), rowsAll.length - k) : rowsAll.length;
       // the block of steps starts under the header; when there is room left over it is shared: a third
       // above, two thirds below, so the steps stay close to the title and the legend
-      const slack = fixed ? 0 : Math.max(0, H - m - top - (rowsAll.length * cellH + (rowsAll.length - 1) * gapY));
+      const slack = fixed ? 0 : Math.max(0, Hc - m - top - (rowsAll.length * cellH + (rowsAll.length - 1) * gapY));
       const start = top + slack / 3;
       const page = [];
       for (let r = 0; r < rowsHere; r++, k++) {
@@ -370,11 +383,44 @@ export function renderSheet(prj, opts) {
   const fontStyle = opts.fontCss ? `<defs><style>${opts.fontCss}</style></defs>` : '';
   const svgs = pages.map((content, p) => {
     const head = header(p === 0).markup;
+    let extra = '';
+    if (p === 0 && legendRows) extra += legendFlow(m, W - m, Hc + 1.5 * s, true).markup;
+    if (p === 0 && panelW) {
+      // the text blocks: a small title in the caption colour, a rule, the text; + and − lines are points for and against
+      const x = Wc + 9 * s - m, right = W - m, fsz = 3 * s, lh = fsz * 1.5;
+      const chars = Math.max(12, Math.floor((right - x - 5 * s) / (fsz * 0.5)));
+      let y = m + 6 * s, g = '';
+      for (const b of blocks) {
+        if (y > H - m - 10 * s) break;
+        if (b.title) {
+          g += `<text x="${r2(x)}" y="${r2(y)}" font-size="${r2(2.8 * s)}" font-weight="700" letter-spacing="${r2(0.5 * s)}" fill="${style.caption}">${esc(b.title.toUpperCase())}</text>`;
+          y += 2.4 * s;
+          g += `<path d="M${r2(x)} ${r2(y)}H${r2(right)}" stroke="${style.grid}" stroke-width="${r2(0.25 * s)}"/>`;
+          y += 5.5 * s;
+        }
+        for (const para of b.text.split('\n')) {
+          const mark = /^\s*([+\-−–])\s+/.exec(para);
+          const body = mark ? para.slice(mark[0].length) : para;
+          if (!body.trim()) { y += lh * 0.5; continue; }
+          const lines = wrap(body, mark ? chars - 4 : chars);
+          if (y + lines.length * lh > H - m) break;
+          if (mark) {
+            const plus = mark[1] === '+', col = plus ? '#2e8b57' : '#c8322d';
+            g += `<circle cx="${r2(x + 1.6 * s)}" cy="${r2(y - 1 * s)}" r="${r2(1.7 * s)}" fill="${col}"/>`
+              + `<path d="M${r2(x + 0.7 * s)} ${r2(y - 1 * s)}h${r2(1.8 * s)}${plus ? `M${r2(x + 1.6 * s)} ${r2(y - 1.9 * s)}v${r2(1.8 * s)}` : ''}" stroke="#fff" stroke-width="${r2(0.4 * s)}"/>`;
+          }
+          lines.forEach((line, i) => { g += `<text x="${r2(x + (mark ? 5 * s : 0))}" y="${r2(y + i * lh)}" font-size="${r2(fsz)}" fill="${style.text}">${esc(line)}</text>`; });
+          y += lines.length * lh + lh * 0.35;
+        }
+        y += 5 * s;
+      }
+      extra += `<g id="notes">${g}</g>`;
+    }
     // footer: the scale (when chosen) on the left, the page number on the right
     const foot = (scaleText ? `<text id="scale" x="${r2(m)}" y="${r2(H - m * 0.6)}" font-size="${r2(3 * s)}" font-weight="600" letter-spacing="${r2(0.25 * s)}" fill="${style.muted}">${esc(scaleText)}</text>` : '')
       + (pages.length > 1 ? `<text id="page" x="${r2(W - m)}" y="${r2(H - m * 0.6)}" font-size="${r2(3 * s)}" fill="${style.muted}" text-anchor="end">${p + 1} / ${pages.length}</text>` : '');
     return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="${W}mm" height="${H}mm" viewBox="0 0 ${W} ${H}" font-family="${esc(FONT)}">`
-      + fontStyle + `<rect id="papel" width="${W}" height="${H}" fill="${style.paper}"/>` + head + content.join('') + foot + '</svg>';
+      + fontStyle + `<rect id="papel" width="${W}" height="${H}" fill="${style.paper}"/>` + head + content.join('') + extra + foot + '</svg>';
   });
   return { svg: svgs[0], pages: svgs, width: W, height: H, scale: Math.round(denom), fixed, overflow, stacked, largestFit };
 }

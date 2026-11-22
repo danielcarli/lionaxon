@@ -532,6 +532,8 @@
     "title": "Casa no talude",
     "subtitle": "Estudo de implantação",
     "legend": true,
-    "texts": true
+    "texts": true,
+    "legendPlace": "top",
+    "blocks": []
   }
 }

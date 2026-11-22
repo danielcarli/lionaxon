@@ -49,7 +49,17 @@ export class SheetPane {
         h('label.form-label', t('sheet.title')), textField(sh.title, (v) => set((s) => { s.title = v; }), { placeholder: t('sheet.titlePlaceholder'), key: 'sheetTitle' }),
         h('label.form-label', t('sheet.subtitle')), textField(sh.subtitle, (v) => set((s) => { s.subtitle = v; }), { placeholder: t('sheet.subtitlePlaceholder'), key: 'sheetSubtitle' }),
         checkbox(t('sheet.showLegend'), sh.legend, (v) => set((s) => { s.legend = v; })),
+        sh.legend ? row(t('sheet.legendPlace'), segmented([['top', t('sheet.legendTop')], ['bottom', t('sheet.legendBottom')]], sh.legendPlace || 'top', (v) => set((s) => { s.legendPlace = v; }), { title: t('sheet.legendPlace') })) : null,
         checkbox(t('sheet.showTexts'), sh.texts, (v) => set((s) => { s.texts = v; })))),
+      // free blocks of text in a column on the right of the sheet
+      section(t('sheet.blocks'), h('div.form',
+        (sh.blocks || []).map((b, i) => h('div.sheet-block', { 'data-block': String(i) },
+          h('div.sheet-block-head',
+            textField(b.title, (v) => set((s) => { s.blocks[i].title = v; }), { placeholder: t('sheet.blockTitle'), key: `blockTitle${i}` }),
+            h('button.icon-button', { title: t('sheet.blockRemove'), 'aria-label': t('sheet.blockRemove'), html: icon('trash', 14), onclick: () => set((s) => { s.blocks.splice(i, 1); }) })),
+          textField(b.text, (v) => set((s) => { s.blocks[i].text = v; }), { multiline: true, placeholder: t('sheet.blockText'), key: `blockText${i}` }))),
+        (sh.blocks || []).length < 8 ? h('button.btn.btn-secondary.btn-sm', { 'data-action': 'add-block', onclick: () => set((s) => { (s.blocks ||= []).push({ title: t('sheet.blockNew'), text: '' }); }) }, h('span', { html: icon('plus', 14) }), t('sheet.blockAdd')) : null,
+        h('p.pane-hint', t('sheet.blocksHint')))),
       section(t('sheet.layout'), h('div.form',
         segmented([['row', t('sheet.row')], ['grid', t('sheet.grid')], ['column', t('sheet.column')], ['vertical', t('sheet.vertical'), t('sheet.verticalTip')]], sh.layout,
           // the vertical sheet is read top to bottom: it turns the paper upright

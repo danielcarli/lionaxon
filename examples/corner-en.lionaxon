@@ -1010,6 +1010,8 @@
     "title": "House on a corner lot",
     "subtitle": "Surroundings, sun and parti",
     "legend": true,
-    "texts": true
+    "texts": true,
+    "legendPlace": "top",
+    "blocks": []
   }
 }

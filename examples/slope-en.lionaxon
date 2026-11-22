@@ -532,6 +532,8 @@
     "title": "House on the slope",
     "subtitle": "Placement study",
     "legend": true,
-    "texts": true
+    "texts": true,
+    "legendPlace": "top",
+    "blocks": []
   }
 }

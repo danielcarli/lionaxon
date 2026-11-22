@@ -875,6 +875,8 @@
     "title": "Centro cultural em platôs",
     "subtitle": "Terreno, planos e volumes",
     "legend": true,
-    "texts": true
+    "texts": true,
+    "legendPlace": "top",
+    "blocks": []
   }
 }

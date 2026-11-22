@@ -926,6 +926,8 @@
     "title": "Site and parti diagram",
     "subtitle": "Site strategies",
     "legend": true,
-    "texts": true
+    "texts": true,
+    "legendPlace": "top",
+    "blocks": []
   }
 }

@@ -1010,6 +1010,8 @@
     "title": "Casa no lote de esquina",
     "subtitle": "Entorno, sol e partido",
     "legend": true,
-    "texts": true
+    "texts": true,
+    "legendPlace": "top",
+    "blocks": []
   }
 }

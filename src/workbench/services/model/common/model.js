@@ -40,6 +40,18 @@ export const TREE_KINDS = ['round', 'conifer'];
 export const STEP_OPS = ['', '+', '−', '=', '→'];
 /** Objects that are a line between two points (x1, y1) → (x2, y2). */
 export const isLine = (o) => o.type === 'arrow' || o.type === 'dim';
+/** Ridge of a gable or shed roof: along the longer side ('auto'), along the width ('w') or along the depth ('d'). */
+export const ROOF_DIRS = ['auto', 'w', 'd'];
+/** What is drawn on a wall of a box: a door, a window, an arched opening or a round one. */
+export const OPENING_KINDS = ['door', 'window', 'arch', 'oculus'];
+/** The four walls of a box, in its own frame: front (−depth), right (+width), back (+depth), left (−width). */
+export const OPENING_SIDES = ['front', 'right', 'back', 'left'];
+/** A mark drawn at the point of a label: a warning, a refusal, a gain, a loss. */
+export const LABEL_MARKS = ['', '!', '×', '+', '−'];
+/** Where the legend of the sheet goes: a column under the title, or a row along the foot. */
+export const LEGEND_PLACES = ['top', 'bottom'];
+/** A colour written as #rgb or #rrggbb (else null). */
+export const hexColor = (v) => (typeof v === 'string' && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(v.trim()) ? v.trim().toLowerCase() : null);
 export const LABEL_FONT_IDS = ['sans', 'condensed', 'serif', 'mono', 'hand'];
 export const NORTH_PLACES = ['header', 'drawing', 'none'];
 export const GROUND_LEVEL = 'L0';
@@ -71,6 +83,8 @@ export const createSlope = (p = {}) => normalizeObject({ type: 'slope', id: newI
 export const createArrow = (p = {}) => normalizeObject({ type: 'arrow', id: newId('a'), x1: 0, y1: 0, x2: 10, y2: 0, z: 0, level: null, bend: 0, color: 'ink', dashed: false, heads: 1, width: 0.3, layer: 'top', ...p });
 export const createPerson = (p = {}) => normalizeObject({ type: 'person', id: newId('p'), x: 0, y: 0, z: 0, level: null, pose: 0, ...p });
 export const createLabel = (p = {}) => normalizeObject({ type: 'label', id: newId('l'), x: 0, y: 0, z: 0, level: null, dx: 6, dy: -6, text: '', size: 1.6, font: 'sans', caps: true, ...p });
+
+export const createOpening = (p = {}) => normalizeObject({ type: 'opening', id: newId('o'), on: null, side: 'front', kind: 'door', u: 0, z: 0, w: 1.2, h: 2.4, ...p });
 
 export const createArea = (p = {}) => normalizeObject({ type: 'area', id: newId('e'), x: 0, y: 0, w: 10, d: 10, rot: 0, z: 0, level: null, kind: 'street', ...p });
 export const createTree = (p = {}) => normalizeObject({ type: 'tree', id: newId('t'), x: 0, y: 0, z: 0, level: null, size: 4, h: 6, kind: 'round', ...p });
@@ -144,16 +158,32 @@ function normalizeCore(o) {
         cat: str(o.cat) || null, state: pick(o.state, VOLUME_STATES, 'normal'), shape: pick(o.shape, SHAPES, 'box'),
       }), o);
       // a roof, kept only when there is one (boxes only)
-      if (v.shape === 'box' && ROOFS.includes(o.roof) && o.roof !== 'flat') { v.roof = o.roof; v.roofH = num(o.roofH, 3, 0.1, 200); }
+      if (v.shape === 'box' && ROOFS.includes(o.roof) && o.roof !== 'flat') {
+        v.roof = o.roof; v.roofH = num(o.roofH, 3, 0.1, 200);
+        if (o.roofDir === 'w' || o.roofDir === 'd') v.roofDir = o.roofDir;
+        if (hexColor(o.roofColor)) v.roofColor = hexColor(o.roofColor);
+      }
+      // a colour of its own (kept out of the legend), instead of the one of the style or of the category
+      if (hexColor(o.color)) v.color = hexColor(o.color);
       return v;
     }
     case 'cut': return polyFix(sphereFix({
       type: 'cut', id, x: num(o.x, 0), y: num(o.y, 0), w: num(o.w, 4, 0.1), d: num(o.d, 4, 0.1), h: num(o.h, 6, 0.1, 1000),
       rot: num(o.rot, 0) % 360, z: num(o.z, 0), level, target: str(o.target) || null, shape: pick(o.shape, SHAPES, 'box'),
     }), o);
-    case 'area': return {
-      type: 'area', id, x: num(o.x, 0), y: num(o.y, 0), w: num(o.w, 10, 0.1), d: num(o.d, 10, 0.1), rot: num(o.rot, 0) % 360, z: num(o.z, 0), level,
-      kind: pick(o.kind, AREA_KINDS, 'street'),
+    case 'area': {
+      const a = {
+        type: 'area', id, x: num(o.x, 0), y: num(o.y, 0), w: num(o.w, 10, 0.1), d: num(o.d, 10, 0.1), rot: num(o.rot, 0) % 360, z: num(o.z, 0), level,
+        kind: pick(o.kind, AREA_KINDS, 'street'),
+      };
+      // joints of a paved floor, every so many metres (0: none)
+      if (num(o.joints, 0, 0, 100) > 0) a.joints = num(o.joints, 0, 0.2, 100);
+      return a;
+    }
+    // drawn on a wall of the box `on`: `u` along the wall from its middle, `z` above the base of the box
+    case 'opening': return {
+      type: 'opening', id, on: str(o.on) || null, side: pick(o.side, OPENING_SIDES, 'front'), kind: pick(o.kind, OPENING_KINDS, 'door'),
+      u: num(o.u, 0), z: num(o.z, 0, 0), w: num(o.w, 1.2, 0.1, 200), h: num(o.h, 2.4, 0.1, 200),
     };
     case 'tree': return { type: 'tree', id, x: num(o.x, 0), y: num(o.y, 0), z: num(o.z, 0), level, size: num(o.size, 4, 0.5, 60), h: num(o.h, 6, 1, 120), kind: pick(o.kind, TREE_KINDS, 'round') };
     case 'dim': return { type: 'dim', id, x1: num(o.x1, 0), y1: num(o.y1, 0), x2: num(o.x2, 10), y2: num(o.y2, 0), z: num(o.z, 0), level, offset: num(o.offset, 1.5, -100, 100) };
@@ -169,11 +199,16 @@ function normalizeCore(o) {
       type: 'arrow', id, x1: num(o.x1, 0), y1: num(o.y1, 0), x2: num(o.x2, 10), y2: num(o.y2, 0), z: num(o.z, 0), level,
       bend: num(o.bend, 0), color: str(o.color, 'ink') || 'ink', dashed: !!o.dashed, heads: o.heads === 2 ? 2 : o.heads === 0 ? 0 : 1,
       width: num(o.width, 0.3, 0.05, 3), layer: o.layer === 'ground' ? 'ground' : 'top',
+      // the height where it ends, when it climbs or goes down (else the same as where it starts)
+      ...(Number.isFinite(Number(o.z2)) && o.z2 !== null && o.z2 !== '' && Number(o.z2) !== num(o.z, 0) ? { z2: num(o.z2, 0) } : {}),
     };
     case 'person': return { type: 'person', id, x: num(o.x, 0), y: num(o.y, 0), z: num(o.z, 0), level, pose: Math.round(num(o.pose, 0, 0, 3)) };
     case 'label': return {
       type: 'label', id, x: num(o.x, 0), y: num(o.y, 0), z: num(o.z, 0), level, dx: num(o.dx, 6), dy: num(o.dy, -6),
       text: str(o.text), size: num(o.size, 1.6, 0.2, 20), font: pick(o.font, LABEL_FONT_IDS, 'sans'), caps: o.caps !== false,
+      // a second, quieter line under the text, and a mark at the point
+      ...(str(o.note).trim() ? { note: str(o.note).slice(0, 300) } : {}),
+      ...(LABEL_MARKS.includes(o.mark) && o.mark ? { mark: o.mark } : {}),
     };
     default: return null;
   }
@@ -354,6 +389,11 @@ export function normalizeProject(raw) {
       scale: SHEET_SCALES.includes(Number(sheet.scale)) ? Number(sheet.scale) : 0,
       title: str(sheet.title), subtitle: str(sheet.subtitle),
       legend: sheet.legend !== false, texts: sheet.texts !== false,
+      legendPlace: pick(sheet.legendPlace, LEGEND_PLACES, 'top'),
+      // free blocks of text in a column on the right of the sheet (strategy, pros and cons…): a line that starts
+      // with + or − is drawn as a point for or against
+      blocks: (Array.isArray(sheet.blocks) ? sheet.blocks : []).slice(0, 8)
+        .map((b) => ({ title: str(b?.title).slice(0, 120), text: str(b?.text).slice(0, 4000) })).filter((b) => b.title || b.text),
     },
   };
 }

@@ -52,7 +52,7 @@ const out = {
       counts: Object.fromEntries(['volume', 'cut', 'arrow', 'person', 'label'].map((t) => [t, s.objects.filter((o) => o.type === t).length])),
       footprint: r2(vols.filter((v) => !v.on).reduce((a, v) => a + v.w * v.d, 0)),
       floorArea: r2(vols.reduce((a, v) => a + v.w * v.d * v.floors, 0)),
-      maxHeight: r2(Math.max(0, ...vols.map((v) => baseOf(v, byId, p.levels) + heightOf(v)))),
+      maxHeight: r2(Math.max(0, ...vols.map((v) => baseOf(v, byId, prj.levels) + heightOf(v)))),
       changed: s.highlight && i > 0 ? [...changedVolumes(prj.steps[i - 1], s)] : [],
       warnings: outside.length ? [{ code: 'outside-site', ids: outside }] : [],
       bounds: renderStep(prj, i, { view }).bbox.map(r2),

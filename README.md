@@ -13,7 +13,7 @@ Simple to learn in an afternoon. The same app on Windows, macOS and Linux. Free.
 
 **English** · [Português (Brasil)](docs/README.pt-BR.md)
 
-![Version 0.9.1](https://img.shields.io/badge/version-0.9.1-23272b)
+![Version 0.10.0](https://img.shields.io/badge/version-0.10.0-23272b)
 ![Experimental](https://img.shields.io/badge/status-experimental-b5532d)
 ![Platforms: Windows, macOS, Linux](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-23272b)
 ![10 languages](https://img.shields.io/badge/languages-10-d0673f)
@@ -84,7 +84,9 @@ Free software (GPL-3.0). No account, no subscription, no telemetry, and it works
 **Shape the site**
 - **Terrain**: platforms, slopes, pits, reference planes with level lines in the elevation; a site of any outline.
 - **Surroundings**: neighbours in neutral grey, streets, lawns, water, and a site plan or aerial photo underneath to draw over.
-- **Sun and shadows** by latitude, day and hour. **Roofs**: gable, shed and hip.
+- **Sun and shadows** by latitude, day and hour. **Roofs**: gable, shed and hip, with the ridge the way you want and a colour of their own.
+- **Doors, windows, arches and round openings** drawn on the walls: they go with their volume, without cutting it.
+- **Paved floors with joints**, and arrows that climb from one level to another.
 
 **See it from anywhere**
 - **Axonometric, plan and four elevations**, with **sections**.
@@ -94,6 +96,7 @@ Free software (GPL-3.0). No account, no subscription, no telemetry, and it works
 
 **Take it out**
 - **PDF and SVG in vectors** (one layer per step in Illustrator and Inkscape), **PNG** up to 300 dpi, the steps as an **animated GIF**.
+- **Text blocks** beside the drawings (strategy, pros and cons with + and −), the **legend** under the title or along the foot; labels with a quieter second line and marks (! × + −).
 - Sheets in row, grid, column or vertical layouts, A4 to A1, to scale, on as many pages as needed.
 - **Eight drawing styles**, light and dark interface, and two coloured themes.
 
@@ -109,6 +112,10 @@ Free software (GPL-3.0). No account, no subscription, no telemetry, and it works
 <tr>
 <td><img src="docs/screenshots/section.png" alt="A section in the elevation"><br><sub>Elevations and sections</sub></td>
 <td><img src="docs/screenshots/sheet-angles.png" alt="A sheet with steps seen from two angles"><br><sub>One step, several angles, one sheet</sub></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/openings.png" alt="A garage with an arch, a round opening and a red roof"><br><sub>Openings on the walls, roofs with their own colour</sub></td>
+<td><img src="docs/screenshots/sheet-blocks.png" alt="A sheet with text blocks on the right and the legend along the foot"><br><sub>Text blocks and the legend along the foot</sub></td>
 </tr>
 <tr>
 <td><img src="docs/screenshots/hatches.png" alt="Categories with hatches"><br><sub>Categories with colour and hatch</sub></td>
@@ -137,7 +144,7 @@ Download the installer for your system. The links always bring the **latest vers
 
 > The installers are not signed with a paid certificate yet. On first launch, Windows may show "Windows protected your PC" (**More info › Run anyway**) and macOS asks you to allow the app in **System Settings › Privacy & Security › Open Anyway**. The checksums of every file are in [`SHA256SUMS.txt`](https://github.com/danielcarli/lionaxon/releases/latest/download/SHA256SUMS.txt).
 
-LionAxon is **experimental** (version 0.9): it already makes a whole parti diagram and exports it, but the file format and the behaviour may still change before 1.0. To know whether there is a newer version, click the version number in the bottom-right corner of the app.
+LionAxon is **experimental** (version 0.10): it already makes a whole parti diagram and exports it, but the file format and the behaviour may still change before 1.0. To know whether there is a newer version, click the version number in the bottom-right corner of the app.
 
 The installers are built by GitHub Actions for each version tag (`.github/workflows/release.yml`), on Windows, macOS and Linux machines, from the code of this repository.
 
@@ -213,6 +220,7 @@ A project is one `.lionaxon` file: indented JSON with a `schemaVersion`, readabl
   "categories": [{ "id": "k-circ", "name": "Circulation", "color": "#8fa9cc" }],
   "steps": [{ "id": "s-1", "title": "…", "text": "…", "highlight": true, "explode": { "on": false, "gap": 4, "floors": false }, "views": [{ "az": 315, "el": 35.2644 }, { "az": 135, "el": -20 }], "objects": [
     { "type": "volume", "id": "v-west", "shape": "box", "x": 7, "y": 30, "w": 8, "d": 30, "h": 10.5, "rot": 0, "level": "L0", "z": 0, "on": null, "floors": 3, "cat": null, "state": "normal", "name": "West bar" },
+    { "type": "opening", "id": "o-door", "on": "v-west", "side": "front", "kind": "arch", "u": 0, "z": 0, "w": 2, "h": 3 },
     { "type": "cut", "id": "c-passage", "shape": "box", "x": 20, "y": 22, "w": 10, "d": 5, "level": "L0", "z": 0, "h": 3.5, "rot": 0, "target": "v-mid" },
     { "type": "platform", "id": "g-plateau", "x": 30, "y": 44, "w": 20, "d": 30, "rot": 0, "level": "L1", "z": 0 },
     { "type": "slope", "id": "r-ramp", "x": 30, "y": 20, "w": 8, "d": 14, "rot": 0, "from": "L0", "zFrom": 0, "to": "L1", "zTo": 0 }
@@ -221,7 +229,7 @@ A project is one `.lionaxon` file: indented JSON with a `schemaVersion`, readabl
 }
 ```
 
-Other objects: `area` (a flat street, lawn, water or paving), `tree`, `dim` (a dimension line), and volumes or cuts with `"shape": "poly"` and their `pts`; a box may have `roof` and `roofH`; a step may have `ghostPrev` and `op`.
+Other objects: `area` (a flat street, lawn, water or paving, with `joints`), `opening` (a door, window, arch or oculus on a wall of the box `on`), `tree`, `dim` (a dimension line), and volumes or cuts with `"shape": "poly"` and their `pts`; a box may have `roof`, `roofH`, `roofDir` and `roofColor`; a volume a `color` of its own; an arrow `z2` (where it ends); a label `note` and `mark`; the sheet `legendPlace` and `blocks`; a step may have `ghostPrev` and `op`.
 
 Measures are in metres, angles in degrees; `x`, `y` is the centre of a volume; `z` is the height over its plane (`level`); `on` is the volume it sits on. Files of 0.1 (`schemaVersion` 1) open as they are, with everything on the ground plane.
 
@@ -291,17 +299,18 @@ Code, comments, identifiers and documentation are in English. The interface is t
 
 ## Roadmap
 
+- **0.10** ✓ — openings on the walls; ridge direction and roof colour; own colours; paved floors with joints; arrows between levels; notes and marks on labels; text blocks and the legend along the foot on the sheet; flat areas now show over a site with thickness.
 - **0.9** ✓ — `Tab` picks the object behind another; the text of a label written on the drawing.
 - **0.8** ✓ — the interface in ten languages; editing in the 3D viewer (select, move, heights) inside a frame of its own; code identifiers all in English, with old files still opening.
 - **0.7** ✓ — outlines of any shape; surroundings; sun and shadows; roofs; dimension lines; ghosts and signs between steps; sections; the steps as GIF; a workflow that builds the installers.
 - **0.6** ✓ — usability: copy and paste, a right-button menu, a selection rectangle, align and guides, typed sizes, names, lock and hide, a start screen, recent files, hatches for categories.
 - **0.5 – 0.1** ✓ — the 3D viewer and several angles per step; a menu bar and examples; elevations, exploded views and vertical sheets; terrain, reference planes and curved shapes; tabs; the first volumes, steps and sheet.
-- **Next** — courtyards and joining volumes; loose slabs and pilotis; shadows on volumes and terrain; sections on the sheet; drawing new shapes in the 3D viewer; a command palette; signed installers.
+- **Next** — several sheets and alternatives in one project; free terrain; stairs; zoning plans; courtyards and joining volumes; loose slabs and pilotis; shadows on volumes and terrain; sections on the sheet; drawing new shapes in the 3D viewer; a command palette; signed installers.
 - **1.0** — DXF in and out; a manual and tutorials in the order of a design studio; reviewed translations.
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) — current version: **0.9.1**.
+See [CHANGELOG.md](CHANGELOG.md) — current version: **0.10.0**.
 
 ## Credits
 

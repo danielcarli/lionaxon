@@ -582,6 +582,8 @@
     "title": "Tower and podium",
     "subtitle": "How the massing evolves",
     "legend": true,
-    "texts": true
+    "texts": true,
+    "legendPlace": "top",
+    "blocks": []
   }
 }

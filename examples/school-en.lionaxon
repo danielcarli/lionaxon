@@ -710,6 +710,8 @@
     "title": "School around a courtyard",
     "subtitle": "Parti",
     "legend": true,
-    "texts": true
+    "texts": true,
+    "legendPlace": "top",
+    "blocks": []
   }
 }

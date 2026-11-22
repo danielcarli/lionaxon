@@ -875,6 +875,8 @@
     "title": "Cultural centre on plateaus",
     "subtitle": "Terrain, planes and volumes",
     "legend": true,
-    "texts": true
+    "texts": true,
+    "legendPlace": "top",
+    "blocks": []
   }
 }

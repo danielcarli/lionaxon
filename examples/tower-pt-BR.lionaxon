@@ -582,6 +582,8 @@
     "title": "Torre e embasamento",
     "subtitle": "Evolução da volumetria",
     "legend": true,
-    "texts": true
+    "texts": true,
+    "legendPlace": "top",
+    "blocks": []
   }
 }

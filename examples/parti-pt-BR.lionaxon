@@ -926,6 +926,8 @@
     "title": "Diagrama de implantação e partido",
     "subtitle": "Estratégias de implantação",
     "legend": true,
-    "texts": true
+    "texts": true,
+    "legendPlace": "top",
+    "blocks": []
   }
 }

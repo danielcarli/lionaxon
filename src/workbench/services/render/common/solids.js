@@ -243,7 +243,8 @@ export function volumeFaces(v, base, cuts) {
  */
 export function roofFaces(v, z) {
   const a = (v.rot * Math.PI) / 180, c = Math.cos(a), sn = Math.sin(a);
-  const along = v.w >= v.d;                       // the ridge follows the width
+  // the ridge follows the longer side, unless the direction was chosen
+  const along = v.roofDir === 'w' ? true : v.roofDir === 'd' ? false : v.w >= v.d;
   const L = (along ? v.w : v.d) / 2, S = (along ? v.d : v.w) / 2, H = v.roofH || 3;
   // (l, s): along the ridge and across it; turned to the axes of the box, then to the world
   const P = (l, s, h) => { const lx = along ? l : -s, ly = along ? s : l; return [v.x + lx * c - ly * sn, v.y + lx * sn + ly * c, z + h]; };
@@ -330,4 +331,37 @@ export function slopeFaces(s, zA, zB, bottom) {
   // the underside, seen only from below
   if (Math.max(zA, zB) - bottom > 1e-6) faces.push({ role: 'bottom', rings: [[P(-hw, -hd, bottom), P(-hw, hd, bottom), P(hw, hd, bottom), P(hw, -hd, bottom)]], n: [0, 0, -1], lines: [] });
   return faces;
+}
+
+/**
+ * An opening drawn on a wall of a box: its outline in the world, a hair outside the wall, and the normal of
+ * that wall. `base` is the height of the base of the box. Null when the volume is not a box.
+ */
+export function openingShape(o, v, base) {
+  if (!v || v.type !== 'volume' || v.shape !== 'box') return null;
+  const a = (v.rot * Math.PI) / 180, c = Math.cos(a), sn = Math.sin(a);
+  // in the frame of the box: the middle of the wall, the direction along it (to the right, seen from outside), its normal
+  const W = { front: [[0, -v.d / 2], [1, 0], [0, -1], v.w], right: [[v.w / 2, 0], [0, 1], [1, 0], v.d], back: [[0, v.d / 2], [-1, 0], [0, 1], v.w], left: [[-v.w / 2, 0], [0, -1], [-1, 0], v.d] }[o.side] || null;
+  if (!W) return null;
+  const [mid, along, nrm, len] = W;
+  const world = (lx, ly, z) => [v.x + lx * c - ly * sn, v.y + lx * sn + ly * c, z];
+  const out = 0.03;
+  const w = Math.min(o.w, len), u = Math.max(-(len - w) / 2, Math.min((len - w) / 2, o.u));
+  // up to the top of the wall — and into the gable, when the box has a roof
+  const z0 = base + Math.max(0, Math.min(o.z, Math.max(0, v.h + (v.roof && v.roof !== 'flat' ? v.roofH || 0 : 0) - 0.1)));
+  const at = (du, dz) => world(mid[0] + along[0] * (u + du) + nrm[0] * out, mid[1] + along[1] * (u + du) + nrm[1] * out, z0 + dz);
+  let pts;
+  if (o.kind === 'oculus') {
+    const r = Math.min(w, o.h) / 2;
+    pts = Array.from({ length: 28 }, (_, i) => { const t = (i / 28) * Math.PI * 2; return at(Math.cos(t) * r, r + Math.sin(t) * r); });
+  } else if (o.kind === 'arch') {
+    const r = Math.min(w / 2, o.h);
+    pts = [at(-w / 2, 0), at(w / 2, 0), at(w / 2, o.h - r)];
+    for (let i = 1; i < 14; i++) { const t = (i / 14) * Math.PI; pts.push(at(Math.cos(t) * (w / 2), o.h - r + Math.sin(t) * r)); }
+    pts.push(at(-w / 2, o.h - r));
+  } else pts = [at(-w / 2, 0), at(w / 2, 0), at(w / 2, o.h), at(-w / 2, o.h)];
+  const n = [nrm[0] * c - nrm[1] * sn, nrm[0] * sn + nrm[1] * c, 0];
+  // the bars of a window: one upright and one across
+  const lines = o.kind === 'window' ? [[at(0, 0), at(0, o.h)], [at(-w / 2, o.h / 2), at(w / 2, o.h / 2)]] : [];
+  return { pts, n, lines };
 }

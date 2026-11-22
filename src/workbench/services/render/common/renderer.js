@@ -18,7 +18,7 @@ import {
   siteOutline, shadowVector, sameGeometry,
 } from '../../model/common/model.js';
 import { getStyle, shade, arrowColor } from './styles.js';
-import { volumeFaces, extrusionFaces, slopeFaces, expandCut, footprintOf, shadowOf } from './solids.js';
+import { volumeFaces, extrusionFaces, slopeFaces, expandCut, footprintOf, shadowOf, openingShape } from './solids.js';
 import { labelFont } from './fonts.js';
 
 export { volumeBands, volumeFaces } from './solids.js';
@@ -273,14 +273,15 @@ function personBounds(view, o, z) {
 /** Points of an arrow in 3D (a straight line or a curve bent sideways by `bend` metres). */
 export function arrowPoints(o) {
   const a = [o.x1, o.y1], b = [o.x2, o.y2];
-  if (!o.bend) return [[...a, o.z], [...b, o.z]];
+  const z2 = Number.isFinite(o.z2) ? o.z2 : o.z;
+  if (!o.bend) return [[...a, o.z], [...b, z2]];
   const dx = b[0] - a[0], dy = b[1] - a[1];
   const len = Math.hypot(dx, dy) || 1;
   const c = [(a[0] + b[0]) / 2 - (dy / len) * o.bend * 2, (a[1] + b[1]) / 2 + (dx / len) * o.bend * 2];
   const pts = [];
   for (let i = 0; i <= 24; i++) {
     const t = i / 24, u = 1 - t;
-    pts.push([u * u * a[0] + 2 * u * t * c[0] + t * t * b[0], u * u * a[1] + 2 * u * t * c[1] + t * t * b[1], o.z]);
+    pts.push([u * u * a[0] + 2 * u * t * c[0] + t * t * b[0], u * u * a[1] + 2 * u * t * c[1] + t * t * b[1], o.z + (z2 - o.z) * t]);
   }
   return pts;
 }
@@ -328,6 +329,9 @@ const arrowBounds = (view, o) => { const g = arrowGeometry(o); return bboxOf([..
 function labelLines(o) {
   return String(o.text || '').split('\n').map((l) => (o.caps ? l.toUpperCase() : l));
 }
+const noteLines = (o) => (o.note ? String(o.note).split('\n') : []);
+/** The colours of the mark at the point of a label: a warning, a refusal, a gain, a loss. */
+const MARK_COLORS = { '!': '#c8322d', '×': '#c8322d', '+': '#2e8b57', '−': '#c8322d' };
 
 function labelMarkup(view, o, style, attrs) {
   const [ax, ay] = project(view, [o.x, o.y, o.z]);
@@ -336,21 +340,36 @@ function labelMarkup(view, o, style, attrs) {
   const lines = labelLines(o);
   const f = labelFont(o.font);
   const lh = o.size * 1.25;
-  const y0 = ty - ((lines.length - 1) * lh) / 2;
+  const notes = noteLines(o);
+  const ns = o.size * 0.72, nlh = ns * 1.3;
+  const y0 = ty - ((lines.length - 1) * lh + notes.length * nlh) / 2;
   const x = r3(tx + (right ? 0.35 : -0.35) * o.size);
   let s = `<g${attrs}>`;
   s += `<path d="M${r3(ax)} ${r3(ay)}L${r3(tx)} ${r3(ty)}" fill="none" stroke="${style.text}" stroke-width="${r3(o.size * 0.06)}"/>`;
   s += `<circle cx="${r3(ax)}" cy="${r3(ay)}" r="${r3(o.size * 0.14)}" fill="${style.text}"/>`;
   s += `<text x="${x}" y="${r3(y0)}" font-family="${esc(f.family)}" font-size="${r3(o.size)}" font-weight="${f.weight}" fill="${style.text}" text-anchor="${right ? 'start' : 'end'}" dominant-baseline="central"${o.caps ? ` letter-spacing="${r3(o.size * 0.04)}"` : ''}>`;
-  s += lines.map((line, i) => `<tspan x="${x}"${i ? ` dy="${r3(lh)}"` : ''}>${esc(line)}</tspan>`).join('');
-  return s + '</text></g>';
+  s += lines.map((line, i) => `<tspan x="${x}"${i ? ` dy="${r3(lh)}"` : ''}>${esc(line)}</tspan>`).join('') + '</text>';
+  if (notes.length) {
+    // the quieter second part: smaller, lighter, never in capitals
+    const ny = y0 + (lines.length - 1) * lh + lh * 0.5 + nlh * 0.5;
+    s += `<text x="${x}" y="${r3(ny)}" font-family="${esc(f.family)}" font-size="${r3(ns)}" font-weight="400" fill="${style.text}" fill-opacity="0.62" text-anchor="${right ? 'start' : 'end'}" dominant-baseline="central">`
+      + notes.map((line, i) => `<tspan x="${x}"${i ? ` dy="${r3(nlh)}"` : ''}>${esc(line)}</tspan>`).join('') + '</text>';
+  }
+  if (o.mark) {
+    const r = o.size * 0.62, col = MARK_COLORS[o.mark] || style.text;
+    s += `<circle cx="${r3(ax)}" cy="${r3(ay)}" r="${r3(r)}" fill="#fff" stroke="${col}" stroke-width="${r3(o.size * 0.12)}"/>`
+      + `<text x="${r3(ax)}" y="${r3(ay)}" font-family="${esc(f.family)}" font-size="${r3(r * 1.5)}" font-weight="700" fill="${col}" text-anchor="middle" dominant-baseline="central">${esc(o.mark)}</text>`;
+  }
+  return s + '</g>';
 }
 
 function labelBounds(view, o) {
   const [ax, ay] = project(view, [o.x, o.y, o.z]);
   const lines = labelLines(o);
-  const w = Math.max(...lines.map((l) => l.length)) * o.size * labelFont(o.font).width * (o.caps ? 1 : 0.85) + o.size * 0.4;
-  const h = lines.length * o.size * 1.25;
+  const notes = noteLines(o);
+  const fw = labelFont(o.font).width;
+  const w = Math.max(...lines.map((l) => l.length * o.size * fw * (o.caps ? 1 : 0.85)), ...notes.map((l) => l.length * o.size * 0.72 * fw * 0.85)) + o.size * 0.4;
+  const h = lines.length * o.size * 1.25 + notes.length * o.size * 0.72 * 1.3;
   const tx = ax + o.dx, ty = ay + o.dy;
   return bboxUnion([ax, ay, ax, ay], o.dx >= 0 ? [tx, ty - h / 2, tx + w, ty + h / 2] : [tx - w, ty - h / 2, tx, ty + h / 2]);
 }
@@ -387,8 +406,8 @@ function siteRing(site, z = 0) {
 // the surroundings: flat areas, an image under the drawing, trees, dimension lines
 
 const AREA_FILL = {
-  street: (st) => [shade(st.paper, -0.13), 1],
-  paving: (st) => [shade(st.paper, -0.06), 1],
+  street: (st) => [shade(st.paper, 0.13), 1],
+  paving: (st) => [shade(st.paper, 0.06), 1],
   green: (st) => [st.green, 0.38],
   water: (st) => [st.blue, 0.4],
 };
@@ -396,7 +415,18 @@ const AREA_FILL = {
 function areaMarkup(view, o, z, style, lw, attrs) {
   const [fill, op] = (AREA_FILL[o.kind] || AREA_FILL.street)(style);
   const d = ptsPath(rectRing(o.x, o.y, o.w, o.d, o.rot).map(([x, y]) => project(view, [x, y, z])));
-  return `<path${attrs} class="ax-area" d="${d}" fill="${fill}" fill-opacity="${op}" stroke="${shade(style.paper, -0.22)}" stroke-width="${r3(lw * 0.5)}"/>`;
+  const edge = shade(style.paper, 0.22);
+  let s = `<path${attrs} class="ax-area" d="${d}" fill="${fill}" fill-opacity="${op}" stroke="${edge}" stroke-width="${r3(lw * 0.5)}"/>`;
+  if (o.joints > 0 && o.w / o.joints + o.d / o.joints < 400) {
+    // the joints of a paved floor, from the middle outwards
+    const a = (o.rot * Math.PI) / 180, c = Math.cos(a), sn = Math.sin(a);
+    const P = (lx, ly) => project(view, [o.x + lx * c - ly * sn, o.y + lx * sn + ly * c, z]);
+    let g = '';
+    for (let x = (((o.w / 2) % o.joints) || o.joints) - o.w / 2; x < o.w / 2 - 1e-6; x += o.joints) g += linePath([P(x, -o.d / 2), P(x, o.d / 2)]);
+    for (let y = (((o.d / 2) % o.joints) || o.joints) - o.d / 2; y < o.d / 2 - 1e-6; y += o.joints) g += linePath([P(-o.w / 2, y), P(o.w / 2, y)]);
+    if (g) s += `<path d="${g}" fill="none" stroke="${shade(style.paper, 0.2)}" stroke-width="${r3(lw * 0.5)}" pointer-events="none"/>`;
+  }
+  return s;
 }
 
 /** An image lying on the ground: the projection is parallel, so one matrix puts it exactly in place. */
@@ -757,6 +787,7 @@ function groundSolids(prj, step) {
 /** How many hatches there are for categories (the k-th category takes hatch k modulo this). */
 export const PATTERN_COUNT = 8;
 let patternUid = 0;
+let clipUid = 0;
 
 /**
  * One hatch as an SVG pattern (userSpaceOnUse): `tile` is the size of its cell, `w` the stroke width.
@@ -873,11 +904,11 @@ export function renderStep(prj, index, opts) {
       before.push({ ...o, state: 'ghost', prevBase: baseOf(o, prevById, levels), fromPrev: true });
     }
   }
-  const ctxFill = shade(style.paper, -0.07), ctxEdge = shade(style.paper, -0.3);
+  const ctxFill = shade(style.paper, 0.07), ctxEdge = shade(style.paper, 0.3);
   for (const v of [...step.objects, ...before]) {
     if (v.type !== 'volume') continue;
     const base = v.fromPrev ? v.prevBase : baseOf(v, byId, levels);
-    const fill = v.state === 'context' ? ctxFill : v.state === 'accent' ? style.accent : v.cat && cats.has(v.cat) ? cats.get(v.cat) : changed.has(v.id) ? style.accent : style.volume;
+    const fill = v.state === 'context' ? ctxFill : v.state === 'accent' ? style.accent : v.color ? v.color : v.cat && cats.has(v.cat) ? cats.get(v.cat) : changed.has(v.id) ? style.accent : style.volume;
     const see = v.state === 'ghost' || v.state === 'glass';
     const off = v.fromPrev ? 0 : exploded.get(v.id) || 0;
     // the pieces drawn: the whole volume, or one per floor
@@ -909,8 +940,18 @@ export function renderStep(prj, index, opts) {
       if (!v.fromPrev && v.state !== 'ghost') capOf(v.id, f);
       if (!see && dot(f.n, view.cam) <= 1e-9) continue;
       if (view.plan && f.role === 'wall' && !see) continue;
-      addFace(f, { obj: v, fill: toneFor(fill, f.n, view) });
+      // the slopes of a roof may have a colour of their own
+      addFace(f, { obj: v, fill: toneFor(f.role === 'slant' && v.roofColor && v.state !== 'context' ? v.roofColor : fill, f.n, view), ownFill: f.role === 'slant' && !!v.roofColor });
     }
+  }
+  // what is drawn on the walls: doors, windows, arches, round openings (they go with their volume)
+  for (const op of step.objects) {
+    if (op.type !== 'opening' || view.plan) continue;
+    const v = byId.get(op.on);
+    if (!v || v.hidden || v.state === 'ghost') continue;
+    const shape = openingShape(op, v, baseOf(v, byId, levels) + (exploded.get(v.id) || 0));
+    if (!shape || dot(shape.n, view.cam) <= 1e-9) continue;
+    faces.push({ kind: 'opening', obj: op, pts: shape.pts, lines: shape.lines, n: shape.n, scr: shape.pts.map((q) => project(view, q)) });
   }
   for (const p of step.objects) {
     if (p.type !== 'person' || view.plan) continue;
@@ -936,7 +977,7 @@ export function renderStep(prj, index, opts) {
   }
   for (const a of step.objects) {
     if (a.type !== 'arrow' || a.layer !== 'ground') continue;
-    const ra = { ...a, z: zShown(a) };
+    const ra = { ...a, z: zShown(a), ...(Number.isFinite(a.z2) ? { z2: zShown(a) + a.z2 - a.z } : {}) };
     const g = arrowGeometry(ra);
     const pts2 = convexHull([...g.pts, ...g.heads.flat()].map((p) => [p[0], p[1]]));
     if (pts2.length < 3) continue;
@@ -965,6 +1006,20 @@ export function renderStep(prj, index, opts) {
     }
   }
   const ordered = sortFaces(faces, view);
+  // over a block of earth the flat areas are drawn right after the top they lie on (the top of the block
+  // would cover them in the ground layer), clipped to it — a top may come in several parts
+  const onTops = ground.slab && !isElevation(view) && view.cam[2] > 0 ? step.objects.filter((o) => o.type === 'area') : [];
+  const areasOver = (f, d) => {
+    if (!onTops.length || !f.ground || !(f.n[2] > 0.999)) return '';
+    let out = '';
+    for (const ar of onTops) {
+      const z = zShown(ar);
+      if (Math.abs(z - f.pts[0][2]) > 0.01) continue;
+      const id = `lx-c${++clipUid}`;
+      out += `<clipPath id="${id}"><path d="${d}" clip-rule="evenodd"/></clipPath><g clip-path="url(#${id})">${areaMarkup(view, ar, z, style, lw, idAttr(ar))}</g>`;
+    }
+    return out;
+  };
 
   let model = '';
   for (const f of ordered) {
@@ -972,6 +1027,14 @@ export function renderStep(prj, index, opts) {
     if (f.kind === 'person') {
       model += personMarkup(view, o, f.z, style, idAttr(o));
       bbox = bboxUnion(bbox, personBounds(view, o, f.z));
+      continue;
+    }
+    if (f.kind === 'opening') {
+      // a door is dark, a window and a round opening are glass, an arch is a dark way through
+      const glass = o.kind === 'window' || o.kind === 'oculus';
+      model += `<g${idAttr(o)} class="ax-opening"><path d="${ptsPath(f.scr)}" fill="${glass ? shade(style.blue || '#8fb4d9', 0.35) : shade(style.edge, 0.25)}" fill-opacity="${glass ? 0.85 : 0.82}" stroke="${style.edge}" stroke-width="${r3(lw * 0.8)}" stroke-linejoin="round"/>`
+        + (f.lines.length ? `<path d="${f.lines.map((l) => linePath(l.map((q) => project(view, q)))).join('')}" fill="none" stroke="${style.edge}" stroke-width="${r3(lw * 0.5)}"/>` : '') + '</g>';
+      bbox = bboxUnion(bbox, bboxOf(f.scr));
       continue;
     }
     if (f.kind === 'tree') {
@@ -1012,6 +1075,7 @@ export function renderStep(prj, index, opts) {
       if (f.gridMinor?.length) model += `<path d="${seg(f.gridMinor)}" fill="none" stroke="${style.grid}" stroke-width="${r3(lw * 0.5)}" pointer-events="none"/>`;
       if (f.gridMajor?.length) model += `<path d="${seg(f.gridMajor)}" fill="none" stroke="${shade(style.grid, 0.08)}" stroke-width="${r3(lw * 0.9)}" pointer-events="none"/>`;
       if (outline) model += `<path d="${outline}" fill="none" stroke="${style.site}" stroke-opacity="0.75" stroke-width="${r3(lw * 0.8)}" stroke-linejoin="round" pointer-events="none"/>`;
+      model += areasOver(f, d);
       bbox = bboxUnion(bbox, bboxOf(f.scr));
       continue;
     }
@@ -1044,7 +1108,7 @@ export function renderStep(prj, index, opts) {
     } else {
       model += `<path${idAttr(o)}${top} d="${d}" fill="${fill}" fill-rule="evenodd" ${stroke} stroke-linejoin="round"${extra}/>`;
     }
-    if (!ghost && o?.type === 'volume' && o.state !== 'accent' && o.state !== 'context' && hatchOf.has(o.cat)) {
+    if (!ghost && o?.type === 'volume' && o.state !== 'accent' && o.state !== 'context' && !o.color && !f.ownFill && hatchOf.has(o.cat)) {
       const k = hatchOf.get(o.cat);
       hatchUsed.add(k);
       model += `<path d="${d}" fill="url(#lx-h${k}-${uid})" fill-rule="evenodd" stroke="none" pointer-events="none"/>`;
@@ -1056,13 +1120,14 @@ export function renderStep(prj, index, opts) {
     if (f.lines?.length && !ghost) {
       model += `<path d="${f.lines.map((l) => linePath(l.map((p) => project(view, p)))).join('')}" fill="none" stroke="${edgeColor}" stroke-width="${r3(lw * 0.6)}" pointer-events="none"/>`;
     }
+    model += areasOver(f, d);
     bbox = bboxUnion(bbox, bboxOf(f.scr));
   }
 
   let top = '';
   for (const o of step.objects) {
     if (o.type === 'arrow' && o.layer !== 'ground') {
-      const ra = { ...o, z: zShown(o) };
+      const ra = { ...o, z: zShown(o), ...(Number.isFinite(o.z2) ? { z2: zShown(o) + o.z2 - o.z } : {}) };
       top += arrowMarkup(view, ra, style, prj.categories, idAttr(o), ids);
       bbox = bboxUnion(bbox, arrowBounds(view, ra));
     } else if (o.type === 'person' && view.plan) {
@@ -1126,7 +1191,7 @@ export function renderStep(prj, index, opts) {
     if (prj.underlay && (opts.editor || prj.underlay.sheet)) under += underlayMarkup(view, prj.underlay);
     let flat = '';
     for (const o of step.objects) {
-      if (o.type !== 'area') continue;
+      if (o.type !== 'area' || ground.slab) continue;
       flat += areaMarkup(view, o, zShown(o), style, lw, idAttr(o));
       bbox = bboxUnion(bbox, bboxOf(rectRing(o.x, o.y, o.w, o.d, o.rot).map(([x, y]) => project(view, [x, y, zShown(o)]))));
     }

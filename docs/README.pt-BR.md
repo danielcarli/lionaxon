@@ -13,7 +13,7 @@ Simples de aprender em uma tarde. O mesmo programa no Windows, no macOS e no Lin
 
 [English](../README.md) · **Português (Brasil)**
 
-![Versão 0.9.1](https://img.shields.io/badge/vers%C3%A3o-0.9.1-23272b)
+![Versão 0.10.0](https://img.shields.io/badge/vers%C3%A3o-0.10.0-23272b)
 ![Experimental](https://img.shields.io/badge/status-experimental-b5532d)
 ![Plataformas: Windows, macOS, Linux](https://img.shields.io/badge/plataforma-Windows%20%7C%20macOS%20%7C%20Linux-23272b)
 ![10 línguas](https://img.shields.io/badge/l%C3%ADnguas-10-d0673f)
@@ -84,7 +84,9 @@ Software livre (GPL-3.0). Sem conta, sem assinatura, sem telemetria, e funciona 
 **Moldar o terreno**
 - **Terreno**: platôs, taludes, fossos, planos de referência com linhas de nível na elevação; terreno de qualquer contorno.
 - **Entorno**: vizinhos em cinza neutro, ruas, gramados, água, e uma planta de situação ou foto aérea por baixo para desenhar por cima.
-- **Sol e sombras** por latitude, dia e hora. **Telhados**: duas águas, uma água e quatro águas.
+- **Sol e sombras** por latitude, dia e hora. **Telhados**: duas águas, uma água e quatro águas, com a cumeeira na direção que você quiser e cor própria.
+- **Portas, janelas, arcos e óculos** desenhados nas paredes: acompanham o volume, sem recortá-lo.
+- **Pisos com paginação**, e setas que sobem de um nível a outro.
 
 **Ver de qualquer lugar**
 - **Axonometria, planta e quatro elevações**, com **cortes**.
@@ -94,6 +96,7 @@ Software livre (GPL-3.0). Sem conta, sem assinatura, sem telemetria, e funciona 
 
 **Levar embora**
 - **PDF e SVG vetoriais** (uma camada por etapa no Illustrator e no Inkscape), **PNG** até 300 dpi, as etapas em **GIF animado**.
+- **Blocos de texto** ao lado dos desenhos (estratégia, prós e contras com + e −), a **legenda** abaixo do título ou no rodapé; rótulos com uma segunda linha mais discreta e marcadores (! × + −).
 - Pranchas em linha, grade, coluna ou vertical, de A4 a A1, em escala, em quantas páginas for preciso.
 - **Oito estilos de desenho**, interface clara e escura e dois temas coloridos.
 
@@ -109,6 +112,10 @@ Software livre (GPL-3.0). Sem conta, sem assinatura, sem telemetria, e funciona 
 <tr>
 <td><img src="screenshots/pt-BR/section.png" alt="Um corte na elevação"><br><sub>Elevações e cortes</sub></td>
 <td><img src="screenshots/pt-BR/sheet-angles.png" alt="Uma prancha com etapas vistas de dois ângulos"><br><sub>Uma etapa, vários ângulos, uma prancha</sub></td>
+</tr>
+<tr>
+<td><img src="screenshots/pt-BR/openings.png" alt="Uma garagem com arco, óculo e telhado vermelho"><br><sub>Aberturas nas paredes, telhado com cor própria</sub></td>
+<td><img src="screenshots/pt-BR/sheet-blocks.png" alt="Uma prancha com blocos de texto à direita e a legenda no rodapé"><br><sub>Blocos de texto e legenda no rodapé</sub></td>
 </tr>
 <tr>
 <td><img src="screenshots/pt-BR/hatches.png" alt="Categorias com hachuras"><br><sub>Categorias com cor e hachura</sub></td>
@@ -137,7 +144,7 @@ Baixe o instalador do seu sistema. Os links trazem sempre a **versão mais recen
 
 > Os instaladores ainda não são assinados com um certificado pago. Na primeira execução, o Windows pode mostrar "O Windows protegeu o computador" (**Mais informações › Executar assim mesmo**) e o macOS pede para liberar o programa em **Ajustes do Sistema › Privacidade e Segurança › Abrir Mesmo Assim**. As somas de verificação de cada arquivo estão em [`SHA256SUMS.txt`](https://github.com/danielcarli/lionaxon/releases/latest/download/SHA256SUMS.txt).
 
-O LionAxon é **experimental** (versão 0.9): já faz um diagrama de partido inteiro e exporta, mas o formato do arquivo e o comportamento ainda podem mudar antes da 1.0. Para saber se há versão mais nova, clique no número da versão, no canto inferior direito do programa.
+O LionAxon é **experimental** (versão 0.10): já faz um diagrama de partido inteiro e exporta, mas o formato do arquivo e o comportamento ainda podem mudar antes da 1.0. Para saber se há versão mais nova, clique no número da versão, no canto inferior direito do programa.
 
 Os instaladores são gerados pelo GitHub Actions a cada tag de versão (`.github/workflows/release.yml`), em máquinas Windows, macOS e Linux, a partir do código deste repositório.
 
@@ -240,15 +247,16 @@ Código, comentários, identificadores e documentação em inglês. A interface 
 
 ## Próximas versões
 
+- **0.10** ✓ — aberturas nas paredes; direção da cumeeira e cor do telhado; cor própria; pisos com paginação; setas entre níveis; observações e marcadores nos rótulos; blocos de texto e legenda no rodapé da prancha; áreas planas agora aparecem sobre terreno com espessura.
 - **0.9** ✓ — `Tab` escolhe o objeto que está atrás de outro; o texto do rótulo escrito direto no desenho.
 - **0.8** ✓ — a interface em dez línguas; edição no visualizador 3D (selecionar, mover, alturas) dentro de uma moldura própria; identificadores do código todos em inglês, com os arquivos antigos ainda abrindo.
 - **0.7** ✓ — contornos de qualquer forma; entorno; sol e sombras; telhados; cotas; fantasmas e sinais entre etapas; cortes; as etapas em GIF; um workflow que gera os instaladores.
 - **0.6** ✓ — usabilidade: copiar e colar, menu do botão direito, retângulo de seleção, alinhar e guias, tamanhos digitados, nomes, travar e ocultar, tela inicial, arquivos recentes, hachuras nas categorias.
 - **0.5 – 0.1** ✓ — o visualizador 3D e vários ângulos por etapa; barra de menus e exemplos; elevações, vistas explodidas e pranchas verticais; terreno, planos de referência e formas curvas; abas; os primeiros volumes, etapas e prancha.
-- **Depois** — pátios e união de volumes; lajes soltas e pilotis; sombras sobre volumes e terreno; cortes na prancha; desenhar formas novas no visualizador 3D; paleta de comandos; instaladores assinados.
+- **Depois** — várias pranchas e alternativas no mesmo projeto; terreno livre; escadas; plantas de zoneamento; pátios e união de volumes; lajes soltas e pilotis; sombras sobre volumes e terreno; cortes na prancha; desenhar formas novas no visualizador 3D; paleta de comandos; instaladores assinados.
 - **1.0** — DXF de entrada e saída; manual e tutoriais na ordem de um ateliê de projeto; traduções revisadas.
 
-O histórico completo está no [CHANGELOG](../CHANGELOG.md) — versão atual: **0.9.1**.
+O histórico completo está no [CHANGELOG](../CHANGELOG.md) — versão atual: **0.10.0**.
 
 ## Créditos
 

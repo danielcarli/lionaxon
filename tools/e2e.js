@@ -296,6 +296,7 @@ async function phase1(win, js) {
   await edit3d08(win, js);
   await cycle08(win, js);
   await labelEdit08(win, js);
+  await features10(win, js);
 
   // ---- leave unsaved work behind for phase 2
   await js(`${S}.document.switchTo(${S}.document.tabs.findIndex((t) => t.project.name === 'E2E test')); true`);
@@ -1207,6 +1208,101 @@ async function labelEdit08(win, js) {
 }
 
 // ---------------------------------------------------------------------------------------------
+// 0.10: openings on the walls, the ridge and the colour of a roof, a colour of its own, areas over a block of
+// earth with joints, arrows between levels, notes and marks on labels, the legend along the foot, text blocks
+
+async function features10(win, js) {
+  const D = `${S}.document`, C = `${S}.commands`;
+  await js(`${C}.newProject(); true`);
+  await sleep(400);
+  await js(`${S}.layout.setTab('axon'); ${S}.layout.setTool('select'); true`);
+  await js(`${C}.setProject((p) => { p.site.thickness = 3; p.site.mode = 'fill'; }, 'project.set'); true`);
+  const add = (o) => js(`(async () => { const m = await import('../services/model/common/model.js'); const o = m.normalizeObject(${JSON.stringify(o)}); ${D}.run('object.add', (_p, step) => { step.objects.push(o); return [o.id]; }); return o.id; })()`);
+  const obj = (id) => js(`JSON.stringify(${D}.byId('${id}'))`).then(JSON.parse);
+  const axon = '[data-view=axon] .canvas';
+
+  // a flat area over a site with thickness is drawn over the top of the block, with its joints
+  await add({ type: 'area', id: 'e-sq', x: 12, y: 8, w: 12, d: 8, kind: 'paving', joints: 2 });
+  await sleep(300);
+  check('0.10: an area over a block of earth is drawn on its top (not under it), with joints', await js(`(() => { const a = document.querySelector('${axon} .ax-model .ax-area'); return !!a && !!a.parentElement.getAttribute('clip-path') && a.parentElement.querySelectorAll('path').length === 2 && !document.querySelector('${axon} .ax-ground .ax-area'); })()`));
+  check('0.10: paving is darker than the paper, not lighter', await js(`(async () => { const st = await import('../services/render/common/styles.js'); const paper = st.getStyle(${D}.project.style).paper; return document.querySelector('${axon} .ax-area').getAttribute('fill') !== '#ffffff' && st.shade(paper, 0.06) === document.querySelector('${axon} .ax-area').getAttribute('fill'); })()`));
+
+  // openings: from the properties of a box, on the wall that faces the person
+  await add({ type: 'volume', id: 'v-hall', x: 12, y: 18, w: 12, d: 8, h: 6 });
+  await sleep(300);
+  await js(`document.querySelector('.properties [data-action=opening-arch]').click(); true`);
+  await sleep(300);
+  const op = await js(`JSON.stringify(${D}.selected()[0])`).then(JSON.parse);
+  check('0.10: a button of the box draws an arch on the wall that faces the person', op?.type === 'opening' && op.kind === 'arch' && op.on === 'v-hall' && ['front', 'right'].includes(op.side), JSON.stringify(op));
+  check('0.10: …it is drawn, and its form shows kind, wall, place and size', await js(`!!document.querySelector('${axon} .ax-opening[data-id="${op.id}"]') && !!document.querySelector('.properties input[data-key=u]') && document.querySelectorAll('.properties .segmented').length >= 2`));
+  const before = await js(`document.querySelector('${axon} .ax-opening path').getAttribute('d')`);
+  await js(`${C}.setProps({ kind: 'oculus', side: 'right', z: 3 }); true`);
+  await sleep(250);
+  check('0.10: kind, wall and height change the drawing', await js(`document.querySelector('${axon} .ax-opening path').getAttribute('d')`) !== before && (await obj(op.id)).side === 'right');
+  await js(`${D}.select(['v-hall']); ${C}.setProps({ x: 20 }); true`);
+  await sleep(250);
+  check('0.10: the opening goes with its volume', await js(`document.querySelector('${axon} .ax-opening path').getAttribute('d')`) !== before);
+  await js(`${C}.duplicateSelection(); true`);
+  await sleep(200);
+  check('0.10: duplicating the volume duplicates its openings', await js(`${D}.objects.filter((o) => o.type === 'opening').length`) === 2);
+  await js(`${C}.deleteSelection(); true`);
+  await sleep(200);
+  check('0.10: deleting a volume takes its openings', await js(`${D}.objects.filter((o) => o.type === 'opening').length`) === 1);
+
+  // the roof: ridge and colour; a colour of its own
+  await js(`${D}.select(['v-hall']); ${C}.setProps({ roof: 'gable' }); true`);
+  await sleep(250);
+  const roofA = await js(`document.querySelector('${axon} svg').innerHTML.length + '|' + [...document.querySelectorAll('${axon} [data-id="v-hall"]')].map((e) => e.getAttribute('d')).join('')`);
+  await js(`document.querySelectorAll('.properties .segmented')[2] && ${C}.setProps({ roofDir: 'd' }); true`);
+  await sleep(250);
+  const roofB = await js(`document.querySelector('${axon} svg').innerHTML.length + '|' + [...document.querySelectorAll('${axon} [data-id="v-hall"]')].map((e) => e.getAttribute('d')).join('')`);
+  check('0.10: the ridge can run across the longer side', roofA !== roofB && (await obj('v-hall')).roofDir === 'd');
+  await js(`${C}.setProps({ roofDir: 'auto', roofColor: '#8e3a34', color: '#cfc3ad' }); true`);
+  await sleep(250);
+  let v = await obj('v-hall');
+  check('0.10: "auto" keeps no direction; the roof and the volume take colours of their own', !('roofDir' in v) && v.roofColor === '#8e3a34' && v.color === '#cfc3ad' && await js(`!!document.querySelector('.properties [data-action=clear-color]') && !!document.querySelector('.properties [data-action=clear-roofColor]')`));
+  check('0.10: …and a volume with its own colour stays out of the legend', await js(`(async () => { const m = await import('../services/render/common/sheet.js'); return !m.renderSheet(${D}.project, { t: (k) => k }).svg.includes('#cfc3ad'); })()`));
+  await js(`document.querySelector('.properties [data-action=clear-color]').click(); true`);
+  await sleep(250);
+  check('0.10: "None" takes the colour away', !('color' in (await obj('v-hall'))));
+
+  // an arrow that climbs; a label with a note and a mark
+  const aid = await add({ type: 'arrow', id: 'a-up', x1: 2, y1: 2, x2: 10, y2: 6, z: 0 });
+  const flat = await js(`document.querySelector('${axon} [data-id="a-up"]').innerHTML`);
+  await js(`${C}.setProps({ z2: 4 }); true`);
+  await sleep(250);
+  check('0.10: an arrow may end at another height', (await obj(aid)).z2 === 4 && await js(`document.querySelector('${axon} [data-id="a-up"]').innerHTML`) !== flat);
+  await js(`${C}.setProps({ z2: 0 }); true`);
+  check('0.10: …and the same height as the start keeps nothing', !('z2' in (await obj(aid))));
+  const lid = await add({ type: 'label', id: 'l-n', x: 6, y: 6, z: 0, text: 'Foyer' });
+  await js(`${C}.setProps({ note: 'arrival of the public', mark: '!' }); true`);
+  await sleep(250);
+  check('0.10: a label carries a quieter note and a mark at its point', await js(`(() => { const g = document.querySelector('${axon} [data-id="l-n"]'); const tx = [...g.querySelectorAll('text')]; return tx.length === 3 && tx[1].textContent === 'arrival of the public' && Number(tx[1].getAttribute('font-size')) < Number(tx[0].getAttribute('font-size')) && tx[2].textContent === '!' && g.querySelectorAll('circle').length === 2; })()`));
+  await js(`${C}.setProps({ note: '', mark: '' }); true`);
+  const l = await obj(lid);
+  check('0.10: …both go away when emptied', !('note' in l) && !('mark' in l));
+
+  // the sheet: the legend along the foot, text blocks on the right
+  await js(`${C}.setProject((p) => { p.categories.push({ id: 'k-a', name: 'Hall', color: '#f2b98a' }); }, 'category.add'); ${D}.select(['v-hall']); ${C}.setProps({ cat: 'k-a' }); ${S}.layout.setTab('sheet'); ${S}.layout.setActivity?.('sheet'); true`);
+  await sleep(500);
+  const legendY = () => js(`(async () => { const m = await import('../services/render/common/sheet.js'); const r = m.renderSheet(${D}.project, { t: (k) => k }); const y = /<g id="legend">.*?<text x="[^"]*" y="([0-9.]+)"/.exec(r.svg)?.[1]; return JSON.stringify([Number(y), r.height, r.svg.includes('id="notes"'), r.scale]); })()`).then(JSON.parse);
+  const top = await legendY();
+  await js(`${C}.setProject((p) => { p.sheet.legendPlace = 'bottom'; }, 'sheet.set'); true`);
+  const bottom = await legendY();
+  check('0.10: the legend can go along the foot of the sheet', top[0] < top[1] / 2 && bottom[0] > bottom[1] * 0.8, JSON.stringify([top, bottom]));
+  await js(`${C}.setProject((p) => { p.sheet.blocks = [{ title: 'Strategy', text: 'One volume on the edge.\\n+ a larger square\\n− more earth moved' }]; }, 'sheet.set'); true`);
+  await sleep(500);
+  const withBlocks = await legendY();
+  check('0.10: text blocks take a column on the right; the drawings make room', withBlocks[2] && !bottom[2] && withBlocks[3] >= bottom[3], JSON.stringify([bottom, withBlocks]));
+  check('0.10: + and − lines are points for and against', await js(`(async () => { const m = await import('../services/render/common/sheet.js'); const svg = m.renderSheet(${D}.project, { t: (k) => k }).svg; const g = svg.slice(svg.indexOf('<g id="notes">')); return (g.match(/<circle/g) || []).length === 2 && g.includes('#2e8b57') && g.includes('#c8322d') && g.includes('STRATEGY'); })()`));
+  check('0.10: the sheet pane edits the blocks and the place of the legend', await js(`!!document.querySelector('.sidebar [data-block="0"] textarea') && !!document.querySelector('.sidebar [data-action=add-block]')`));
+  // saved and read back
+  check('0.10: everything survives the file', await js(`(async () => { const m = await import('../services/model/common/model.js'); const p = m.normalizeProject(JSON.parse(JSON.stringify(${D}.project))); const o = p.steps[0].objects; return p.sheet.legendPlace === 'bottom' && p.sheet.blocks.length === 1 && o.some((x) => x.type === 'opening' && x.kind === 'oculus') && o.find((x) => x.id === 'e-sq').joints === 2 && o.find((x) => x.id === 'v-hall').roofColor === '#8e3a34'; })()`));
+  await js(`${S}.layout.setTab('axon'); true`);
+  await sleep(200);
+}
+
+// ---------------------------------------------------------------------------------------------
 // screenshots for the README
 
 async function shots(win, js) {
@@ -1389,6 +1485,21 @@ async function shots(win, js) {
   await sleep(300);
   await shot('label-edit.png');
   await key(win, 'Escape');
+  // 0.10: openings on the walls and a roof with its own colour; the sheet with the legend along the foot and text blocks
+  await js(`${S}.commands.example('corner').then(() => true)`);
+  await sleep(500);
+  await js(`${S}.document.setStep(${S}.document.project.steps.length - 1); ${S}.layout.setTab('axon'); true`);
+  await sleep(300);
+  await js(`(() => { const d = ${S}.document, c = ${S}.commands; d.select(['v-garage']); c.setProps({ roofColor: '#8e3a34', color: '#d9cdb8' }); c.addOpening('arch', 'front'); c.setProps({ w: 2.6, h: 2.4 }); d.select(['v-garage']); c.addOpening('oculus', 'right'); c.setProps({ z: 3.3, w: 0.9 }); d.select(['v-garage']); return true; })()`);
+  await sleep(300);
+  await js(`window.lionaxon.views.axon.fit(); true`);
+  await sleep(400);
+  await shot('openings.png');
+  await js(`(() => { const c = ${S}.commands; c.setProject((p) => { p.sheet.legendPlace = 'bottom'; p.sheet.blocks = LANG_BLOCKS; }, 'sheet.set'); ${S}.document.clearSelection(); ${S}.layout.setTab('sheet'); ${S}.layout.setActivity('sheet'); return true; })()`.replace('LANG_BLOCKS', JSON.stringify(LANG === 'pt-BR'
+    ? [{ title: 'Estratégia', text: 'A casa acompanha as duas ruas e abre o fundo do lote para o jardim.' }, { title: 'Avaliação', text: '+ Sol de inverno no jardim.\n+ A garagem fecha o pátio.\n− Menos área no pavimento térreo.' }]
+    : [{ title: 'Strategy', text: 'The house follows the two streets and opens the back of the lot to the garden.' }, { title: 'Assessment', text: '+ Winter sun in the garden.\n+ The garage closes the yard.\n− Less area on the ground floor.' }])));
+  await sleep(900);
+  await shot('sheet-blocks.png');
   check('screenshots written', fs.existsSync(path.join(dir, 'sheet.png')));
 }
 
