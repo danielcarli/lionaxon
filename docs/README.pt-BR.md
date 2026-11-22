@@ -13,7 +13,7 @@ Simples de aprender em uma tarde. O mesmo programa no Windows, no macOS e no Lin
 
 [English](../README.md) · **Português (Brasil)**
 
-![Versão 0.8.0](https://img.shields.io/badge/vers%C3%A3o-0.8.0-23272b)
+![Versão 0.9.0](https://img.shields.io/badge/vers%C3%A3o-0.9.0-23272b)
 ![Experimental](https://img.shields.io/badge/status-experimental-b5532d)
 ![Plataformas: Windows, macOS, Linux](https://img.shields.io/badge/plataforma-Windows%20%7C%20macOS%20%7C%20Linux-23272b)
 ![10 línguas](https://img.shields.io/badge/l%C3%ADnguas-10-d0673f)
@@ -69,7 +69,7 @@ Software livre (GPL-3.0). Sem conta, sem assinatura, sem telemetria, e funciona 
 **Contar a história**
 - **Etapas** com título e texto, reordenadas arrastando; mudanças aplicadas às etapas seguintes com um clique; sinais entre as etapas (+ − = →).
 - **Categorias** com cor *e* hachura (circulação, núcleo de escada, teatro…): a legenda funciona em impressão cinza e para quem não distingue as cores.
-- **Setas, pessoas, rótulos, cotas e árvores** — as pessoas na altura real, para dar a escala.
+- **Setas, pessoas, rótulos, cotas e árvores** — as pessoas na altura real, para dar a escala. Duplo clique em um rótulo para escrever o texto direto no desenho.
 
 **Moldar o terreno**
 - **Terreno**: platôs, taludes, fossos, planos de referência com linhas de nível na elevação; terreno de qualquer contorno.
@@ -79,6 +79,7 @@ Software livre (GPL-3.0). Sem conta, sem assinatura, sem telemetria, e funciona 
 **Ver de qualquer lugar**
 - **Axonometria, planta e quatro elevações**, com **cortes**.
 - Um **visualizador 3D** que gira em todas as direções — e onde também dá para **selecionar, mover e puxar alturas**. Uma moldura azul avisa que você está nele.
+- **`Tab` alcança o que está atrás**: o próximo objeto no mesmo ponto ganha um contorno de outra cor e o resto fica transparente.
 - **Vistas explodidas**, e uma etapa **vista de vários ângulos lado a lado** na prancha.
 
 **Levar embora**
@@ -118,7 +119,7 @@ Os exemplos que vêm com o programa estão em inglês e português; nas demais l
 
 ## Como começar
 
-O LionAxon é **experimental** (versão 0.8): já faz um diagrama de partido inteiro e exporta, mas o formato do arquivo e o comportamento ainda podem mudar antes da 1.0.
+O LionAxon é **experimental** (versão 0.9): já faz um diagrama de partido inteiro e exporta, mas o formato do arquivo e o comportamento ainda podem mudar antes da 1.0.
 
 **Instaladores.** Um workflow do GitHub Actions (`.github/workflows/release.yml`) gera instaladores para Windows, macOS e Linux quando uma tag de versão é enviada. Eles ainda não são assinados, então o sistema pede confirmação na primeira execução. Procure em *Releases*.
 
@@ -148,6 +149,8 @@ O programa abre em uma tela inicial com seis exemplos — do partido em cinco et
 | `Enter` · duplo clique | Terminar um contorno desenhado ponto a ponto |
 | `Ctrl+C` · `Ctrl+X` · `Ctrl+V` | Copiar · recortar · colar (também em outra etapa ou diagrama) |
 | `0`–`9` com uma forma selecionada | Digitar o tamanho: largura × profundidade × altura |
+| `Tab` · `Shift+Tab` | O próximo · o anterior objeto no mesmo ponto (os outros ficam transparentes) |
+| Duplo clique em um rótulo · `Enter` com ele selecionado | Escrever o texto direto no desenho (`Enter` aplica, `Shift+Enter` nova linha, `Esc` desiste) |
 | `F2` · `Ctrl+L` · `Ctrl+H` | Renomear · travar · ocultar a seleção |
 | Botão direito | Menu do objeto (ou do papel) |
 | `R` · `Espaço` · `Shift` | Girar a seleção 90° (`Shift`: 15°); `Espaço` também ao mover; segure `Espaço` e arraste para deslocar |
@@ -217,14 +220,15 @@ Código, comentários, identificadores e documentação em inglês. A interface 
 
 ## Próximas versões
 
+- **0.9** ✓ — `Tab` escolhe o objeto que está atrás de outro; o texto do rótulo escrito direto no desenho.
 - **0.8** ✓ — a interface em dez línguas; edição no visualizador 3D (selecionar, mover, alturas) dentro de uma moldura própria; identificadores do código todos em inglês, com os arquivos antigos ainda abrindo.
 - **0.7** ✓ — contornos de qualquer forma; entorno; sol e sombras; telhados; cotas; fantasmas e sinais entre etapas; cortes; as etapas em GIF; um workflow que gera os instaladores.
 - **0.6** ✓ — usabilidade: copiar e colar, menu do botão direito, retângulo de seleção, alinhar e guias, tamanhos digitados, nomes, travar e ocultar, tela inicial, arquivos recentes, hachuras nas categorias.
 - **0.5 – 0.1** ✓ — o visualizador 3D e vários ângulos por etapa; barra de menus e exemplos; elevações, vistas explodidas e pranchas verticais; terreno, planos de referência e formas curvas; abas; os primeiros volumes, etapas e prancha.
-- **0.9** — pátios e união de volumes; lajes soltas e pilotis; sombras sobre volumes e terreno; cortes na prancha; desenhar formas novas no visualizador 3D; paleta de comandos; instaladores assinados.
+- **Depois** — pátios e união de volumes; lajes soltas e pilotis; sombras sobre volumes e terreno; cortes na prancha; desenhar formas novas no visualizador 3D; paleta de comandos; instaladores assinados.
 - **1.0** — DXF de entrada e saída; manual e tutoriais na ordem de um ateliê de projeto; traduções revisadas.
 
-O histórico completo está no [CHANGELOG](../CHANGELOG.md) — versão atual: **0.8.0**.
+O histórico completo está no [CHANGELOG](../CHANGELOG.md) — versão atual: **0.9.0**.
 
 ## Créditos
 

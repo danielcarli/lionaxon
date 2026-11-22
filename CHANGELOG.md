@@ -2,6 +2,18 @@
 
 All notable changes to LionAxon are documented here. The project follows [Semantic Versioning](https://semver.org).
 
+## [0.9.0] — 2026-11-21
+
+Reaching what is behind, and writing labels where they are.
+
+### Added
+- **`Tab` picks the next object under the same spot** (`Shift+Tab`: the one before), in the axonometric, the plan, the elevations and the 3D viewer. When one volume is drawn behind another — the usual case in an elevation — a click only reaches the one in front; `Tab` goes through the others. The object picked takes an outline in another colour (magenta) and everything else fades, so that it shows through what covers it; a press on that spot then grabs the object picked, not the one in front. It ends with `Esc` or when something else is selected. `Tab` still walks through buttons and fields when one of them has the focus.
+- **The text of a label written on the drawing**: a double click on a label, or `Enter` with it selected, opens a box over it (`Enter` applies, `Shift+Enter` starts another line, `Esc` gives up). A new label opens it right away. The field in the properties panel is still there.
+
+### Fixed
+- A double click on a shape always finds what is under the mouse (the press before it captured the pointer).
+- A press on the drawing takes the focus from any button or field, so the keys go to the drawing.
+
 ## [0.8.0] — 2026-11-21
 
 The first public version: ten languages, editing in the 3D viewer, and the code all in English. Files of earlier versions open as they are.

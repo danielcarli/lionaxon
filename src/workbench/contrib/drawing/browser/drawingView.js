@@ -30,6 +30,7 @@ import { showContextMenu } from '../../../browser/contextMenu.js';
 import { parseNumber } from '../../../browser/widgets.js';
 
 const SEL = '#2f74e8';
+import { PickCycle } from './pickCycle.js';
 const NS = 'http://www.w3.org/2000/svg';
 const r3 = (v) => Math.round(v * 1000) / 1000;
 const escHtml = (x) => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -83,6 +84,7 @@ export class DrawingView {
     this.bg = document.createElementNS(NS, 'rect');
     this.content = document.createElementNS(NS, 'g');
     this.overlay = document.createElementNS(NS, 'g');
+    this.overlay.setAttribute('class', 'ax-overlay');
     // elevation: the level lines answer the mouse under the drawing, so objects in front of a line win
     this.under = document.createElementNS(NS, 'g');
     this.svg.append(this.bg, this.under, this.content, this.overlay);
@@ -100,6 +102,7 @@ export class DrawingView {
           h('button.icon-button', { title: t('zoom.in') + ' (Ctrl++)', 'data-zoom': 'in', html: icon('plus', 14), onclick: () => this.zoomBy(1.25) })),
         h('button.icon-button', { title: t('drawing.fit') + ' (F)', html: icon('fit', 16), onclick: () => this.fit() })));
     this.element = h('div.editor-view', { 'data-view': mode }, this.toolbar, this.wrap);
+    this.cycle = new PickCycle(this); // Tab: the next object under the same spot
     this.guides = [];          // lines shown while an object being moved lines up with another
     this.listHover = null;     // the object under the mouse in the element list
 
@@ -107,6 +110,7 @@ export class DrawingView {
     this.#bindPointer();
     new ResizeObserver(() => { if (this.visible) this.#applyCamera(true); }).observe(this.canvas);
     this.doc.onDidChange((e) => {
+      if (e.kind === 'load' || e.kind === 'step') this.closeLabel?.(false);
       if (e.kind === 'load') {
         // each diagram keeps its own zoom and position
         if (e.prevTabId && e.prevTabId !== e.tabId) this.cams.set(e.prevTabId, this.cam && { ...this.cam, fit: this.fitScale });
@@ -123,6 +127,7 @@ export class DrawingView {
       if (e.kind === 'load' && !this.cam) this.fit();
     });
     this.layout.onDidChange((what) => {
+      if (what === 'tab') this.closeLabel?.(true);
       if (what === 'tool') { this.canvas.dataset.tool = this.layout.tool; this.preview = null; this.poly = null; this.#renderToolbar(); if (this.visible) this.render(); }
       // after the editor has shown this view (its listener runs after this one), so it has a size
       if (what === 'tab') queueMicrotask(() => { if (this.visible) { this.render(); if (!this.cam) this.fit(); } });
@@ -372,6 +377,7 @@ export class DrawingView {
     }
     this.overlay.innerHTML = s;
     this.#markTerrain();
+    this.cycle.mark();
   }
 
   /**
@@ -663,7 +669,8 @@ export class DrawingView {
     const top = el.dataset.top != null ? Number(el.dataset.top) : null;
     // a locked object is not picked: the click goes through to the paper (but tools still draw on its top)
     if (this.doc.byId(el.dataset.id)?.locked) return { locked: el.dataset.id, top, surface: el.dataset.id };
-    return { id: el.dataset.id, top, surface: el.dataset.id };
+    // picking with Tab: a press on the spot is a press on the object picked, even if another is in front
+    return { id: this.cycle.resolve(el.dataset.id), top, surface: el.dataset.id };
   }
 
   #snap(v, e, g = this.doc.project.grid) {
@@ -688,7 +695,9 @@ export class DrawingView {
     svg.addEventListener('pointercancel', () => this.cancel());
     svg.addEventListener('dblclick', (e) => {
       if (this.poly) { this.finishPoly(); return; }
-      const hd = e.target.closest?.('[data-handle]')?.dataset.handle;
+      // the press captured the pointer, so the event may name the drawing itself: look at what is under it
+      const target = document.elementFromPoint(e.clientX, e.clientY) || e.target;
+      const hd = target.closest?.('[data-handle]')?.dataset.handle;
       const one = this.doc.selected()[0];
       if (hd && hd[0] === 'p' && one && isPoly(one) && one.pts.length > 3) {
         // a double click on a corner takes it out
@@ -696,9 +705,10 @@ export class DrawingView {
         this.doc.run('object.corner.remove', (_p, step) => { Object.assign(step.objects.find((x) => x.id === one.id), polyFromWorld(world, one.rot)); });
         return;
       }
-      const { id } = this.#hit(e);
+      const { id } = this.#hit({ target });
       const o = id && this.doc.byId(id);
-      if (o) this.s.properties?.focus(o.type === 'label' ? 'text' : 'name');
+      if (o?.type === 'label') this.editLabel(o.id);
+      else if (o) this.s.properties?.focus('name');
     });
     // Space: held while dragging, it pans; tapped, it turns the selection 90° (Shift: 15°) — also while an
     // object is being moved, so it can be turned on its way
@@ -816,6 +826,65 @@ export class DrawingView {
    * Typing a size for the selected shape: a small box over the drawing takes "width × depth × height" in
    * metres (one, two or three numbers) and applies it on Enter.
    */
+  /**
+   * The text of a label, written where it is drawn: a double click on the label (or Enter with it selected)
+   * opens a box over it. Enter applies, Shift+Enter starts another line, Esc gives up.
+   */
+  editLabel(id = this.doc.selected()[0]?.id) {
+    const o = id && this.doc.byId(id);
+    if (!o || o.type !== 'label' || o.locked || this.labelBox || !this.visible) return false;
+    const texts = [...this.content.querySelectorAll(`[data-id="${CSS.escape(id)}"] text, text[data-id="${CSS.escape(id)}"]`)];
+    if (!texts.length) return false;
+    if (!this.doc.selection.has(id) || this.doc.selection.size !== 1) this.doc.select([id]);
+    // where the text is drawn, in the coordinates of the drawing area
+    const wrap = this.wrap.getBoundingClientRect();
+    const rects = texts.map((x) => x.getBoundingClientRect());
+    const left = Math.min(...rects.map((r) => r.left)), right = Math.max(...rects.map((r) => r.right));
+    const top = Math.min(...rects.map((r) => r.top)), bottom = Math.max(...rects.map((r) => r.bottom));
+    const lines = Math.max(1, String(o.text || '').split('\n').length);
+    const fontPx = Math.max(11, Math.min(40, ((bottom - top) / lines) * 0.78));
+    let done = false;
+    const close = (apply) => {
+      if (done) return;
+      done = true;
+      const value = area.value.replace(/\s+$/, '');
+      this.labelBox?.remove();
+      this.labelBox = null;
+      this.closeLabel = null;
+      if (apply && value && value !== o.text && this.doc.byId(id)) {
+        if (!this.doc.selection.has(id) || this.doc.selection.size !== 1) this.doc.select([id]);
+        this.s.commands.setProps({ text: value });
+      }
+    };
+    const area = h('textarea', {
+      'data-key': 'text', spellcheck: false, rows: lines, 'aria-label': t('label.text'), title: t('label.editTip'),
+      style: { fontSize: `${r3(fontPx)}px`, textTransform: o.caps === false ? 'none' : 'uppercase' },
+      onkeydown: (e) => {
+        e.stopPropagation();
+        if (e.key === 'Escape') { e.preventDefault(); close(false); }
+        else if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); close(true); }
+      },
+      oninput: () => { area.rows = Math.max(1, area.value.split('\n').length); },
+      // leaving the box applies (change comes even when the window itself is not the active one)
+      onblur: () => { if (performance.now() - opened < 250) { setTimeout(take, 0); return; } close(true); },
+      onchange: () => close(true),
+      onpointerdown: (e) => e.stopPropagation(),
+    });
+    area.value = o.text || '';
+    this.labelBox = h('div.label-box', { style: { left: `${Math.round(left - wrap.left - 7)}px`, top: `${Math.round(top - wrap.top - 5)}px`, minWidth: `${Math.round(right - left + 30)}px` } }, area);
+    this.closeLabel = close;
+    this.wrap.append(this.labelBox);
+    // the double click that opened the box may still take the focus away: take it back once
+    const opened = performance.now();
+    const take = () => { if (!done && document.activeElement !== area) { area.focus(); area.select(); } };
+    take();
+    setTimeout(take, 60);
+    return true;
+  }
+
+  /**
+   * The size of the selected shape typed on the drawing.
+   */
   typeSize(first = '') {
     const [o] = this.doc.selected();
     if (this.doc.selection.size !== 1 || !RECT_TYPES.has(o.type) || this.sizeBox) return false;
@@ -848,11 +917,13 @@ export class DrawingView {
 
   #down(e) {
     if (!this.cam) return;
+    this.closeLabel?.(true); // a press on the drawing applies a label text being written
     // a click on the drawing ends any typing in the panels (and applies it)
-    if (document.activeElement && document.activeElement !== document.body && this.element.contains(document.activeElement) === false) document.activeElement.blur();
+    if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
     this.svg.setPointerCapture(e.pointerId);
     if (e.button === 1 || e.button === 2 || this.spaceDown) { e.preventDefault(); this.#startPan(e, this.#hit(e)); return; }
     if (e.button !== 0) return;
+    this.cycle.setPoint(e);
     if (this.elev) { this.#elevDown(e); return; }
     const tool = this.layout.tool;
     const hit = this.#hit(e);
@@ -902,7 +973,7 @@ export class DrawingView {
     } else if (tool === 'label') {
       const g = this.#ground(e, z);
       this.#create(createLabel({ x: r3(g[0]), y: r3(g[1]), z: r3(z - lz), level, text: t('label.default'), dx: 6, dy: -6 }), e);
-      setTimeout(() => this.s.properties?.focus('text'), 0);
+      { const made = this.doc.objects.at(-1).id; setTimeout(() => this.editLabel(made), 0); }
     }
   }
 
@@ -957,6 +1028,7 @@ export class DrawingView {
 
   #move(e) {
     this.lastMove = e;
+    this.cycle.setHover(e);
     const d = this.drag;
     if (!d) {
       const el = e.target.closest?.('.ax-terrain[data-id]');

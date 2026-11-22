@@ -20,6 +20,7 @@ import { getStyle } from '../../../services/render/common/styles.js';
 import { stepAngles, normalizeAngle, sameAngle, isLine, ISO_EL, MAX_VIEWS } from '../../../services/model/common/model.js';
 import { meters } from '../../../services/export/browser/exportService.js';
 import { isTyping } from '../../drawing/browser/drawingView.js';
+import { PickCycle } from '../../drawing/browser/pickCycle.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 const r3 = (v) => Math.round(v * 1000) / 1000;
@@ -59,6 +60,7 @@ export class OrbitView {
         h('div.canvas-corner',
           h('button.icon-button', { title: t('drawing.fit') + ' (F)', html: icon('fit', 16), onclick: () => this.fit() }))));
 
+    this.cycle = new PickCycle(this); // Tab: the next object under the same spot
     this.#bind();
     new ResizeObserver(() => { if (this.visible) this.#applyCamera(); }).observe(this.canvas);
     this.doc.onDidChange((e) => {
@@ -205,13 +207,14 @@ export class OrbitView {
     this.overlay.innerHTML = at
       ? `<line x1="${r3(from[0])}" y1="${r3(from[1])}" x2="${r3(at[0])}" y2="${r3(at[1])}" stroke="${SEL}" stroke-width="${r3(1.4 / scale)}" pointer-events="none"/><circle data-handle="h" cx="${r3(at[0])}" cy="${r3(at[1])}" r="${r3(6 / scale)}" fill="#fff" stroke="${SEL}" stroke-width="${r3(1.8 / scale)}"><title>${t('prop.height')}</title></circle>`
       : '';
+    this.cycle.mark();
   }
 
   #hit(e) {
     if (e.target.closest?.('[data-handle]')) return { handle: 'h' };
     const el = e.target.closest?.('[data-id]');
     const o = el ? this.doc.byId(el.dataset.id) : null;
-    return o && !o.locked ? { id: o.id } : {};
+    return o && !o.locked ? { id: this.cycle.resolve(o.id) } : {};
   }
 
   /** The selected objects and the volumes standing on them, as they are now. */
@@ -334,6 +337,7 @@ export class OrbitView {
       if (!pan && e.button !== 0) return;
       e.preventDefault();
       const base = { sx: e.clientX, sy: e.clientY, az: this.angle.az, el: this.angle.el, dx: this.cam.dx, dy: this.cam.dy };
+      if (!pan) this.cycle.setPoint(e);
       const hit = pan ? {} : this.#hit(e);
       if (hit.handle) {
         const o = this.#heightTarget();
@@ -373,7 +377,7 @@ export class OrbitView {
 
   #move(e) {
     const d = this.drag;
-    if (!d) return;
+    if (!d) { this.cycle.setHover(e); return; }
     const mx = e.clientX - d.sx, my = e.clientY - d.sy;
     if (d.kind === 'pan') {
       this.cam.dx = d.dx - mx / this.cam.scale;

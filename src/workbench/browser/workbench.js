@@ -143,6 +143,12 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'PageUp') { e.preventDefault(); doc.setStep(doc.stepIndex - 1); return; }
   if (e.key === 'PageDown') { e.preventDefault(); doc.setStep(doc.stepIndex + 1); return; }
   if (layout.tab === 'sheet') return;
+  // Tab: the next object under the same spot (Shift+Tab: the one before) — only while nothing has the
+  // focus, so that Tab still walks through buttons and fields
+  if (e.key === 'Tab' && !e.altKey && (document.activeElement === document.body || !document.activeElement) && !document.querySelector('.cm-overlay, .menu-popup, .modal')) {
+    const view = layout.tab === 'orbit' ? views.orbit : currentView();
+    if (view?.cycle) { e.preventDefault(); view.cycle.next(e.shiftKey ? -1 : 1); return; }
+  }
   if (layout.tab === 'orbit') {
     // the 3D viewer: no drawing tools, but what is selected can be deleted; the arrows turn the view
     if (e.key === 'Escape') { doc.clearSelection(); return; }
@@ -152,6 +158,8 @@ window.addEventListener('keydown', (e) => {
   }
   // an outline being drawn point by point: Enter ends it
   if (e.key === 'Enter' && currentView()?.poly) { e.preventDefault(); currentView().finishPoly(); return; }
+  // Enter on a selected label: its text is written on the drawing
+  if (e.key === 'Enter' && doc.selection.size === 1 && doc.selected()[0]?.type === 'label' && currentView()?.editLabel) { e.preventDefault(); currentView().editLabel(); return; }
   if (e.key === 'Escape') { currentView()?.cancel?.(); layout.setTool('select'); views.elev.setElevTool('select'); doc.clearSelection(); return; }
   if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); cmd.deleteSelection(); return; }
   if (e.key.startsWith('Arrow') && doc.selection.size) {

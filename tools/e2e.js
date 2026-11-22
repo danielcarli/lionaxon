@@ -294,6 +294,8 @@ async function phase1(win, js) {
   await usability06(win, js);
   await features07(win, js);
   await edit3d08(win, js);
+  await cycle08(win, js);
+  await labelEdit08(win, js);
 
   // ---- leave unsaved work behind for phase 2
   await js(`${S}.document.switchTo(${S}.document.tabs.findIndex((t) => t.project.name === 'E2E test')); true`);
@@ -1107,6 +1109,103 @@ async function edit3d08(win, js) {
   await sleep(200);
 }
 
+// Tab picks the next object under the same spot; it takes another outline and the rest fades
+async function cycle08(win, js) {
+  await js(`${S}.commands.example('tower').then(() => true)`);
+  await sleep(400);
+  await js(`${S}.document.setStep(${S}.document.project.steps.length - 1); ${S}.layout.setTab('plan'); ${S}.layout.setTool('select'); true`);
+  await sleep(400);
+  await js(`window.lionaxon.views.plan.fit(); true`);
+  await sleep(300);
+  const sel = () => js(`JSON.stringify([...${S}.document.selection])`).then(JSON.parse);
+  const cycling = (view) => js(`document.querySelector('[data-view=${view}] .canvas').classList.contains('cycling')`);
+  // the tower stands on the base: in plan, a click on it only reaches the tower
+  const at = await js(`(() => { const r = document.querySelector('[data-view=plan] .canvas [data-id="v-tower"]').getBoundingClientRect(); return JSON.stringify([r.left + r.width / 2, r.top + r.height / 2]); })()`).then(JSON.parse);
+  const stack = await js(`JSON.stringify(window.lionaxon.views.plan.cycle.under(${JSON.stringify(at)}))`).then(JSON.parse);
+  check('Tab: several objects are drawn under the spot', stack.length >= 2 && stack.includes('v-base'), JSON.stringify(stack));
+  await click(win, at);
+  await sleep(200);
+  const first = (await sel())[0];
+  check('Tab: a click reaches the one in front, nothing fades', first === stack[0] && !(await cycling('plan')), first);
+  await key(win, 'Tab');
+  await sleep(200);
+  const second = (await sel())[0];
+  check('Tab: picks the next object under the same spot', second === stack[1], second);
+  check('Tab: the one picked keeps its colours, the others fade, the outline takes another colour', await js(`(() => {
+    const c = document.querySelector('[data-view=plan] .canvas');
+    const on = c.querySelector('[data-id="${stack[1]}"]'), off = c.querySelector('[data-id="${stack[0]}"]');
+    const edge = [...c.querySelectorAll('svg > g:last-of-type [stroke="#2f74e8"]')][0];
+    return c.classList.contains('cycling') && getComputedStyle(on).opacity === '1' && Number(getComputedStyle(off).opacity) < 0.5 && !!edge && getComputedStyle(edge).stroke === 'rgb(192, 38, 211)';
+  })()`));
+  await key(win, 'Tab', ['shift']);
+  await sleep(200);
+  check('Tab: Shift+Tab goes back', (await sel())[0] === stack[0] && await cycling('plan'));
+  for (let k = 0; k < stack.length; k++) { await key(win, 'Tab'); await sleep(120); }
+  check('Tab: after the last one it starts again', (await sel())[0] === stack[0]);
+  // pick the base (under the tower) and drag from the spot: the base is what moves
+  while ((await sel())[0] !== 'v-base') { await key(win, 'Tab'); await sleep(120); }
+  const x0 = await js(`${S}.document.byId('v-base').x`);
+  await drag(win, at, [at[0] + 60, at[1]], 8);
+  await sleep(250);
+  check('Tab: a drag from the spot moves the object picked, not the one in front', (await sel())[0] === 'v-base' && await js(`${S}.document.byId('v-base').x`) !== x0);
+  await key(win, 'Z', ['control']);
+  await sleep(200);
+  await key(win, 'Escape');
+  await sleep(200);
+  check('Tab: Esc ends it and nothing is faded any more', !(await cycling('plan')) && (await sel()).length === 0 && await js(`!document.querySelector('[data-view=plan] .cycle-on')`));
+  // the 3D viewer does the same
+  await js(`${S}.layout.setTab('orbit'); true`);
+  await sleep(500);
+  await js(`window.lionaxon.views.orbit.setAngle(315, 90); window.lionaxon.views.orbit.fit(); true`);
+  await sleep(400);
+  const at3 = await js(`(() => { const r = document.querySelector('[data-view=orbit] .canvas [data-id="v-tower"]').getBoundingClientRect(); return JSON.stringify([r.left + r.width / 2, r.top + r.height / 2]); })()`).then(JSON.parse);
+  await click(win, at3);
+  await sleep(200);
+  const a = (await sel())[0];
+  await key(win, 'Tab');
+  await sleep(200);
+  const b = (await sel())[0];
+  check('Tab: in the 3D viewer too', !!a && !!b && a !== b && await cycling('orbit'), JSON.stringify([a, b]));
+  await key(win, 'Escape');
+  await js(`window.lionaxon.views.orbit.setAngle(315, 35.2644); ${S}.layout.setTab('axon'); true`);
+  await sleep(200);
+}
+
+// the text of a label is written where it is drawn
+async function labelEdit08(win, js) {
+  await js(`${S}.document.switchTo(${S}.document.tabs.findIndex((t) => /tower/i.test(t.project.name))); ${S}.document.setStep(${S}.document.project.steps.length - 1); ${S}.layout.setTab('axon'); ${S}.layout.setTool('select'); true`);
+  await sleep(400);
+  await js(`window.lionaxon.views.axon.fit(); true`);
+  await sleep(300);
+  const id = await js(`${S}.document.objects.find((o) => o.type === 'label').id`);
+  const before = await js(`${S}.document.byId('${id}').text`);
+  const at = await js(`(() => { const r = document.querySelector('[data-view=axon] .canvas [data-id="${id}"] text').getBoundingClientRect(); return JSON.stringify([r.left + r.width / 2, r.top + r.height / 2]); })()`).then(JSON.parse);
+  const dbl = async () => {
+    await mouse(win, 'mouseMove', at);
+    await mouse(win, 'mouseDown', at); await mouse(win, 'mouseUp', at);
+    await mouse(win, 'mouseDown', at, { clickCount: 2 }); await mouse(win, 'mouseUp', at, { clickCount: 2 });
+    await sleep(300);
+  };
+  await dbl();
+  check('label: a double click opens its text on the drawing, with the text selected', await js(`(() => { const a = document.querySelector('[data-view=axon] .label-box textarea'); return !!a && document.activeElement === a && a.value === ${JSON.stringify(before)} && a.selectionEnd - a.selectionStart === a.value.length; })()`));
+  check('label: the box sits over the label', await js(`(() => { const b = document.querySelector('.label-box').getBoundingClientRect(); return Math.abs(b.left - ${at[0]}) < 400 && b.top < ${at[1]} + 6 && b.bottom > ${at[1]} - 6; })()`));
+  await type(win, 'Sky bar');
+  await key(win, 'Enter');
+  await sleep(250);
+  check('label: Enter applies what was typed', await js(`${S}.document.byId('${id}').text === 'Sky bar' && !document.querySelector('.label-box')`));
+  await key(win, 'Enter');
+  await sleep(250);
+  check('label: Enter on the selected label opens it again', await js(`!!document.querySelector('[data-view=axon] .label-box textarea')`));
+  await type(win, 'nothing');
+  await key(win, 'Escape');
+  await sleep(200);
+  check('label: Esc gives up', await js(`${S}.document.byId('${id}').text === 'Sky bar' && !document.querySelector('.label-box')`));
+  await key(win, 'Z', ['control']);
+  await sleep(200);
+  check('label: one undo brings the old text back', await js(`${S}.document.byId('${id}').text === ${JSON.stringify(before)}`));
+  await key(win, 'Escape');
+}
+
 // ---------------------------------------------------------------------------------------------
 // screenshots for the README
 
@@ -1261,6 +1360,35 @@ async function shots(win, js) {
   await js(`${S}.document.switchTo(${S}.document.tabs.findIndex((t) => /parti/i.test(t.project.name))); true`);
   const r = JSON.parse(await js(`${S}.commands.exportSheet('png', { dpi: 110 }).then((r) => JSON.stringify(r))`));
   if (r?.ok) fs.copyFileSync(r.path, path.join(dir, 'example-sheet.png'));
+  // 0.9: Tab picks what is behind — the bar in the middle, seen from the side
+  await js(`${S}.document.switchTo(${S}.document.tabs.findIndex((t) => /parti/i.test(t.project.name))); ${S}.document.setStep(0); ${S}.layout.setTab('elev'); true`);
+  await sleep(400);
+  await js(`document.querySelector('[data-view=elev] .toolbar [role=radiogroup] button:nth-child(2)').click(); true`);
+  await sleep(400);
+  await js(`window.lionaxon.views.elev.fit(); true`);
+  await sleep(300);
+  {
+    const E = 'window.lionaxon.views.elev';
+    const at = await js(`(() => { const r = document.querySelector('[data-view=elev] .canvas [data-id]').getBoundingClientRect(); const p = [r.left + r.width / 2, r.top + r.height / 2]; return JSON.stringify([p, ${E}.cycle.under(p)]); })()`).then(JSON.parse);
+    console.log('   under the spot:', at[1].join(', '));
+    await click(win, at[0]);
+    await sleep(200);
+    await key(win, 'Tab');
+    await sleep(300);
+    win.webContents.invalidate();
+    await sleep(300);
+    await shot('pick-behind.png');
+    await key(win, 'Escape');
+  }
+  // 0.9: the text of a label written on the drawing
+  await js(`${S}.document.switchTo(${S}.document.tabs.findIndex((t) => /tower|torre/i.test(t.project.name))); ${S}.document.setStep(${S}.document.project.steps.length - 1); ${S}.layout.setTab('axon'); true`);
+  await sleep(400);
+  await js(`window.lionaxon.views.axon.fit(); true`);
+  await sleep(300);
+  await js(`window.lionaxon.views.axon.editLabel(${S}.document.objects.find((o) => o.type === 'label').id); true`);
+  await sleep(300);
+  await shot('label-edit.png');
+  await key(win, 'Escape');
   check('screenshots written', fs.existsSync(path.join(dir, 'sheet.png')));
 }
 

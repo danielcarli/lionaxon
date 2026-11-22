@@ -122,7 +122,7 @@ export function showShortcutsDialog() {
   const rows = [
     ['V', 'tool.select'], ['B', 'tool.box'], ['S', 'tool.cut'], ['G', 'tool.terrain'], ['A', 'tool.arrow'], ['D', 'tool.dim'], ['P', 'tool.person'], ['E', 'tool.tree'], ['T', 'tool.label'], ['Enter', 'shortcuts.polyEnd'],
     ['Delete', 'shortcuts.delete'], ['Ctrl+C · X · V', 'shortcuts.clipboard'], ['Ctrl+D', 'shortcuts.duplicate'], ['R · Space', 'shortcuts.rotate'], ['N', 'shortcuts.newLevel'],
-    ['0–9', 'shortcuts.typeSize'], ['F2', 'shortcuts.rename'], ['Ctrl+L · Ctrl+H', 'shortcuts.lockHide'], [t('shortcuts.rightClick'), 'shortcuts.contextMenu'],
+    ['0–9', 'shortcuts.typeSize'], ['Tab', 'shortcuts.cycle'], ['Enter', 'shortcuts.editLabel'], ['F2', 'shortcuts.rename'], ['Ctrl+L · Ctrl+H', 'shortcuts.lockHide'], [t('shortcuts.rightClick'), 'shortcuts.contextMenu'],
     ['← → ↑ ↓', 'shortcuts.nudge'], ['Ctrl+Z · Ctrl+Y', 'shortcuts.undoRedo'], ['F', 'shortcuts.fit'],
     [t('shortcuts.wheel') + ' · Ctrl+ + − 0', 'shortcuts.zoom'], [t('shortcuts.dragEmpty'), 'shortcuts.marquee'], [t('shortcuts.panKeys'), 'shortcuts.pan'], ['Alt', 'shortcuts.noSnap'],
     ['PgUp · PgDn', 'shortcuts.steps'], ['Ctrl+1 · 2 · 3 · 4 · 5', 'shortcuts.tabs'], ['Ctrl+B', 'shortcuts.sidebar'], ['Ctrl+\\', 'shortcuts.focus'],

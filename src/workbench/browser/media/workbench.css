@@ -578,3 +578,16 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 4px; }
 .state-field .segmented > button { flex: 1 0 30%; }
 .section-pos { min-width: 44px; font: 11.5px var(--font-mono); color: var(--text-secondary); }
 .orbit-field input[type=range] { width: 110px; padding: 0; border: 0; background: none; accent-color: var(--accent); }
+
+/* picking with Tab what is behind: the object picked keeps its colours and takes an outline in another
+   colour; everything else fades so that it shows through */
+.canvas.cycling [data-id]:not(.cycle-on) { opacity: 0.16; }
+.canvas.cycling [data-id].cycle-on [data-id] { opacity: 1; }
+.canvas.cycling .ax-overlay [stroke="#2f74e8"]:not(.level-line *) { stroke: #c026d3; }
+.canvas.cycling .ax-overlay [fill="#2f74e8"]:not(.level-line *) { fill: #c026d3; }
+.orbit-canvas.cycling .orbit-sel { stroke: #c026d3; }
+
+/* the text of a label, written where it is drawn */
+.label-box { position: absolute; z-index: 5; }
+.label-box textarea { display: block; width: 100%; min-width: 120px; padding: 4px 6px; border-radius: 6px; border: 1.5px solid #2f74e8; background: var(--bg-elevated); color: var(--text-primary); font-family: var(--font-sans, inherit); line-height: 1.25; resize: none; overflow: hidden; box-shadow: var(--shadow-popup, 0 6px 20px rgba(0, 0, 0, 0.18)); white-space: pre; }
+.label-box textarea:focus { outline: none; }

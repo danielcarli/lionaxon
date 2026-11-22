@@ -13,7 +13,7 @@ Simple to learn in an afternoon. The same app on Windows, macOS and Linux. Free.
 
 **English** · [Português (Brasil)](docs/README.pt-BR.md)
 
-![Version 0.8.0](https://img.shields.io/badge/version-0.8.0-23272b)
+![Version 0.9.0](https://img.shields.io/badge/version-0.9.0-23272b)
 ![Experimental](https://img.shields.io/badge/status-experimental-b5532d)
 ![Platforms: Windows, macOS, Linux](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-23272b)
 ![10 languages](https://img.shields.io/badge/languages-10-d0673f)
@@ -69,7 +69,7 @@ Free software (GPL-3.0). No account, no subscription, no telemetry, and it works
 **Tell the story**
 - **Steps** with title and text, reordered by dragging; changes applied to the following steps with one click; signs between steps (+ − = →).
 - **Categories** with colour *and* hatch (circulation, stair core, theatre…), so the legend reads in grey print and for people who do not tell colours apart.
-- **Arrows, people, labels, dimension lines and trees** — people at their real height, to give the scale.
+- **Arrows, people, labels, dimension lines and trees** — people at their real height, to give the scale. Double-click a label to write its text right on the drawing.
 
 **Shape the site**
 - **Terrain**: platforms, slopes, pits, reference planes with level lines in the elevation; a site of any outline.
@@ -79,6 +79,7 @@ Free software (GPL-3.0). No account, no subscription, no telemetry, and it works
 **See it from anywhere**
 - **Axonometric, plan and four elevations**, with **sections**.
 - A **3D viewer** that turns all the way round — and where you can **select, move and pull heights** too. A blue frame tells you that you are in it.
+- **`Tab` reaches what is behind**: the next object under the same spot takes an outline in another colour and the rest fades.
 - **Exploded views**, and one step **seen from several angles side by side** on the sheet.
 
 **Take it out**
@@ -118,7 +119,7 @@ The examples that come with the app are in English and Portuguese; in the langua
 
 ## Get started
 
-LionAxon is **experimental** (version 0.8): it already makes a whole parti diagram and exports it, but the file format and the behaviour may still change before 1.0.
+LionAxon is **experimental** (version 0.9): it already makes a whole parti diagram and exports it, but the file format and the behaviour may still change before 1.0.
 
 **Installers.** A GitHub Actions workflow (`.github/workflows/release.yml`) builds installers for Windows, macOS and Linux when a version tag is pushed. They are not signed yet, so the system will ask for confirmation on the first run. Look for them under *Releases*.
 
@@ -148,6 +149,8 @@ The app opens on a start screen with six examples — from the five-step parti t
 | `Delete` · `Ctrl+D` | Delete · duplicate the selection |
 | `Ctrl+C` · `Ctrl+X` · `Ctrl+V` | Copy · cut · paste (also to another step or diagram) |
 | `0`–`9` with a shape selected | Type its size: width × depth × height |
+| `Tab` · `Shift+Tab` | The next · previous object under the same spot (the others fade) |
+| Double-click a label · `Enter` with it selected | Write its text on the drawing (`Enter` applies, `Shift+Enter` new line, `Esc` gives up) |
 | `F2` · `Ctrl+L` · `Ctrl+H` | Rename · lock · hide the selection |
 | Right button | The menu of the object (or of the paper) |
 | `R` · `Space` · `Shift` | Turn the selection 90° (`Shift`: 15°); `Space` also while moving; hold `Space` and drag to pan |
@@ -267,16 +270,17 @@ Code, comments, identifiers and documentation are in English. The interface is t
 
 ## Roadmap
 
+- **0.9** ✓ — `Tab` picks the object behind another; the text of a label written on the drawing.
 - **0.8** ✓ — the interface in ten languages; editing in the 3D viewer (select, move, heights) inside a frame of its own; code identifiers all in English, with old files still opening.
 - **0.7** ✓ — outlines of any shape; surroundings; sun and shadows; roofs; dimension lines; ghosts and signs between steps; sections; the steps as GIF; a workflow that builds the installers.
 - **0.6** ✓ — usability: copy and paste, a right-button menu, a selection rectangle, align and guides, typed sizes, names, lock and hide, a start screen, recent files, hatches for categories.
 - **0.5 – 0.1** ✓ — the 3D viewer and several angles per step; a menu bar and examples; elevations, exploded views and vertical sheets; terrain, reference planes and curved shapes; tabs; the first volumes, steps and sheet.
-- **0.9** — courtyards and joining volumes; loose slabs and pilotis; shadows on volumes and terrain; sections on the sheet; drawing new shapes in the 3D viewer; a command palette; signed installers.
+- **Next** — courtyards and joining volumes; loose slabs and pilotis; shadows on volumes and terrain; sections on the sheet; drawing new shapes in the 3D viewer; a command palette; signed installers.
 - **1.0** — DXF in and out; a manual and tutorials in the order of a design studio; reviewed translations.
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) — current version: **0.8.0**.
+See [CHANGELOG.md](CHANGELOG.md) — current version: **0.9.0**.
 
 ## Credits
 
