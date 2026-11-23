@@ -23,6 +23,11 @@ const ROOT = path.resolve(__dirname, '..');
 const args = process.argv.slice(2);
 const SHOTS = args.includes('--shots');
 const PHASE2 = args.find((a) => a.startsWith('--phase2='))?.slice(9);
+// later starts on the same data: 3 = a slow start, cancelled with the button of the loading screen;
+// 4 = a start that hangs, cancelled through the question of the app
+const PHASE = args.find((a) => a.startsWith('--phase='))?.slice(8) || (PHASE2 ? '2' : '1');
+if (PHASE === '3') process.env.LIONAXON_TEST_SLOW_BOOT = 'wait:20000';
+if (PHASE === '4') { process.env.LIONAXON_TEST_SLOW_BOOT = 'hang:60000'; process.env.LIONAXON_BOOT_ASK_MS = '2500'; process.env.LIONAXON_TEST_BOOT_ANSWER = 'skip'; }
 const OUT = args.find((a) => a.startsWith('--out='))?.slice(6);
 const LANG = args.find((a) => a.startsWith('--lang='))?.slice(7) || 'en';
 
@@ -70,6 +75,12 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 app.whenReady().then(async () => {
   let win;
   for (let i = 0; i < 50 && !win; i++) { await sleep(100); win = BrowserWindow.getAllWindows()[0]; }
+  if (PHASE === '3' || PHASE === '4') {
+    try { await slowStart(win, PHASE); } catch (err) { failures.push('exception: ' + (err.stack || err)); console.log(err.stack || err); }
+    console.log(`\n${passed} passed, ${failures.length} failed (slow start, ${PHASE === '3' ? 'button' : 'question'})`);
+    app.exit(failures.length ? 1 : 0);
+    return;
+  }
   const errors = [];
   win.webContents.on('console-message', (e) => { if (e.level === 'error' || e.level === 3) errors.push(String(e.message)); });
   const js = (code) => win.webContents.executeJavaScript(code);
@@ -106,7 +117,16 @@ app.whenReady().then(async () => {
       child.on('exit', resolve);
     });
     if (code) failures.push('phase 2');
-    else fs.rmSync(tmp, { recursive: true, force: true });
+    // two more starts on the same data: slow on purpose, and left without the last session
+    for (const phase of ['3', '4']) {
+      if (failures.length) break;
+      const c = await new Promise((resolve) => {
+        const child = spawn(process.execPath, [...process.argv.slice(1).filter((a) => !a.startsWith('--')), `--phase2=${tmp}`, `--phase=${phase}`, '--no-sandbox'], { stdio: 'inherit', env: process.env });
+        child.on('exit', resolve);
+      });
+      if (c) failures.push('phase ' + phase);
+    }
+    if (!failures.length) fs.rmSync(tmp, { recursive: true, force: true });
   }
   app.exit(failures.length ? 1 : 0);
 });
@@ -320,6 +340,11 @@ async function phase1(win, js) {
   await alignFaces11(win, js);
   await fixes12(win, js);
   await update12(win, js);
+  await viewer13(win, js);
+  await terrain15(win, js);
+  await steps15(win, js);
+  await labelWrap15(win, js);
+  await sheet17(win, js);
 
   // ---- leave unsaved work behind for phase 2
   await js(`${S}.document.switchTo(${S}.document.tabs.findIndex((t) => t.project.name === 'E2E test')); true`);
@@ -827,14 +852,50 @@ async function phase2(js) {
 }
 
 // ---------------------------------------------------------------------------------------------
+// 0.14.4: a start that takes too long can be left without the last session (its work is put aside)
+
+async function slowStart(win, phase) {
+  const js = (code) => win.webContents.executeJavaScript(code);
+  const aside = path.join(process.env.LIONAXON_TEST_DIR, 'documents', 'LionAxon');
+  const before = fs.existsSync(aside) ? fs.readdirSync(aside).length : 0;
+  if (phase === '3') {
+    console.log('A slow start, left with the button of the loading screen:');
+    let shown = false;
+    for (let i = 0; i < 80 && !shown; i++) { await sleep(100); shown = await js(`!!document.querySelector('#boot .boot-skip:not([hidden])')`).catch(() => false); }
+    check('a start that takes long shows "Cancel loading and start without a project"', shown && /without a project/.test(await js(`document.querySelector('#boot .boot-skip').textContent`)));
+    await js(`document.querySelector('#boot .boot-skip').click(); true`);
+  } else console.log('A start that hangs, left through the question of the app:');
+  let fresh = false, lastErr = '';
+  for (let i = 0; i < 200 && !fresh; i++) {
+    await sleep(100);
+    fresh = await js(`location.search.includes('fresh=1') && !!window.lionaxon && !document.getElementById('boot')`).catch((e) => { lastErr = String(e); return false; });
+  }
+  const where = await js('location.href').catch((e) => 'unreachable: ' + e);
+  check(phase === '3' ? '…and the app starts again without the project' : 'a start that hangs is stopped, and the app starts again without the project', fresh, `${where} ${lastErr}`);
+  const st = await js(`JSON.stringify({ tabs: window.lionaxon.services.document.tabs.length, steps: window.lionaxon.services.document.project.steps.length, objects: window.lionaxon.services.document.project.steps[0].objects.length, toast: document.querySelector('.toast')?.textContent || '' })`).then(JSON.parse);
+  check('…with one new, empty diagram', st.tabs === 1 && st.steps === 1 && st.objects === 0, JSON.stringify(st));
+  const dirs = fs.existsSync(aside) ? fs.readdirSync(aside) : [];
+  if (phase === '3') {
+    const files = dirs.length ? fs.readdirSync(path.join(aside, dirs[dirs.length - 1])).filter((f) => f.endsWith('.lionaxon')) : [];
+    check('the work of the last session is put aside, one file per unsaved diagram, and the message says where', dirs.length === before + 1 && files.length >= 1 && /kept in/.test(st.toast), JSON.stringify({ dirs, files, toast: st.toast }));
+    const back = files.length ? JSON.parse(fs.readFileSync(path.join(aside, dirs[dirs.length - 1], files.find((f) => /Unsaved work/.test(f)) || files[0]), 'utf8')) : {};
+    check('…and those files open as diagrams (the unsaved work is there)', back.format === 'lionaxon' && Array.isArray(back.steps) && files.some((f) => /Unsaved work/.test(f)), files.join(', '));
+  } else {
+    check('…and the empty diagram of the start before is not put aside as work (nothing was drawn in it)', dirs.length === before, JSON.stringify(dirs));
+  }
+}
+
+// ---------------------------------------------------------------------------------------------
 // 0.2: the vertical evolution sheet on A4, at a chosen scale, on as many pages as it needs
 
 async function sheet02(win, js) {
   await key(win, '4', ['control']);
   await sleep(300);
-  await js(`document.querySelector('[data-preset="a4-vertical"]').click(); true`);
+  await js(`document.querySelector('.pane[data-pane=sheet] .segmented [data-value=vertical]').click(); true`);
+  await sleep(200);
+  await js(`(() => { const s = document.querySelector('.pane select[data-key=paper]'); s.value = 'A4'; s.dispatchEvent(new Event('change')); return true; })()`);
   await sleep(300);
-  check('one click makes a vertical evolution sheet on A4, upright', await js(`(() => { const s = ${S}.document.project.sheet; return s.layout === 'vertical' && s.paper === 'A4' && s.orientation === 'portrait'; })()`));
+  check('the vertical layout turns the paper upright; with A4 picked it is a vertical evolution sheet on A4', await js(`(() => { const s = ${S}.document.project.sheet; return s.layout === 'vertical' && s.paper === 'A4' && s.orientation === 'portrait'; })()`));
   check('…with the text beside each drawing', await js(`(() => {
     const g = document.querySelector('.sheet-paper #step-01'); const d = g.querySelector('svg'); const txt = [...g.querySelectorAll(':scope > text')].pop();
     return Number(txt.getAttribute('x')) > Number(d.getAttribute('x')) + Number(d.getAttribute('width')) - 0.01;
@@ -1393,7 +1454,369 @@ async function alignFaces11(win, js) {
 }
 
 // ---------------------------------------------------------------------------------------------
-// 0.12: a locked object can be picked to be unlocked; a pane keeps its scroll; updating from the app
+// 0.16: the width of a label's text, and its lines broken by themselves
+
+async function labelWrap15(win, js) {
+  const D = `${S}.document`, C = `${S}.commands`;
+  await js(`${C}.newProject(); true`);
+  await sleep(300);
+  await js(`(async () => { const m = await import('../services/model/common/model.js');
+    ${D}.run('object.add', (_p, step) => { step.objects.push(m.createLabel({ id: 'l-w', x: 20, y: 30, text: 'Restaurante e cozinha', note: 'Ampliação da área para pegar exatamente a projeção do teatro. A finalidade é conseguir acomodar o programa de necessidades.', dx: 4, dy: -4 })); });
+    ${D}.select(['l-w']); return true; })()`);
+  await js(`${S}.layout.setTab('axon'); ${S}.layout.setTool('select'); true`);
+  await sleep(300);
+  await js(`window.lionaxon.views.axon.fit(); true`);
+  await sleep(400);
+  const canvasQ = `document.querySelector('[data-view=axon] .canvas')`;
+  const noteLinesNow = () => js(`${canvasQ}.querySelectorAll('[data-id="l-w"] text')[1].querySelectorAll('tspan').length`);
+  const n0 = await noteLinesNow();
+  const bar = await js(`(() => { const r = ${canvasQ}.querySelector('[data-handle=lw]').getBoundingClientRect(); return JSON.stringify([r.left + r.width / 2, r.top + r.height / 2]); })()`).then(JSON.parse);
+  const start = await js(`(() => { const r = ${canvasQ}.querySelector('[data-handle=lt]').getBoundingClientRect(); return JSON.stringify([r.left + r.width / 2, r.top + r.height / 2]); })()`).then(JSON.parse);
+  check('a label has a bar at the far side of its text, to set its width', bar[0] > start[0] + 50 && n0 === 1, JSON.stringify({ bar, start, n0 }));
+  await drag(win, bar, [start[0] + (bar[0] - start[0]) * 0.3, bar[1]], 10);
+  await sleep(400);
+  const o = await js(`JSON.stringify(${D}.byId('l-w'))`).then(JSON.parse);
+  const n1 = await noteLinesNow();
+  check('…pulled in, the text breaks into more lines by itself (the note and the title)', o.wrap > 0 && n1 > 2, JSON.stringify({ wrap: o.wrap, n1 }));
+  check('…the width is in the properties, and 0 puts the lines back as typed', await js(`(() => { const f = document.querySelector('.properties [data-key=wrap]'); return !!f && Number(f.value.replace(',', '.')) > 0; })()`));
+  await js(`${C}.setProps({ wrap: null }); true`);
+  await sleep(300);
+  check('…no width: one line per line typed again', await noteLinesNow() === 1);
+}
+
+// ---------------------------------------------------------------------------------------------
+// 0.17: the text box of a label with its own handles; the sheet pane always takes the click; the sheet
+// laid out with captions beside the drawings; the preview navigated; some steps exported
+
+async function sheet17(win, js) {
+  const D = `${S}.document`, C = `${S}.commands`;
+  const canvasQ = `document.querySelector('[data-view=axon] .canvas')`;
+  const rect = (q) => js(`(() => { const r = ${q}.getBoundingClientRect(); return JSON.stringify([r.left, r.top, r.right, r.bottom]); })()`).then(JSON.parse);
+  // the label of the test before is still selected
+  await js(`${D}.select(['l-w']); ${S}.layout.setTool('select'); true`);
+  await sleep(300);
+  const box = await rect(`${canvasQ}.querySelector('.label-frame')`);
+  const text = await js(`(() => { const ts = [...${canvasQ}.querySelectorAll('[data-id="l-w"] > text')].map((t) => t.getBoundingClientRect()); return JSON.stringify([Math.min(...ts.map((r) => r.left)), Math.min(...ts.map((r) => r.top)), Math.max(...ts.map((r) => r.right)), Math.max(...ts.map((r) => r.bottom))]); })()`).then(JSON.parse);
+  check('a selected label shows a box hugging its text (not its leader)', Math.abs(box[0] - text[0]) < 12 && Math.abs(box[2] - text[2]) < 12 && Math.abs(box[3] - text[3]) < 12, JSON.stringify({ box, text }));
+  const grip = await rect(`${canvasQ}.querySelector('.handle-lw[data-handle=lw]:not(path)')`);
+  const corners = await js(`${canvasQ}.querySelectorAll('[data-handle=lw1], [data-handle=lw2]').length`);
+  check('…with a grip in the middle of its far side and handles at its corners', Math.abs((grip[0] + grip[2]) / 2 - box[2]) < 4 && corners === 2 && await js(`!!${canvasQ}.querySelector('path.handle-lw')`), JSON.stringify({ grip, corners }));
+  const c2 = await rect(`${canvasQ}.querySelector('[data-handle=lw2]')`);
+  const target = box[0] + (box[2] - box[0]) * 0.45;
+  await drag(win, [(c2[0] + c2[2]) / 2, (c2[1] + c2[3]) / 2], [target, (c2[1] + c2[3]) / 2], 10);
+  await sleep(400);
+  const box2 = await rect(`${canvasQ}.querySelector('.label-frame')`);
+  check('…pulling a corner in makes the box narrower, its side staying near the mouse', (await js(`${D}.byId('l-w').wrap`)) > 0 && box2[2] < box[2] - 40 && Math.abs(box2[2] - target) < (box[2] - box[0]) * 0.2, JSON.stringify({ box2, target }));
+  const g2 = await rect(`${canvasQ}.querySelector('.handle-lw[data-handle=lw]:not(path)')`);
+  const gc = [(g2[0] + g2[2]) / 2, (g2[1] + g2[3]) / 2];
+  await mouse(win, 'mouseDown', gc); await mouse(win, 'mouseUp', gc);
+  await mouse(win, 'mouseDown', gc, { clickCount: 2 }); await mouse(win, 'mouseUp', gc, { clickCount: 2 });
+  await sleep(400);
+  check('…a double click on its side puts the lines back as typed', !(await js(`${D}.byId('l-w').wrap`)));
+
+  // the sheet pane: a layout button takes the click even with the focus on it, and shows it at once
+  await js(`${C}.example('school').then(() => true)`);
+  await sleep(600);
+  await js(`${S}.layout.setTab('sheet'); true`);
+  await sleep(500);
+  const seg = (v) => `document.querySelector('[data-pane=sheet] .segmented [data-value=${v}]')`;
+  await js(`${seg('grid')}.focus(); ${seg('grid')}.click(); true`);
+  await sleep(250);
+  const afterGrid = await js(`${D}.project.sheet.layout + ' ' + ${seg('grid')}.classList.contains('active')`);
+  await js(`${seg('row')}.click(); true`);
+  await sleep(250);
+  check('Sheet pane: a layout picked shows at once, and the one before can be picked back straight away', afterGrid === 'grid true' && await js(`${D}.project.sheet.layout === 'row' && ${seg('row')}.classList.contains('active')`), afterGrid);
+
+  // a column on upright paper: each caption beside its drawing, the drawings much larger than under them
+  await js(`${C}.setProject((p) => { p.sheet.layout = 'column'; p.sheet.orientation = 'portrait'; p.sheet.scale = 0; }, 'sheet.set'); true`);
+  await sleep(500);
+  check('…a column on upright paper puts each caption beside its drawing (the drawings grow)', await js(`(() => {
+    const g = document.querySelector('.sheet-paper #step-01'); const d = g.querySelector('svg'); const num = g.querySelector(':scope > text');
+    return Number(num.getAttribute('x')) < Number(d.getAttribute('x')) && Number(d.getAttribute('width')) > 70;
+  })()`));
+
+  // the preview: zoom with the wheel, drag, frame, pages
+  const wrapQ = `document.querySelector('.sheet-wrap')`;
+  const label = () => js(`document.querySelector('.sheet-wrap .zoom-label').textContent`);
+  check('the preview starts framed (100%)', await label() === '100%');
+  const wr = await rect(wrapQ);
+  const mid = [(wr[0] + wr[2]) / 2, (wr[1] + wr[3]) / 2];
+  await js(`${wrapQ}.dispatchEvent(new WheelEvent('wheel', { deltaY: -240, clientX: ${Math.round(mid[0])}, clientY: ${Math.round(mid[1])}, bubbles: true, cancelable: true })); true`);
+  await sleep(300);
+  const z1 = await label();
+  check('…the wheel zooms in where the mouse is', parseInt(z1, 10) > 100, z1);
+  const t0 = await js(`document.querySelector('.sheet-paper').style.transform`);
+  await drag(win, mid, [mid[0] + 80, mid[1] + 60], 6);
+  const t1 = await js(`document.querySelector('.sheet-paper').style.transform`);
+  check('…a drag moves the paper', t0 !== t1, `${t0} → ${t1}`);
+  await key(win, 'F');
+  await sleep(200);
+  check('…F frames the page again', await label() === '100%');
+  await js(`${C}.setProject((p) => { p.sheet.layout = 'vertical'; p.sheet.paper = 'A4'; p.sheet.scale = 200; }, 'sheet.set'); true`);
+  await sleep(600);
+  const pages = await js(`document.querySelectorAll('.sheet-paper .sheet-page').length`);
+  await js(`document.querySelector('[data-page-nav=next]').click(); true`);
+  await sleep(200);
+  check('…with more pages, the buttons in the corner go to the next one', pages > 1 && /^2 \//.test(await js(`document.querySelector('[data-page-label]').textContent`)), String(pages));
+  await key(win, 'Left');
+  await sleep(200);
+  check('…and ← back', /^1 \//.test(await js(`document.querySelector('[data-page-label]').textContent`)));
+  await js(`${C}.setProject((p) => { p.sheet.scale = 0; p.sheet.layout = 'row'; p.sheet.paper = 'A3'; p.sheet.orientation = 'landscape'; }, 'sheet.set'); true`);
+  await sleep(500);
+
+  // export some steps: a field, files of their own or one sheet
+  const n = await js(`${D}.project.steps.length`);
+  check('Export steps: a field for which steps, files or one sheet, PDF, SVG and PNG', await js(`!!document.querySelector('[data-pane=sheet] [data-key=exportSteps]') && document.querySelectorAll('[data-export-steps]').length === 3`));
+  await js(`(() => { const f = document.querySelector('[data-key=exportSteps]'); f.value = '2-3'; f.dispatchEvent(new Event('input')); return true; })()`);
+  check('…the hint says what will come out', /2–3/.test(await js(`document.querySelector('[data-steps-hint]').textContent`)));
+  const files = JSON.parse(await js(`${C}.exportStepRange('2-3', { kind: 'png' }).then((r) => JSON.stringify(r))`));
+  const list = files?.ok ? fs.readdirSync(files.dir).filter((f) => /^Step 0[23]/.test(f) && f.endsWith('.png')) : [];
+  check('…"2-3" as files: the drawings of steps 2 and 3, one PNG each', files?.ok && list.length === 2, JSON.stringify(files));
+  const one = JSON.parse(await js(`${C}.exportStepRange('3', { kind: 'pdf' }).then((r) => JSON.stringify(r))`));
+  check('…one step alone, also as PDF', one?.ok && /Step 03/.test(one.name || one.path || ''), JSON.stringify(one));
+  const sheet = JSON.parse(await js(`${C}.exportStepRange('1, 3', { mode: 'sheet', kind: 'svg' }).then((r) => JSON.stringify(r))`));
+  const svg = sheet?.ok ? fs.readFileSync(sheet.path, 'utf8') : '';
+  check('…"1, 3" as one sheet: a sheet with those steps only', sheet?.ok && svg.includes('id="step-01"') && svg.includes('id="step-03"') && !svg.includes('id="step-02"'), JSON.stringify(sheet));
+  const bad = await js(`${C}.exportStepRange('${n + 4}', { kind: 'png' }).then((r) => r === null)`);
+  check('…a step that does not exist is refused, with a message that says how to write it', bad && await js(`document.querySelector('[data-steps-hint]') != null`));
+  await js(`${S}.layout.setTab('axon'); true`);
+}
+
+async function steps15(win, js) {
+  const D = `${S}.document`, C = `${S}.commands`;
+  await js(`${C}.example('parti').then(() => true)`);
+  await sleep(600);
+  const n = await js(`${D}.project.steps.length`);
+  const res = JSON.parse(await js(`${C}.exportAllSteps(['png', 'svg', 'pdf']).then((r) => JSON.stringify(r))`));
+  const files = res?.ok ? fs.readdirSync(res.dir) : [];
+  check(`export all steps: one PNG, one SVG and one PDF per step (${n} steps), in a folder of their own`, res?.ok && files.length === n * 3
+    && ['png', 'svg', 'pdf'].every((k) => files.filter((f) => f.endsWith('.' + k)).length === n) && /steps$/.test(res.dir), JSON.stringify(files));
+  const pngs = files.filter((f) => f.endsWith('.png')).map((f) => fs.readFileSync(path.join(res.dir, f)).subarray(16, 24));
+  check('…the PNGs all the same size (one frame, one scale: they line up one after the other)', pngs.length === n && pngs.every((b) => b.readUInt32BE(0) === 2400 && b.readUInt32BE(4) === pngs[0].readUInt32BE(4)));
+  const svgs = files.filter((f) => f.endsWith('.svg')).map((f) => fs.readFileSync(path.join(res.dir, f), 'utf8'));
+  check('…the SVGs are vectors with the same frame', svgs.every((t) => t.startsWith('<svg') && /<path/.test(t) && /viewBox="([^"]+)"/.exec(t)[1] === /viewBox="([^"]+)"/.exec(svgs[0])[1]));
+  const pdfs = files.filter((f) => f.endsWith('.pdf')).map((f) => fs.readFileSync(path.join(res.dir, f), 'latin1'));
+  check('…each PDF one page, 297 mm wide (842 pt)', pdfs.every((t) => (t.match(/\/Type\s*\/Page[^s]/g) || []).length === 1 && /MediaBox\s*\[\s*0 0 84[12][.\d]* /.test(t)));
+  check('…named by step number and title', files.some((f) => /^Step 01 .+\.png$/.test(f)) && files.some((f) => new RegExp(`^Step ${String(n).padStart(2, '0')}`).test(f)));
+  const again = JSON.parse(await js(`${C}.exportAllSteps(['svg']).then((r) => JSON.stringify(r))`));
+  check('exporting again replaces the files (no copies pile up)', again.ok && fs.readdirSync(res.dir).length === n * 3);
+  // the sheet with the terrain as grid, as in the editor
+  await js(`${C}.example('plateaus').then(() => true)`);
+  await sleep(600);
+  await js(`${S}.layout.setTab('sheet'); true`);
+  await sleep(600);
+  const paper = `document.querySelector('.sheet-paper')`;
+  const plain = await js(`${paper}.querySelectorAll('.ax-grid').length`);
+  check('Terrain as grid: a switch in the Sheet pane, off by default (no grid on the sheet)', plain === 0 && await js(`(() => { const s = document.querySelector('[data-pane=sheet] [data-key=terrainGrid]'); return !!s && !s.checked; })()`));
+  await js(`document.querySelector('[data-pane=sheet] [data-key=terrainGrid]').click(); true`);
+  await sleep(700);
+  check('…turned on, every drawing of the sheet has the grid on the terrain, and the terrain is see-through', await js(`${D}.project.sheet.terrainGrid === true && ${paper}.querySelectorAll('.ax-grid').length >= ${n} && ${paper}.querySelectorAll('.ax-terrain').length > 0`));
+  const pdf = JSON.parse(await js(`${C}.exportSheet('svg').then((r) => JSON.stringify(r))`));
+  check('…and the exported sheet has it too', pdf.ok && /class="ax-grid"/.test(fs.readFileSync(pdf.path, 'utf8')));
+  await js(`${S}.layout.setTab('axon'); true`);
+}
+
+async function terrain15(win, js) {
+  const D = `${S}.document`, C = `${S}.commands`;
+  await js(`${C}.newProject(); true`);
+  await sleep(300);
+  await js(`(async () => {
+    const m = await import('../services/model/common/model.js');
+    ${D}.run('object.add', (p, step) => {
+      p.levels.push({ id: 'L1', name: 'Plateau', z: 3 });
+      step.objects.push(
+        m.createPlatform({ id: 'g-a', x: 15, y: 30, w: 10, d: 20, level: 'L1' }),
+        m.createPlatform({ id: 'g-b', x: 25, y: 30, w: 10, d: 20, level: 'L1' }),
+        m.createSlope({ id: 's-a', x: 20, y: 45, w: 20, d: 10, from: 'L1', zFrom: 0, to: null, zTo: 0 }),
+        m.createPerson({ id: 'p-a', x: 25, y: 30 }));
+    });
+    return true;
+  })()`);
+  await js(`${S}.layout.setTab('axon'); true`);
+  await sleep(500);
+  const canvasQ = `document.querySelector('[data-view=axon] .canvas')`;
+  const tops = () => js(`${canvasQ}.querySelectorAll('[data-id="g-a"][data-top], [data-id="g-b"][data-top]').length`);
+  const before = await tops();
+  check('Join terrain: a switch in the toolbar of the drawing, off by default', await js(`(() => { const s = document.querySelector('[data-view=axon] .toolbar [data-key=siteJoined]'); return !!s && s.getAttribute('role') === 'switch' && !s.checked; })()`));
+  await js(`(() => { const s = document.querySelector('[data-view=axon] .toolbar [data-key=siteJoined]'); s.click(); return true; })()`);
+  await sleep(500);
+  const after = await tops();
+  check('…turned on, the two platforms side by side are one top, not two', await js(`${D}.project.site.joined === true`) && before === 2 && after === 1, `${before} → ${after}`);
+  await js(`${C}.undo(); true`);
+  await sleep(300);
+  check('…and one undo turns it off (the switch follows)', await js(`${D}.project.site.joined === false && !document.querySelector('[data-view=axon] .toolbar [data-key=siteJoined]').checked`));
+  // the person put on the ground (z 0) stands on the plateau, 3 m up
+  const feet = await js(`(() => { const p = ${canvasQ}.querySelector('[data-id="p-a"]'); const r = p.getBoundingClientRect(); return r.bottom; })()`);
+  await js(`${D}.run('object.remove', (_p, step) => { step.objects = step.objects.filter((o) => o.type !== 'platform'); }); true`);
+  await sleep(400);
+  const feetDown = await js(`(() => { const p = ${canvasQ}.querySelector('[data-id="p-a"]'); const r = p.getBoundingClientRect(); return r.bottom; })()`);
+  check('a person on a plateau stands on it (taken away, the person goes down to the ground)', feetDown - feet > 10, `${feet} → ${feetDown}`);
+}
+
+async function viewer13(win, js) {
+  const D = `${S}.document`, C = `${S}.commands`, O = 'window.lionaxon.views.orbit';
+  await js(`${C}.newProject(); true`);
+  await sleep(400);
+  await js(`(async () => { const m = await import('../services/model/common/model.js'); const v = m.createVolume({ id: 'v-a', x: 20, y: 20, w: 10, d: 8, h: 6 }); const l = m.createLabel({ id: 'l-a', x: 20, y: 20, z: 6, text: 'HALL' }); ${D}.run('object.add', (_p, step) => { step.objects.push(v, l); }); return true; })()`);
+  await js(`${S}.layout.setTab('orbit'); true`);
+  await sleep(400);
+  await js(`${O}.setLabels(false); ${O}.setNav('rev'); ${O}.setTool('orbit'); ${O}.setAngle(315, 35.2644); ${O}.fit(); true`);
+  await sleep(400);
+  const Q = `document.querySelector('[data-view=orbit] .canvas')`;
+  const hasLabel = () => js(`!!${O}.content.querySelector('[data-id="l-a"]')`);
+  check('3D labels: off by default, the label is not drawn in the viewer', !(await hasLabel()));
+  await js(`document.querySelector('[data-view=orbit] [data-action=labels]').click(); true`);
+  await sleep(300);
+  check('3D labels: the switch of the toolbar draws them, and the choice is kept', (await hasLabel()) && await js(`JSON.parse(localStorage.getItem('lionaxon.orbit')).labels === true`));
+  await js(`${O}.setLabels(false); true`);
+  await sleep(200);
+  await js(`${S}.layout.setTab('axon'); true`);
+  await sleep(300);
+  check('3D labels: the axonometric tab still draws the label', await js(`!!document.querySelector('[data-view=axon] .canvas [data-id="l-a"]')`));
+  await js(`${S}.layout.setTab('orbit'); true`);
+  await sleep(300);
+
+  const paper = await js(`(() => { const r = ${Q}.getBoundingClientRect(); return JSON.stringify([r.left + 70, r.bottom - 95]); })()`).then(JSON.parse);
+  const cam = () => js(`JSON.stringify({ az: ${O}.angle.az, el: ${O}.angle.el, dx: ${O}.cam.dx, dy: ${O}.cam.dy, s: ${O}.cam.scale })`).then(JSON.parse);
+  const to = [paper[0] + 60, paper[1] - 30];
+  const turned = (a, b) => Math.abs(a.az - b.az) > 1 || Math.abs(a.el - b.el) > 1;
+  const moved = (a, b) => Math.hypot(a.dx - b.dx, a.dy - b.dy) > 0.5;
+  const go = async (button, modifiers = []) => {
+    const a = await cam();
+    await mouse(win, 'mouseMove', paper, { modifiers });
+    await mouse(win, 'mouseDown', paper, { button, modifiers });
+    for (let i = 1; i <= 6; i++) { await mouse(win, 'mouseMove', [paper[0] + i * 10, paper[1] - i * 5], { button, modifiers }); await sleep(15); }
+    await mouse(win, 'mouseUp', to, { button, modifiers });
+    await sleep(450); // also lets the double press of the middle button expire
+    return [a, await cam()];
+  };
+  let [a, b] = await go('middle');
+  check('3D mouse (Rev): the middle button pans', moved(a, b) && !turned(a, b), JSON.stringify([a, b]));
+  [a, b] = await go('middle', ['shift']);
+  check('3D mouse (Rev): Shift + middle button orbits, freely (no 15° steps)', turned(a, b) && b.az % 15 !== 0, JSON.stringify(b));
+  [a, b] = await go('right');
+  check('3D mouse: the right button pans', moved(a, b) && !turned(a, b));
+  [a, b] = await go('right', ['shift']);
+  check('3D mouse (Rev): Shift + right button orbits', turned(a, b));
+  await js(`(() => { const s = document.querySelector('[data-view=orbit] select[data-key=nav]'); s.value = 'sketch'; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
+  await sleep(200);
+  [a, b] = await go('middle');
+  check('3D mouse (Sketch): the middle button orbits', turned(a, b) && await js(`JSON.parse(localStorage.getItem('lionaxon.orbit')).nav === 'sketch'`));
+  [a, b] = await go('middle', ['shift']);
+  check('3D mouse (Sketch): Shift + middle button pans', moved(a, b) && !turned(a, b));
+  await js(`${O}.setNav('rev'); true`);
+
+  await key(win, 'H');
+  await sleep(150);
+  [a, b] = await go('left');
+  check('3D tools: H takes the pan tool, and the left button pans', await js(`${O}.prefs.tool === 'pan'`) && moved(a, b) && !turned(a, b));
+  await key(win, 'O');
+  await sleep(150);
+  [a, b] = await go('left');
+  check('3D tools: O takes the orbit tool back, and the left button orbits', await js(`${O}.prefs.tool === 'orbit'`) && turned(a, b));
+
+  // twice the middle button: the whole drawing
+  await js(`${O}.setAngle(315, 35.2644); ${O}.fit(); true`);
+  await sleep(300);
+  const fitted = await cam();
+  await js(`${O}.zoomAt(2.5, 0, 0); true`);
+  await sleep(300);
+  for (let i = 0; i < 2; i++) { await mouse(win, 'mouseDown', paper, { button: 'middle' }); await mouse(win, 'mouseUp', paper, { button: 'middle' }); await sleep(60); }
+  await sleep(400);
+  b = await cam();
+  check('3D mouse: a double press of the middle button fits the drawing', Math.abs(b.s - fitted.s) < 1e-6, JSON.stringify([fitted.s, b.s]));
+
+  // the view turns around what is selected
+  const centreAt = () => js(`(async () => { const p = await import('../../base/common/geometry/projection.js'); return JSON.stringify(${O}.clientAt(p.project(${O}.view, [20, 20, 3]))); })()`).then(JSON.parse);
+  await js(`${D}.select(['v-a']); true`);
+  await sleep(200);
+  const c0 = await centreAt();
+  [a, b] = await go('middle', ['shift']);
+  // the frame of the turn may still wait for the next animation frame, which a window under test does not always get
+  await js(`${O}.render(); true`);
+  const c1 = await centreAt();
+  check('3D orbit: the view turns around the selected shape (it stays where it was on the screen)', turned(a, b) && Math.hypot(c1[0] - c0[0], c1[1] - c0[1]) < 1.5, JSON.stringify([c0, c1]));
+
+  // the view cube
+  await js(`document.querySelector('.view-cube [data-face="orbit.preset.top"]').dispatchEvent(new MouseEvent('click', { bubbles: true })); true`);
+  await sleep(300);
+  check('view cube: a click on the top face looks from above', (await cam()).el === 90);
+  await js(`${O}.setAngle(315, 35.2644); true`);
+  await sleep(300);
+  await js(`document.querySelector('.view-cube [data-face="opening.side.front"]').dispatchEvent(new MouseEvent('click', { bubbles: true })); true`);
+  await sleep(300);
+  b = await cam();
+  check('view cube: a click on the front face looks at the front, level', b.az === 270 && b.el === 0, JSON.stringify(b));
+  await js(`${O}.setAngle(300, 20); true`);
+  await sleep(300);
+  await js(`document.querySelector('.view-cube [data-corner="1,-1,1"]').dispatchEvent(new MouseEvent('click', { bubbles: true })); true`);
+  await sleep(300);
+  b = await cam();
+  check('view cube: a click on a corner looks from it, isometric', b.az === 315 && Math.abs(b.el - 35.2644) < 0.01, JSON.stringify(b));
+
+  // width and depth by the handles of the sides
+  await js(`${O}.fit(); ${D}.select(['v-a']); true`);
+  await sleep(400);
+  const handle = (side) => js(`(() => { const r = ${O}.overlay.querySelector('[data-handle="${side}"]').getBoundingClientRect(); return JSON.stringify([r.left + r.width / 2, r.top + r.height / 2]); })()`).then(JSON.parse);
+  check('3D resize: a selected volume shows the handles of its sides and corners and the one of the height', await js(`${O}.overlay.querySelectorAll('[data-handle]').length === 9`));
+  const hE = await handle('e'), hW = await handle('w');
+  const undo0 = await js(`${D}.canUndo ? 1 : 0`);
+  // away from the opposite side: the shape grows that way
+  const out = [hE[0] + (hE[0] - hW[0]) * 0.4, hE[1] + (hE[1] - hW[1]) * 0.4];
+  await drag(win, hE, out, 10);
+  await sleep(300);
+  let o = await js(`JSON.stringify(${D}.byId('v-a'))`).then(JSON.parse);
+  check('3D resize: pulling a side makes the shape wider, on the grid, with the opposite side where it was', o.w > 10 && Math.abs(o.x - o.w / 2 - 15) < 1e-6 && o.d === 8 && Math.abs((o.w / 0.5) - Math.round(o.w / 0.5)) < 1e-6, JSON.stringify(o));
+  await key(win, 'Z', ['control']);
+  await sleep(300);
+  o = await js(`JSON.stringify(${D}.byId('v-a'))`).then(JSON.parse);
+  check('3D resize: one undo takes the whole pull back', o.w === 10 && o.x === 20, JSON.stringify([o.w, o.x, undo0]));
+  await js(`${C}.setProps({ rot: 30 }, ['v-a']); true`);
+  await sleep(300);
+  const hN = await handle('n'), hS = await handle('s');
+  await drag(win, hN, [hN[0] + (hN[0] - hS[0]) * 0.5, hN[1] + (hN[1] - hS[1]) * 0.5], 10);
+  await sleep(300);
+  o = await js(`JSON.stringify(${D}.byId('v-a'))`).then(JSON.parse);
+  const rad = Math.PI / 6, grow = o.d - 8;
+  check('3D resize: a turned shape grows along its own depth', grow > 0 && o.w === 10 && Math.abs(o.x - (20 - Math.sin(rad) * grow / 2)) < 0.01 && Math.abs(o.y - (20 + Math.cos(rad) * grow / 2)) < 0.01, JSON.stringify(o));
+  const d0 = o.d, w0 = o.w;
+  await js(`${C}.setProps({ rot: 0 }, ['v-a']); true`);
+  await sleep(300);
+  const hNE = await handle('ne'), hSW = await handle('sw');
+  await drag(win, hNE, [hNE[0] + (hNE[0] - hSW[0]) * 0.3, hNE[1] + (hNE[1] - hSW[1]) * 0.3], 10);
+  await sleep(300);
+  o = await js(`JSON.stringify(${D}.byId('v-a'))`).then(JSON.parse);
+  check('3D resize: a corner pulls width and depth together', o.w > w0 && o.d > d0, JSON.stringify(o));
+  await js(`${C}.setProps({ shape: 'sphere', w: 8, d: 8 }, ['v-a']); true`);
+  await sleep(300);
+  const sE = await handle('e'), sW = await handle('w');
+  await drag(win, sE, [sE[0] + (sE[0] - sW[0]) * 0.5, sE[1] + (sE[1] - sW[1]) * 0.5], 10);
+  await sleep(300);
+  o = await js(`JSON.stringify(${D}.byId('v-a'))`).then(JSON.parse);
+  check('3D resize: a sphere is pulled by its diameter', o.w > 8 && o.d === o.w && await js(`${O}.overlay.querySelectorAll('rect[data-handle]').length === 2`), JSON.stringify(o));
+  await js(`${C}.setProps({ shape: 'box' }, ['v-a']); true`);
+  await js(`${C}.setLocked(true, ['v-a']); true`);
+  await sleep(300);
+  check('3D resize: a locked shape shows no handles', await js(`${O}.overlay.querySelectorAll('[data-handle]').length === 0`));
+  await js(`${C}.setLocked(false, ['v-a']); true`);
+
+  // a step, duplicated
+  await js(`${C}.setStepProps({ title: 'Recorte', text: 'O volume recua.' }); ${C}.addStep(); ${D}.setStep(0); true`);
+  await sleep(400);
+  const st0 = await js(`JSON.stringify(${D}.project.steps.map((s) => [s.id, s.title, s.text, s.objects.map((x) => x.id).join()]))`).then(JSON.parse);
+  await js(`document.querySelectorAll('[data-action=duplicate-step]')[0].click(); true`);
+  await sleep(400);
+  const st1 = await js(`JSON.stringify(${D}.project.steps.map((s) => [s.id, s.title, s.text, s.objects.map((x) => x.id).join()]))`).then(JSON.parse);
+  check('duplicate step: the copy comes right below, selected, with the same title, text and objects, and an id of its own',
+    st1.length === st0.length + 1 && await js(`${D}.stepIndex`) === 1 && st1[1][0] !== st0[0][0] && new Set(st1.map((x) => x[0])).size === st1.length && JSON.stringify(st1[1].slice(1)) === JSON.stringify(st0[0].slice(1)) && st1[2][0] === st0[1][0], JSON.stringify(st1));
+  await key(win, 'Z', ['control']);
+  await sleep(400);
+  check('duplicate step: one undo takes the copy out', await js(`${D}.project.steps.length`) === st0.length);
+  await js(`${D}.setStep(1); true`);
+  await key(win, 'D', ['control', 'shift']);
+  await sleep(400);
+  check('duplicate step: Ctrl+Shift+D duplicates the current step', await js(`${D}.project.steps.length`) === st0.length + 1 && await js(`${D}.stepIndex`) === 2);
+}
 
 async function fixes12(win, js) {
   const D = `${S}.document`, C = `${S}.commands`, V = 'window.lionaxon.views.axon';
@@ -1648,6 +2071,12 @@ async function shots(win, js) {
   await sleep(300);
   await shot('label-edit.png');
   await key(win, 'Escape');
+  // 0.17: the text box of a selected label, with its side to pull (not in the README: to see the handles)
+  await js(`(() => { const d = ${S}.document, l = d.objects.find((o) => o.type === 'label'); d.select([l.id]); ${S}.commands.setProps({ note: 'A short note under the title, broken into lines at the width of the box.', wrap: 14 }); ${S}.layout.setTool('select'); return true; })()`);
+  await sleep(400);
+  win.webContents.invalidate();
+  await sleep(300);
+  await shot('label-box.png');
   // 0.10: openings on the walls and a roof with its own colour; the sheet with the legend along the foot and text blocks
   await js(`${S}.commands.example('corner').then(() => true)`);
   await sleep(500);

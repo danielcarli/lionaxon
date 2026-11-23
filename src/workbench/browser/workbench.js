@@ -7,7 +7,7 @@
 // principle as VS Code and the other Lion apps, in a lean version.
 import { h } from '../../base/browser/dom.js';
 import { t, tn } from '../../base/common/nls.js';
-import { bootDone, bootStatus } from './boot.js';
+import { bootDone, bootStatus, bootSkip, nextFrame } from './boot.js';
 import { showWelcomeDialog } from './dialogs.js';
 import { LayoutService } from '../services/layout/browser/layoutService.js';
 import { DocumentService } from '../services/document/browser/documentService.js';
@@ -79,8 +79,25 @@ root.append(
 
 // ---- startup: the file it was opened with, else the work of the last session, else the example ----
 (async () => {
+  const query = new URLSearchParams(location.search);
   try {
+    if (query.has('fresh')) {
+      // started again without the work of the last session: a new diagram, and where that work was put
+      services.document.newProject();
+      const dir = query.get('aside');
+      if (dir) services.notifications.info(t('boot.asideDone', { n: Number(query.get('n')) || 0, dir }), 15000, { label: t('boot.showAside'), run: () => host.showAside?.(dir) });
+      return;
+    }
     bootStatus(t('boot.opening'));
+    // if it takes long: a button to start without it (the work is put aside, not lost)
+    bootSkip(t('boot.skip'), () => { bootStatus(t('boot.skipping')); host.startEmpty?.(); }, 4000);
+    await nextFrame();
+    // tests only: a start made slow on purpose ('wait:ms' answers meanwhile, 'hang:ms' does not)
+    const slow = query.get('slowBoot');
+    if (slow) {
+      const [how, ms] = slow.split(':');
+      if (how === 'hang') { const end = Date.now() + Number(ms); while (Date.now() < end) { /* hangs */ } } else await new Promise((r) => setTimeout(r, Number(ms)));
+    }
     const initial = await host.takeInitialFile?.().catch(() => null);
     if (initial) await services.commands.openPath(initial);
     else {
@@ -96,6 +113,7 @@ root.append(
     services.document.newProject();
   } finally {
     bootDone();
+    host.bootReady?.();
     requestAnimationFrame(() => views.axon.fit());
   }
 })();
@@ -119,7 +137,7 @@ window.addEventListener('keydown', (e) => {
     else if (key === 'n') { e.preventDefault(); cmd.newProject(); }
     else if (key === 'w') { e.preventDefault(); cmd.closeTab(); }
     else if (e.key === 'Tab') { e.preventDefault(); cmd.nextTab(e.shiftKey ? -1 : 1); }
-    else if (key === 'd') { if (isTyping(e)) return; e.preventDefault(); cmd.duplicateSelection(); }
+    else if (key === 'd') { if (isTyping(e)) return; e.preventDefault(); if (e.shiftKey) cmd.duplicateStep(); else cmd.duplicateSelection(); }
     else if (key === 'b') { e.preventDefault(); layout.toggleSidebar(); }
     else if (key === 'a' && !isTyping(e)) { e.preventDefault(); cmd.selectAll(); }
     else if ((key === 'c' || key === 'x' || key === 'v') && !e.shiftKey) {
@@ -142,7 +160,7 @@ window.addEventListener('keydown', (e) => {
   if (isTyping(e)) return;
   if (e.key === 'PageUp') { e.preventDefault(); doc.setStep(doc.stepIndex - 1); return; }
   if (e.key === 'PageDown') { e.preventDefault(); doc.setStep(doc.stepIndex + 1); return; }
-  if (layout.tab === 'sheet') return;
+  if (layout.tab === 'sheet') { views.sheet?.key?.(e); return; }
   // Tab: the next object under the same spot (Shift+Tab: the one before) — only while nothing has the
   // focus, so that Tab still walks through buttons and fields
   if (e.key === 'Tab' && !e.altKey && (document.activeElement === document.body || !document.activeElement) && !document.querySelector('.cm-overlay, .menu-popup, .modal')) {

@@ -27,6 +27,20 @@ const r3 = (v) => Math.round(v * 1000) / 1000;
 const DEG_PER_PX = 0.45;
 const SEL = '#2f74e8';
 const CLICK_PX = 4;       // a press that moves less than this is a click
+const PREFS_KEY = 'lionaxon.orbit';
+/** How the middle button turns and moves the view: 'rev' (drag pans, Shift orbits) or 'sketch' (the other way round). */
+export const NAV_STYLES = ['rev', 'sketch'];
+/** The handles of a shape, in its own frame: [name, side along the width (−1, 0, 1), side along the depth]. Sides first, then corners. */
+const SIDES = [['e', 1, 0], ['w', -1, 0], ['n', 0, 1], ['s', 0, -1], ['ne', 1, 1], ['nw', -1, 1], ['se', 1, -1], ['sw', -1, -1]];
+const isSphere = (o) => (o.type === 'volume' || o.type === 'cut') && o.shape === 'sphere';
+/** The kinds of object whose width and depth are pulled by handles here. */
+const SIZABLE = ['volume', 'cut', 'platform', 'slope', 'area'];
+/** The faces of the view cube: the angle each one looks from, and the key of its name. */
+const CUBE_FACES = [
+  { n: [0, 0, 1], key: 'orbit.preset.top', el: 90 }, { n: [0, 0, -1], key: 'orbit.preset.below', el: -90 },
+  { n: [0, -1, 0], key: 'opening.side.front', az: 270 }, { n: [1, 0, 0], key: 'opening.side.right', az: 0 },
+  { n: [0, 1, 0], key: 'opening.side.back', az: 90 }, { n: [-1, 0, 0], key: 'opening.side.left', az: 180 },
+];
 const FLAT = 0.12;        // below this the ground (or the height) is seen too edge-on to drag on
 const wrap360 = (a) => ((a % 360) + 360) % 360;
 const clampEl = (e) => Math.max(-90, Math.min(90, e));
@@ -52,7 +66,7 @@ export class OrbitView {
     this.overlay = document.createElementNS(NS, 'g');
     this.svg.append(this.bg, this.content, this.overlay);
     this.canvas = h('div.canvas.orbit-canvas', { 'data-tool': 'orbit' }, this.svg);
-    this.toolbar = h('div.toolbar');
+    this.toolbar = h('div.toolbar.orbit-toolbar');
     this.angles = h('div.orbit-angles', { role: 'listbox', 'aria-label': t('orbit.angles') });
     this.readout = h('div.orbit-readout', { 'aria-live': 'polite' });
     this.element = h('div.editor-view', { 'data-view': 'orbit' }, this.toolbar,
@@ -61,6 +75,14 @@ export class OrbitView {
           h('button.icon-button', { title: t('drawing.fit') + ' (F)', html: icon('fit', 16), onclick: () => this.fit() }))));
 
     this.cycle = new PickCycle(this); // Tab: the next object under the same spot
+    // what the person chose for the viewer, kept between sessions: the way of the mouse, the tool of the left
+    // button on the paper (orbit or pan), and whether labels are drawn (off: they hide the model while it turns)
+    this.prefs = { nav: 'rev', tool: 'orbit', labels: false };
+    try { const saved = JSON.parse(localStorage.getItem(PREFS_KEY) || '{}'); if (NAV_STYLES.includes(saved.nav)) this.prefs.nav = saved.nav; if (saved.tool === 'pan') this.prefs.tool = 'pan'; this.prefs.labels = saved.labels === true; } catch { /* no storage */ }
+    this.pivot = null;         // the point the view turns around, when it is not the middle of the site
+    this.lastMiddle = 0;       // when the middle button was last pressed (twice in a row fits the drawing)
+    this.cube = h('div.view-cube', { 'aria-label': t('orbit.cube') });
+    this.canvas.append(this.cube);
     this.#bind();
     new ResizeObserver(() => { if (this.visible) this.#applyCamera(); }).observe(this.canvas);
     this.doc.onDidChange((e) => {
@@ -105,11 +127,40 @@ export class OrbitView {
 
   // ---- camera
 
-  /** The point the view turns around: the middle of the site, at half the height of what is drawn. */
+  /** The point the view turns around: the one set (the selection), else the middle of the site, at half the height of what is drawn. */
   #pivot() {
+    if (this.pivot) return this.pivot;
     const p = this.doc.project;
     return [p.site.w / 2, p.site.d / 2, this.midZ || 0];
   }
+
+  /** Turns around another point from now on, without moving what is on the screen (null: the middle of the site). */
+  #setPivot(point) {
+    if (!this.cam) { this.pivot = point; return; }
+    const [x0, y0] = project(this.view, this.#pivot());
+    this.pivot = point;
+    const [x1, y1] = project(this.view, this.#pivot());
+    this.cam.dx += x0 - x1;
+    this.cam.dy += y0 - y1;
+  }
+
+  /** The middle of what is selected (its place on the ground and half its height), or null. */
+  #selectionCentre() {
+    const sel = this.doc.selected().filter((o) => Number.isFinite(o.x) && Number.isFinite(o.y));
+    if (!sel.length) return null;
+    const ext = sel.map((o) => this.s.views.axon.extentOf(o));
+    const mid = (list) => (Math.min(...list) + Math.max(...list)) / 2;
+    return [mid(sel.map((o) => o.x)), mid(sel.map((o) => o.y)), (Math.min(...ext.map((e) => e.z0)) + Math.max(...ext.map((e) => e.z1))) / 2];
+  }
+
+  #savePrefs() { try { localStorage.setItem(PREFS_KEY, JSON.stringify(this.prefs)); } catch { /* no storage */ } }
+
+  /** The way of the middle button: 'rev' or 'sketch'. */
+  setNav(nav) { if (NAV_STYLES.includes(nav)) { this.prefs.nav = nav; this.#savePrefs(); this.#renderToolbar(); } }
+  /** What the left button does on the paper: 'orbit' or 'pan'. */
+  setTool(tool) { this.prefs.tool = tool === 'pan' ? 'pan' : 'orbit'; this.canvas.dataset.tool = this.prefs.tool; this.#savePrefs(); this.#renderToolbar(); }
+  /** Whether the labels are drawn in the viewer. */
+  setLabels(on) { this.prefs.labels = !!on; this.#savePrefs(); this.#renderToolbar(); this.render(); }
 
   #centre() {
     const [X, Y] = project(this.view, this.#pivot());
@@ -135,6 +186,7 @@ export class OrbitView {
     // the pivot sits at half the height of the model (read from a level side view): turning keeps it in place
     const side = renderStep(this.doc.project, this.doc.stepIndex, { view: makeView(0, 0), lw: 0.1 }).bbox;
     this.midZ = -(side[1] + side[3]) / 2;
+    this.pivot = null;
     const [px, py] = project(this.view, this.#pivot());
     const scale = Math.min(W / (box[2] - box[0]), H / (box[3] - box[1]));
     this.cam = { dx: (box[0] + box[2]) / 2 - px, dy: (box[1] + box[3]) / 2 - py, scale };
@@ -160,7 +212,7 @@ export class OrbitView {
   // ---- rendering
 
   #markup(scale) {
-    return renderStep(this.doc.project, this.doc.stepIndex, { view: this.view, lw: 1.15 / scale, grid: true, ids: true, fmt: meters });
+    return renderStep(this.doc.project, this.doc.stepIndex, { view: this.view, lw: 1.15 / scale, grid: true, ids: true, fmt: meters, labels: this.prefs.labels });
   }
 
   render() {
@@ -204,14 +256,44 @@ export class OrbitView {
     }
     const at = this.heightHandle();
     const from = at ? this.#topOf(this.#heightTarget()) : null;
-    this.overlay.innerHTML = at
+    this.overlay.innerHTML = this.#sizeHandles(scale) + (at
       ? `<line x1="${r3(from[0])}" y1="${r3(from[1])}" x2="${r3(at[0])}" y2="${r3(at[1])}" stroke="${SEL}" stroke-width="${r3(1.4 / scale)}" pointer-events="none"/><circle data-handle="h" cx="${r3(at[0])}" cy="${r3(at[1])}" r="${r3(6 / scale)}" fill="#fff" stroke="${SEL}" stroke-width="${r3(1.8 / scale)}"><title>${t('prop.height')}</title></circle>`
-      : '';
+      : '');
     this.cycle.mark();
   }
 
+  /** The single selected shape whose width and depth are pulled from here. */
+  #sizeTarget() {
+    const sel = this.doc.selected();
+    const o = sel.length === 1 ? sel[0] : null;
+    return o && SIZABLE.includes(o.type) && o.shape !== 'poly' && !o.locked && !o.hidden && Number.isFinite(o.w) && Number.isFinite(o.d) ? o : null;
+  }
+
+  /** Where the handle of a side of a shape sits in the world: the middle of that side, at the top of the shape. */
+  sizeHandleAt(o, side) {
+    const [, sx, sy] = SIDES.find((x) => x[0] === side);
+    const a = ((o.rot || 0) * Math.PI) / 180, c = Math.cos(a), sn = Math.sin(a);
+    const lx = (sx * o.w) / 2, ly = (sy * (isSphere(o) ? o.w : o.d)) / 2;
+    const ext = this.s.views.axon.extentOf(o);
+    // at the top of the shape (the middle of a sphere: that is where it is widest)
+    const z = isSphere(o) ? (ext.z0 + ext.z1) / 2 : o.type === 'platform' ? ext.top ?? ext.z1 : ext.z1;
+    return [o.x + lx * c - ly * sn, o.y + lx * sn + ly * c, z];
+  }
+
+  /** The handles of the sides and corners of the selected shape (a sphere: its diameter; none seen level: the ground is a line then). */
+  #sizeHandles(scale) {
+    const o = this.#sizeTarget();
+    if (!o || Math.abs(this.view.cam[2]) < FLAT) return '';
+    const r = 4.2 / scale;
+    return SIDES.filter(([, sx, sy]) => !isSphere(o) || sy === 0).map(([side]) => {
+      const [X, Y] = project(this.view, this.sizeHandleAt(o, side));
+      return `<rect data-handle="${side}" x="${r3(X - r)}" y="${r3(Y - r)}" width="${r3(2 * r)}" height="${r3(2 * r)}" rx="${r3(r * 0.25)}" fill="#fff" stroke="${SEL}" stroke-width="${r3(1.6 / scale)}"/>`;
+    }).join('');
+  }
+
   #hit(e) {
-    if (e.target.closest?.('[data-handle]')) return { handle: 'h' };
+    const handle = e.target.closest?.('[data-handle]');
+    if (handle) return { handle: handle.dataset.handle };
     const el = e.target.closest?.('[data-id]');
     const o = el ? this.doc.byId(el.dataset.id) : null;
     if (o?.locked) return { locked: o.id };
@@ -277,11 +359,63 @@ export class OrbitView {
       }), h('span.unit', '°'));
     setChildren(this.toolbar, presets, h('span.sep'), turns, h('span.sep'),
       h('div.orbit-fields', field('az', a.az, 0, 359, t('orbit.az')), field('el', a.el, -90, 90, t('orbit.el'))),
+      h('span.sep'),
+      // what the left button does on the paper: orbit (O) or pan (H)
+      h('div.tool-group', { role: 'radiogroup', 'aria-label': t('orbit.leftTool') },
+        h('button.tool', { class: this.prefs.tool === 'orbit' ? 'tool active' : 'tool', role: 'radio', 'aria-checked': String(this.prefs.tool === 'orbit'), 'data-nav-tool': 'orbit', title: t('orbit.toolOrbit'), html: icon('orbit', 17), onclick: () => this.setTool('orbit') }),
+        h('button.tool', { class: this.prefs.tool === 'pan' ? 'tool active' : 'tool', role: 'radio', 'aria-checked': String(this.prefs.tool === 'pan'), 'data-nav-tool': 'pan', title: t('orbit.toolPan'), html: icon('hand', 17), onclick: () => this.setTool('pan') })),
+      h('label.orbit-nav', { title: t('orbit.navTip') }, h('span', t('orbit.nav')),
+        h('select', { 'data-key': 'nav', 'aria-label': t('orbit.navTip'), onchange: (e) => this.setNav(e.target.value) },
+          NAV_STYLES.map((n) => h('option', { value: n, selected: this.prefs.nav === n }, n === 'rev' ? 'Rev' : 'Sketch')))),
+      h('button.tool', { class: this.prefs.labels ? 'tool active' : 'tool', 'data-action': 'labels', 'aria-pressed': String(this.prefs.labels), title: t('orbit.labelsTip'), html: icon('text', 17), onclick: () => this.setLabels(!this.prefs.labels) }),
       h('span.grow'),
       // the way to where new shapes are drawn (what can be done here is in the status bar)
       h('button.tool', { 'data-action': 'edit', title: t('orbit.editTip'), 'aria-label': t('orbit.edit'), html: icon('pencil', 17), onclick: () => this.layout.setTab('axon') }));
     this.#renderAngles();
+    this.#renderCube();
     this.readout.textContent = `${t('orbit.az')} ${fmtDeg(a.az)} · ${t('orbit.el')} ${fmtDeg(a.el)}`;
+  }
+
+  /**
+   * The view cube, in a corner: a small cube seen from where the model is seen. A click on a face looks straight
+   * at that side, a click on a corner looks from that corner (isometric).
+   */
+  #renderCube() {
+    const v = this.view, R = 23, C = 38;
+    const P = (p) => { const [X, Y] = project(v, p); return [C + X * R, C + Y * R]; };
+    const dot3 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+    let faces = '', labels = '';
+    for (const f of CUBE_FACES) {
+      const facing = dot3(f.n, v.cam);
+      if (facing < 0.04) continue;
+      // the four corners of the face: the two other axes, at ±1
+      const [u, w] = f.n[0] ? [[0, 1, 0], [0, 0, 1]] : f.n[1] ? [[1, 0, 0], [0, 0, 1]] : [[1, 0, 0], [0, 1, 0]];
+      const pts = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([a, b]) => P([f.n[0] + u[0] * a + w[0] * b, f.n[1] + u[1] * a + w[1] * b, f.n[2] + u[2] * a + w[2] * b]));
+      const mid = P(f.n);
+      const name = t(f.key);
+      faces += `<polygon class="cube-face" data-face="${f.key}" points="${pts.map((q) => q.map(r3).join(',')).join(' ')}"><title>${name}</title></polygon>`;
+      if (facing > 0.45) labels += `<text x="${r3(mid[0])}" y="${r3(mid[1])}" text-anchor="middle" dominant-baseline="central" font-size="${name.length > 6 ? 6.5 : 8}">${name.length > 9 ? name.slice(0, 8) + '…' : name}</text>`;
+    }
+    let corners = '';
+    for (const x of [-1, 1]) for (const y of [-1, 1]) for (const z of [-1, 1]) {
+      if (dot3([x, y, z], v.cam) < 0.35) continue;
+      const [X, Y] = P([x, y, z]);
+      corners += `<circle class="cube-corner" data-corner="${x},${y},${z}" cx="${r3(X)}" cy="${r3(Y)}" r="4.2"><title>${t('orbit.preset.iso')}</title></circle>`;
+    }
+    this.cube.innerHTML = `<svg viewBox="0 0 76 76" width="76" height="76">${faces}${labels}${corners}</svg>`;
+  }
+
+  /** A click on the view cube: a face (looked at straight) or a corner (isometric from it). */
+  #cubeClick(e) {
+    const face = e.target.closest?.('[data-face]'), corner = e.target.closest?.('[data-corner]');
+    if (corner) {
+      const [x, y, z] = corner.dataset.corner.split(',').map(Number);
+      this.setAngle((Math.atan2(y, x) * 180) / Math.PI, z > 0 ? ISO_EL : -ISO_EL);
+    } else if (face) {
+      const f = CUBE_FACES.find((c) => c.key === face.dataset.face);
+      // top and below keep the way the model is turned; the sides are looked at level
+      if (f.el !== undefined) this.setAngle(this.angle.az, f.el); else this.setAngle(f.az, 0);
+    }
   }
 
   /**
@@ -334,15 +468,28 @@ export class OrbitView {
       if (!this.cam) return;
       if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
       try { svg.setPointerCapture(e.pointerId); } catch { /* a synthetic pointer */ }
-      const pan = e.button === 1 || e.button === 2 || this.spaceDown;
-      if (!pan && e.button !== 0) return;
+      // which way the view goes: the middle button in 'rev' mode (drag pans, Shift orbits) or 'sketch' mode (drag orbits,
+      // Shift pans); the right button pans (Shift orbits); the left button on the paper follows the
+      // tool (orbit or pan), and pans with Space held
+      let nav = null;
+      if (e.button === 1) {
+        if (performance.now() - this.lastMiddle < 380) { this.lastMiddle = 0; e.preventDefault(); this.fit(); return; }
+        this.lastMiddle = performance.now();
+        nav = (this.prefs.nav === 'sketch') !== e.shiftKey ? 'orbit' : 'pan';
+      } else if (e.button === 2) nav = e.shiftKey ? 'orbit' : 'pan';
+      else if (e.button === 0 && this.spaceDown) nav = 'pan';
+      else if (e.button !== 0) return;
+      const pan = nav !== null;
       e.preventDefault();
       const base = { sx: e.clientX, sy: e.clientY, az: this.angle.az, el: this.angle.el, dx: this.cam.dx, dy: this.cam.dy };
       if (!pan) this.cycle.setPoint(e);
       const hit = pan ? {} : this.#hit(e);
-      if (hit.handle) {
+      if (hit.handle === 'h') {
         const o = this.#heightTarget();
         if (o) { this.drag = { ...base, kind: 'height', id: o.id, h0: o.h, moved: false }; this.canvas.classList.add('editing'); return; }
+      } else if (hit.handle) {
+        const o = this.#sizeTarget();
+        if (o) { this.drag = { ...base, kind: 'size', id: o.id, side: hit.handle, start: structuredClone(o), moved: false }; this.canvas.classList.add('editing'); return; }
       }
       if (hit.id) {
         // a shape: select it (Shift adds or takes out); a drag from here slides the selection on the ground
@@ -354,24 +501,29 @@ export class OrbitView {
         if (this.doc.selection.has(hit.id)) { this.drag = { ...base, kind: 'move', id: hit.id, start: this.#group(), moved: false }; this.canvas.classList.add('editing'); }
         return;
       }
-      this.drag = { ...base, kind: pan ? 'pan' : 'orbit', lockedId: hit.locked || null };
-      this.canvas.classList.add(pan ? 'panning' : 'orbiting');
+      const kind = nav || this.prefs.tool;
+      // the view turns around what is selected (else around the middle of the site)
+      if (kind === 'orbit') this.#setPivot(this.#selectionCentre());
+      this.drag = { ...base, dx: this.cam.dx, dy: this.cam.dy, kind, click: !nav, free: !!nav, lockedId: hit.locked || null };
+      this.canvas.classList.add(kind === 'pan' ? 'panning' : 'orbiting');
     });
     svg.addEventListener('pointermove', (e) => this.#move(e));
     const end = () => { this.drag = null; this.canvas.classList.remove('panning', 'orbiting', 'editing'); };
     svg.addEventListener('pointerup', (e) => {
       const d = this.drag;
-      if ((d?.kind === 'move' || d?.kind === 'height') && d.moved) this.doc.end();
+      if ((d?.kind === 'move' || d?.kind === 'height' || d?.kind === 'size') && d.moved) this.doc.end();
       // a click on the paper (not a drag): nothing is selected any more
-      if (d?.kind === 'orbit' && Math.hypot(e.clientX - d.sx, e.clientY - d.sy) < CLICK_PX) {
+      if (d?.click && Math.hypot(e.clientX - d.sx, e.clientY - d.sy) < CLICK_PX) {
         // a click on a locked shape selects it (to unlock it); a click on the paper clears the selection
         if (d.lockedId && this.doc.byId(d.lockedId)) this.doc.select([d.lockedId]);
         else if (this.doc.selection.size) this.doc.clearSelection();
       }
       end();
     });
-    svg.addEventListener('pointercancel', () => { if ((this.drag?.kind === 'move' || this.drag?.kind === 'height') && this.drag.moved) this.doc.end(); end(); });
-    svg.addEventListener('dblclick', (e) => { if (!this.#hit(e).id && !this.#hit(e).handle) this.fit(); });
+    svg.addEventListener('pointercancel', () => { if (['move', 'height', 'size'].includes(this.drag?.kind) && this.drag.moved) this.doc.end(); end(); });
+    svg.addEventListener('auxclick', (e) => e.preventDefault());
+    this.cube.addEventListener('click', (e) => this.#cubeClick(e));
+    svg.addEventListener('dblclick', (e) => { if (e.button === 0 && !this.#hit(e).id && !this.#hit(e).handle) this.fit(); });
     window.addEventListener('keydown', (e) => {
       if (e.code !== 'Space' || isTyping(e) || !this.visible || document.querySelector('.cm-overlay')) return;
       e.preventDefault();
@@ -405,6 +557,29 @@ export class OrbitView {
       });
       return;
     }
+    if (d.kind === 'size') {
+      // each side pulled follows the mouse along its own direction; the opposite side stays where it is
+      const [, sx, sy] = SIDES.find((x) => x[0] === d.side);
+      const o0 = d.start;
+      const a = ((o0.rot || 0) * Math.PI) / 180, c = Math.cos(a), sn = Math.sin(a);
+      const [gx, gy] = this.#groundDelta(mx / this.cam.scale, my / this.cam.scale);
+      const min = e.altKey ? 0.1 : Math.max(0.1, this.doc.project.grid);
+      // how much the width and the depth grow (metres), and where that takes the middle
+      const growW = sx ? Math.max(min, this.#snap(o0.w + sx * (gx * c + gy * sn), e)) - o0.w : 0;
+      const growD = sy ? Math.max(min, this.#snap(o0.d + sy * (-gx * sn + gy * c), e)) - o0.d : 0;
+      if (!d.moved) { if (Math.abs(growW) < 1e-9 && Math.abs(growD) < 1e-9) return; d.moved = true; this.doc.begin('object.resize'); }
+      this.doc.update((_p, step) => {
+        const o = step.objects.find((x) => x.id === d.id);
+        if (!o) return;
+        o.w = r3(o0.w + growW);
+        o.d = r3(isSphere(o0) ? o.w : o0.d + growD);
+        if (isSphere(o0) && o0.type === 'cut') o.h = o.w;
+        const lx = (sx * growW) / 2, ly = (sy * growD) / 2;
+        o.x = r3(o0.x + lx * c - ly * sn);
+        o.y = r3(o0.y + lx * sn + ly * c);
+      });
+      return;
+    }
     if (d.kind === 'height') {
       // up on the screen is up in the model (or down, seen from below)
       const hh = Math.max(0.5, this.#snap(d.h0 - my / this.cam.scale / this.view.e2[2], e, 0.5));
@@ -414,17 +589,20 @@ export class OrbitView {
     }
     // drag right: the model turns to the right; drag down: it tips towards you (seen more from above)
     let az = d.az - mx * DEG_PER_PX, el = d.el + my * DEG_PER_PX;
-    if (e.shiftKey) { az = Math.round(az / 15) * 15; el = Math.round(el / 15) * 15; }
+    // Shift snaps to 15° with the left button (with the others it is what chose to orbit)
+    if (e.shiftKey && !d.free) { az = Math.round(az / 15) * 15; el = Math.round(el / 15) * 15; }
     this.setAngle(az, el);
   }
 
-  /** Keys of the viewer: arrows turn (15°, Shift 5°), F fits, I isometric. */
+  /** Keys of the viewer: arrows turn (15°, Shift 5°), F fits, I isometric, O orbit and H pan (the tool of the left button). */
   key(e) {
     const k = e.shiftKey ? 5 : 15;
     const turn = { ArrowLeft: [-k, 0], ArrowRight: [k, 0], ArrowUp: [0, k], ArrowDown: [0, -k] }[e.key];
     if (turn) { e.preventDefault(); this.turn(...turn); return; }
     const key = e.key.toLowerCase();
     if (key === 'f') this.fit();
+    else if (key === 'o') this.setTool('orbit');
+    else if (key === 'h') this.setTool('pan');
     else if (key === 'i') this.setAngle(45 + 90 * Math.round((wrap360(this.angle.az) - 45) / 90), ISO_EL);
   }
 }

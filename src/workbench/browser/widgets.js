@@ -58,7 +58,14 @@ export function segmented(options, value, onPick, { title } = {}) {
     options.map(([v, label, tip]) => h('button', {
       type: 'button', role: 'radio', 'aria-checked': String(v === value), class: v === value ? 'active' : null, title: tip || null,
       'data-value': String(v),
-      onclick: () => { if (v !== value) onPick(v); },
+      // compared with what the control shows now, not with the value it was built with: a pane that has not
+      // been redrawn yet still takes the click
+      onclick: (e) => {
+        const btn = e.currentTarget;
+        if (btn.getAttribute('aria-checked') === 'true') return;
+        for (const b of btn.parentElement.children) { const on = b === btn; b.classList.toggle('active', on); b.setAttribute('aria-checked', String(on)); }
+        onPick(v);
+      },
     }, label)));
 }
 
@@ -69,6 +76,13 @@ export function selectField(options, value, onPick, attrs = {}) {
 
 export function checkbox(label, checked, onChange, attrs = {}) {
   return h('label.checkbox', h('input', { type: 'checkbox', checked, ...attrs, onchange: (e) => onChange(e.target.checked) }), h('span', label));
+}
+
+/** An on/off switch (a checkbox drawn as a switch): for a setting that changes how something is shown. */
+export function toggleSwitch(label, checked, onChange, attrs = {}) {
+  return h('label.switch', { title: attrs.title || '' },
+    h('input', { type: 'checkbox', role: 'switch', checked, 'aria-checked': String(!!checked), ...attrs, onchange: (e) => { e.target.setAttribute('aria-checked', String(e.target.checked)); onChange(e.target.checked); } }),
+    h('span.switch-track', h('span.switch-thumb')), h('span.switch-label', label));
 }
 
 export function textField(value, onCommit, { placeholder = '', multiline = false, key } = {}) {

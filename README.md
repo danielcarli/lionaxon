@@ -13,7 +13,7 @@ Simple to learn in an afternoon. The same app on Windows, macOS and Linux. Free.
 
 **English** · [Português (Brasil)](docs/README.pt-BR.md)
 
-![Version 0.12.0](https://img.shields.io/badge/version-0.12.0-23272b)
+![Version 0.17.0](https://img.shields.io/badge/version-0.17.0-23272b)
 ![Experimental](https://img.shields.io/badge/status-experimental-b5532d)
 ![Platforms: Windows, macOS, Linux](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-23272b)
 ![10 languages](https://img.shields.io/badge/languages-10-d0673f)
@@ -80,10 +80,10 @@ Free software (GPL-3.0). No account, no subscription, no telemetry, and it works
 - **Steps** with title and text, reordered by dragging; changes applied to the following steps with one click; signs between steps (+ − = →).
 - **Categories** with colour *and* hatch (circulation, stair core, theatre…), so the legend reads in grey print and for people who do not tell colours apart.
 - **Align faces** (`L`): click the face to align to, then the face of another shape, and it moves until the two lie in the same plane — sides with sides, tops with tops.
-- **Arrows, people, labels, dimension lines and trees** — people at their real height, to give the scale. Double-click a label to write its text right on the drawing.
+- **Arrows, people, labels, dimension lines and trees** — people at their real height, to give the scale; people and trees stand on whatever is under them (a plateau, a slope, a roof). Double-click a label to write its text right on the drawing.
 
 **Shape the site**
-- **Terrain**: platforms, slopes, pits, reference planes with level lines in the elevation; a site of any outline.
+- **Terrain**: platforms, slopes, pits, reference planes with level lines in the elevation; a site of any outline. **Join terrain** (a switch in the toolbar of the drawing) draws platforms and slopes that touch as one piece, without the lines between them.
 - **Surroundings**: neighbours in neutral grey, streets, lawns, water, and a site plan or aerial photo underneath to draw over.
 - **Sun and shadows** by latitude, day and hour. **Roofs**: gable, shed and hip, with the ridge the way you want and a colour of their own.
 - **Doors, windows, arches and round openings** drawn on the walls: they go with their volume, without cutting it.
@@ -91,20 +91,22 @@ Free software (GPL-3.0). No account, no subscription, no telemetry, and it works
 
 **See it from anywhere**
 - **Axonometric, plan and four elevations**, with **sections**.
-- A **3D viewer** that turns all the way round — and where you can **select, move and pull heights** too. A blue frame tells you that you are in it.
+- A **3D viewer** that turns all the way round — and where you can **select, move, resize and pull heights** too. The mouse has **two modes, Rev and Sketch** (your choice), with a view cube in the corner. A blue frame tells you that you are in it.
+- **Duplicate a step** with one click, to tell the next move from where the last one stopped.
 - **`Tab` reaches what is behind**: the next object under the same spot takes an outline in another colour and the rest fades.
 - **Exploded views**, and one step **seen from several angles side by side** on the sheet.
 
 **Take it out**
-- **PDF and SVG in vectors** (one layer per step in Illustrator and Inkscape), **PNG** up to 300 dpi, the steps as an **animated GIF**.
-- **Text blocks** beside the drawings (strategy, pros and cons with + and −), the **legend** under the title or along the foot; labels with a quieter second line and marks (! × + −).
-- Sheets in row, grid, column or vertical layouts, A4 to A1, to scale, on as many pages as needed.
+- **PDF and SVG in vectors** (one layer per step in Illustrator and Inkscape), **PNG** up to 300 dpi, the steps as an **animated GIF**, and **every step as its own image** (PNG, SVG or PDF, all in the same frame and scale) in one go.
+- **Text blocks** beside the drawings (strategy, pros and cons with + and −), the **legend** under the title or along the foot; labels with a quieter second line and marks (! × + −), broken into lines at the width you pull the side of their text box to. The terrain can be drawn on the sheet **as a grid**, as in the editor.
+- Sheets in row, grid, column or vertical layouts, A4 to A0, to scale, on as many pages as needed; when the drawings are held by the height, the captions go beside them and the drawings grow. The preview is zoomed with the wheel and dragged like the drawing, page by page.
+- **Export the steps you write** — `7`, `3-7`, `1, 4, 6-8` — each in a file of its own, or as one sheet with just those steps.
 - **Eight drawing styles**, light and dark interface, and two coloured themes.
 
 <table>
 <tr>
 <td><img src="docs/screenshots/terrain-levels.png" alt="Terrain with a plateau, a slope and a pit; curved volumes"><br><sub>Terrain, reference planes and curved volumes</sub></td>
-<td><img src="docs/screenshots/viewer-3d-edit.png" alt="The 3D viewer with a volume selected and the handle of its height"><br><sub>The 3D viewer: turn, select, move, pull the height</sub></td>
+<td><img src="docs/screenshots/viewer-3d-edit.png" alt="The 3D viewer with a volume selected and the handle of its height"><br><sub>The 3D viewer: turn, select, move, resize, pull the height</sub></td>
 </tr>
 <tr>
 <td><img src="docs/screenshots/surroundings.png" alt="Context volumes, a street, trees and shadows"><br><sub>Surroundings, trees, sun and shadows</sub></td>
@@ -149,7 +151,7 @@ Download the installer for your system. The links always bring the **latest vers
 
 > The installers are not signed with a paid certificate yet. On first launch, Windows may show "Windows protected your PC" (**More info › Run anyway**) and macOS asks you to allow the app in **System Settings › Privacy & Security › Open Anyway**. The checksums of every file are in [`SHA256SUMS.txt`](https://github.com/danielcarli/lionaxon/releases/latest/download/SHA256SUMS.txt).
 
-LionAxon is **experimental** (version 0.12): it already makes a whole parti diagram and exports it, but the file format and the behaviour may still change before 1.0. **Updating from the app.** Click the version number in the bottom-right corner, then *Check now*: if there is a newer version, *Update now* downloads the installer of your copy (the setup wizard, the `.dmg`, the AppImage, the `.deb` or the `.rpm`), checks its SHA-256 against the release and opens it. Both steps happen only when you click.
+LionAxon is **experimental** (version 0.17): it already makes a whole parti diagram and exports it, but the file format and the behaviour may still change before 1.0. **Updating from the app.** Click the version number in the bottom-right corner, then *Check now*: if there is a newer version, *Update now* downloads the installer of your copy (the setup wizard, the `.dmg`, the AppImage, the `.deb` or the `.rpm`), checks its SHA-256 against the release and opens it. Both steps happen only when you click.
 
 The installers are built by GitHub Actions for each version tag (`.github/workflows/release.yml`), on Windows, macOS and Linux machines, from the code of this repository.
 
@@ -180,6 +182,7 @@ The app opens on a start screen with six examples — from the five-step parti t
 | `Enter` · double-click | End an outline drawn point by point |
 | `N` | New reference plane (in the elevation) |
 | `Delete` · `Ctrl+D` | Delete · duplicate the selection |
+| `Ctrl+Shift+D` | Duplicate the current step |
 | `Ctrl+C` · `Ctrl+X` · `Ctrl+V` | Copy · cut · paste (also to another step or diagram) |
 | `0`–`9` with a shape selected | Type its size: width × depth × height |
 | `Tab` · `Shift+Tab` | The next · previous object under the same spot (the others fade) |
@@ -197,9 +200,12 @@ The app opens on a start screen with six examples — from the five-step parti t
 | `Alt` while dragging | Leave the grid |
 | `Alt` · `F10` | The menu bar (arrows to move, `Enter` to run, `Esc` to close) |
 | `PgUp` · `PgDn` | Previous · next step |
+| In the sheet: wheel · drag · `F` · `←` `→` | Zoom at the mouse · move the paper · frame the page · previous · next page |
 | `Ctrl+1` `2` `3` `4` `5` | Axonometric · plan · elevation · sheet · 3D viewer |
 | In the 3D viewer: drag on the paper · `←` `→` `↑` `↓` · `I` | Turn all the way round · turn 15° (`Shift`: 5°) · isometric |
-| In the 3D viewer: click · drag a shape · the round handle · `Delete` | Select · slide it on the ground · pull its height · delete |
+| In the 3D viewer: click · drag a shape · the square handles · the round handle · `Delete` | Select · slide it on the ground · resize · pull its height · delete |
+| In the 3D viewer: middle button · `Shift` + middle button · right button · wheel · middle button twice | Pan · orbit (the other way round in Sketch mode) · pan (`Shift`: orbit) · zoom at the mouse · fit |
+| In the 3D viewer: `O` · `H` | Left button orbits · left button pans |
 | `Ctrl+N` · `Ctrl+O` · `Ctrl+S` · `Ctrl+Shift+S` | New · open · save · save as |
 | `Ctrl+W` · `Ctrl+Tab` | Close the diagram · next diagram (`Shift`: previous) |
 | `Esc` | Back to select, clear the selection |
@@ -294,7 +300,7 @@ Privacy: no account, no telemetry. LionAxon uses the network only when you click
 |---|---|
 | `npm start` | Run the app |
 | `npm test` | Unit tests (projection, polygons, model, renderer order, sheet) and the i18n check |
-| `npm run test:e2e` | End-to-end test on a **disposable** folder, with the real mouse and keyboard: draw, move, height and rotation handles, floors, subtract, shapes, planes, terrain, steps, arrow, person, label, delete a step and undo, tabs, the save question on closing, save, reopen, export PDF/SVG/PNG, then restart and check the session (on Linux without a screen: `xvfb-run -a npm run test:e2e`) |
+| `npm run test:e2e` | End-to-end test on a **disposable** folder, with the real mouse and keyboard: draw, move, height and rotation handles, floors, subtract, shapes, planes, terrain, steps, arrow, person, label, delete a step and undo, tabs, the save question on closing, save, reopen, export PDF/SVG/PNG, then restart and check the session (on Linux without a screen: `xvfb-run -a npm run test:e2e`); two more starts check a slow start left with the button, and a hung one left through the question |
 | `npm run shots` | The screenshots of this README (`-- --lang=pt-BR --out=docs/screenshots/pt-BR` for another language) |
 | `npm run inspect -- <project.lionaxon>` | Describe a project as JSON |
 | `npm run examples` | Rebuild the example projects |
@@ -305,6 +311,11 @@ Code, comments, identifiers and documentation are in English. The interface is t
 
 ## Roadmap
 
+- **0.17** ✓ — export the steps you write (3-7, 1, 4, 6), as files or one sheet; the sheet preview zoomed and dragged like the drawing, page by page; captions beside the drawings when that makes them larger; a label's text box resized by its side; the import from IFC taken out until it reads real models.
+- **0.16** ✓ — every step exported as its own image (PNG, SVG, PDF); the terrain as a grid on the sheet; labels with a width, broken into lines by themselves.
+- **0.15** ✓ — join terrain (platforms and slopes that touch drawn as one); people and trees stand on what is under them.
+- **0.14** ✓ — a first import of building models (IFC); taken out in 0.17, it did not yet read real models.
+- **0.13** ✓ — the 3D viewer with two mouse modes (Rev and Sketch), a view cube, optional labels and resizing by handles; duplicate a step.
 - **0.12** ✓ — updating from the app, with the installer of each system; locked objects can be picked to be unlocked; panes keep their scroll.
 - **0.11** ✓ — the align tool: one face brought into the plane of another.
 - **0.10** ✓ — openings on the walls; ridge direction and roof colour; own colours; paved floors with joints; arrows between levels; notes and marks on labels; text blocks and the legend along the foot on the sheet; flat areas now show over a site with thickness.
@@ -313,12 +324,12 @@ Code, comments, identifiers and documentation are in English. The interface is t
 - **0.7** ✓ — outlines of any shape; surroundings; sun and shadows; roofs; dimension lines; ghosts and signs between steps; sections; the steps as GIF; a workflow that builds the installers.
 - **0.6** ✓ — usability: copy and paste, a right-button menu, a selection rectangle, align and guides, typed sizes, names, lock and hide, a start screen, recent files, hatches for categories.
 - **0.5 – 0.1** ✓ — the 3D viewer and several angles per step; a menu bar and examples; elevations, exploded views and vertical sheets; terrain, reference planes and curved shapes; tabs; the first volumes, steps and sheet.
-- **Next** — several sheets and alternatives in one project; free terrain; stairs; zoning plans; courtyards and joining volumes; loose slabs and pilotis; shadows on volumes and terrain; sections on the sheet; drawing new shapes in the 3D viewer; a command palette; signed installers.
+- **Next** — the import of building models (IFC, then Rev files), tested on real projects; several sheets and alternatives in one project; free terrain; stairs; zoning plans; courtyards and joining volumes; loose slabs and pilotis; shadows on volumes and terrain; sections on the sheet; drawing new shapes in the 3D viewer; a command palette; signed installers.
 - **1.0** — DXF in and out; a manual and tutorials in the order of a design studio; reviewed translations.
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) — current version: **0.12.0**.
+See [CHANGELOG.md](CHANGELOG.md) — current version: **0.17.0**.
 
 ## Credits
 

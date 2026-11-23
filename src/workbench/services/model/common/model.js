@@ -18,7 +18,7 @@
 //   slope    { x, y, w, d, rot, from, zFrom, to, zTo } a ramp of ground rising along its depth, from one level to another
 //   arrow    { x1, y1, x2, y2, z, level, bend, color, dashed, heads, width, layer ('top' | 'ground') }
 //   person   { x, y, z, level, pose (0 standing, 1 walking, 2 pointing, 3 wheelchair) }
-//   label    { x, y, z, level, dx, dy, text, size, font, caps }
+//   label    { x, y, z, level, dx, dy, text, size, font, caps, note?, mark?, wrap? }
 //   area     { x, y, w, d, rot, z, level, kind ('street' | 'green' | 'water' | 'paving') }   a flat piece of the surroundings
 //   tree     { x, y, z, level, size (crown diameter), h, kind ('round' | 'conifer') }
 //   dim      { x1, y1, x2, y2, z, level, offset }   a dimension line between two points
@@ -56,7 +56,7 @@ export const LABEL_FONT_IDS = ['sans', 'condensed', 'serif', 'mono', 'hand'];
 export const NORTH_PLACES = ['header', 'drawing', 'none'];
 export const GROUND_LEVEL = 'L0';
 export const ARROW_COLORS = ['ink', 'accent', 'green', 'blue', 'red'];
-export const PAPERS = { A4: [297, 210], A3: [420, 297], A2: [594, 420], A1: [841, 594] };
+export const PAPERS = { A4: [297, 210], A3: [420, 297], A2: [594, 420], A1: [841, 594], A0: [1189, 841] };
 export const LAYOUTS = ['row', 'grid', 'column', 'vertical'];
 /** Scales a sheet can be drawn at (1:n); 0 = fit the paper. */
 export const SHEET_SCALES = [0, 100, 200, 250, 500, 750, 1000, 1250, 2000, 2500, 5000];
@@ -209,6 +209,8 @@ function normalizeCore(o) {
       // a second, quieter line under the text, and a mark at the point
       ...(str(o.note).trim() ? { note: str(o.note).slice(0, 300) } : {}),
       ...(LABEL_MARKS.includes(o.mark) && o.mark ? { mark: o.mark } : {}),
+      // the width the text is broken to (in drawing units, like its size); none: one line per line typed
+      ...(Number(o.wrap) > 0 ? { wrap: num(o.wrap, 0, 1, 1000) } : {}),
     };
     default: return null;
   }
@@ -270,6 +272,8 @@ function normalizeSite(site) {
   const out = {
     w: num(site.w, 40, 1, 5000), d: num(site.d, 60, 1, 5000), mode: pick(site.mode, ['dashed', 'fill', 'none'], 'dashed'), dims: site.dims !== false,
     thickness: num(site.thickness, 0, 0, 200),
+    // platforms and slopes that touch drawn as one terrain (one outline, no seams between them)
+    joined: site.joined === true,
   };
   // a site of any outline: its points in metres; width and depth are then those of its bounds, from (0, 0)
   const pts = normalizePts(site.pts);
@@ -390,6 +394,8 @@ export function normalizeProject(raw) {
       title: str(sheet.title), subtitle: str(sheet.subtitle),
       legend: sheet.legend !== false, texts: sheet.texts !== false,
       legendPlace: pick(sheet.legendPlace, LEGEND_PLACES, 'top'),
+      // the terrain drawn as in the editor: see-through, with the grid on its surfaces
+      terrainGrid: sheet.terrainGrid === true,
       // free blocks of text in a column on the right of the sheet (strategy, pros and cons…): a line that starts
       // with + or − is drawn as a point for or against
       blocks: (Array.isArray(sheet.blocks) ? sheet.blocks : []).slice(0, 8)

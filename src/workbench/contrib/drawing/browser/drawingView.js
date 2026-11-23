@@ -17,7 +17,7 @@ import { icon } from '../../../../base/browser/icons.js';
 import { t, formatNumber } from '../../../../base/common/nls.js';
 import { makeView, planView, project, unproject, verticalScale } from '../../../../base/common/geometry/projection.js';
 import { rectRing } from '../../../../base/common/geometry/polygon.js';
-import { renderStep, padBox, arrowPoints } from '../../../services/render/common/renderer.js';
+import { renderStep, padBox, arrowPoints, labelTextBox } from '../../../services/render/common/renderer.js';
 import { footprintOf } from '../../../services/render/common/solids.js';
 import { getStyle } from '../../../services/render/common/styles.js';
 import {
@@ -27,7 +27,7 @@ import {
 } from '../../../services/model/common/model.js';
 import { meters } from '../../../services/export/browser/exportService.js';
 import { showContextMenu } from '../../../browser/contextMenu.js';
-import { parseNumber } from '../../../browser/widgets.js';
+import { parseNumber, toggleSwitch } from '../../../browser/widgets.js';
 
 const SEL = '#2f74e8';
 import { PickCycle } from './pickCycle.js';
@@ -367,6 +367,15 @@ export class DrawingView {
       } else if (o.type === 'arrow') {
         const z = this.levelZ(o.level) + o.z;
         s += `<path d="${line(arrowPoints({ ...o, z }).map(P))}" fill="none" stroke="${SEL}" stroke-width="${r3(px * 1.6)}" stroke-dasharray="${r3(px * 5)} ${r3(px * 3)}" pointer-events="none"/>`;
+      } else if (o.type === 'label') {
+        // the box of the text: lightly filled, its far side (the one that is pulled) drawn heavier
+        const b = this.#labelBox(o);
+        const ex = r3(o.dx >= 0 ? b[2] : b[0]);
+        s += `<rect class="label-frame" x="${r3(b[0])}" y="${r3(b[1])}" width="${r3(b[2] - b[0])}" height="${r3(b[3] - b[1])}" rx="${r3(px * 2)}" fill="${SEL}" fill-opacity="0.05" stroke="${SEL}" stroke-width="${r3(px * 1.2)}" pointer-events="none"/>`
+          + `<path class="label-frame-side" d="M${ex} ${r3(b[1])}V${r3(b[3])}" stroke="${SEL}" stroke-width="${r3(px * 3)}" pointer-events="none"/>`
+          // the whole side can be taken, not only its grip (only when the handles are shown)
+          + (objs.length === 1 && !o.locked && (this.elev ? this.elevTool === 'select' : this.layout.tool === 'select')
+            ? `<path class="handle handle-lw" data-handle="lw" d="M${ex} ${r3(b[1])}V${r3(b[3])}" stroke="transparent" stroke-width="${r3(px * 10)}"/>` : '');
       } else {
         const el = this.content.querySelector(`[data-id="${CSS.escape(o.id)}"]`);
         if (el) {
@@ -444,12 +453,39 @@ export class DrawingView {
     } else if (o.type === 'label') {
       const [ax, ay] = project(view, [o.x, o.y, this.levelZ(o.level) + o.z]);
       out.push({ id: 'lt', p: [ax + o.dx, ay + o.dy] });
+      // the width of the text: the far side of the box around the text, a grip in the middle and its two
+      // corners (drag them in and the text breaks into more lines)
+      const b = this.#labelBox(o);
+      const ex = o.dx >= 0 ? b[2] : b[0];
+      out.push({ id: 'lw', p: [ex, (b[1] + b[3]) / 2] }, { id: 'lw1', p: [ex, b[1]] }, { id: 'lw2', p: [ex, b[3]] });
     }
     return out;
   }
 
+  /**
+   * The box around the text of a label as it is drawn (its lines measured, not the leader), with a margin
+   * of a few pixels: what the selection outlines and what the width handles sit on.
+   */
+  #labelBox(o, pad = 5) {
+    const px = 1 / (this.cam?.scale || 1);
+    const el = this.content.querySelector(`[data-id="${CSS.escape(o.id)}"]`);
+    let b = null;
+    for (const tx of el ? el.querySelectorAll(':scope > text') : []) {
+      if (tx.getAttribute('text-anchor') === 'middle') continue; // the mark at the point
+      const r = tx.getBBox();
+      b = b ? [Math.min(b[0], r.x), Math.min(b[1], r.y), Math.max(b[2], r.x + r.width), Math.max(b[3], r.y + r.height)] : [r.x, r.y, r.x + r.width, r.y + r.height];
+    }
+    if (!b) { // not drawn yet: the estimate of the renderer
+      const [ax, ay] = project(this.view, [o.x, o.y, this.levelZ(o.level) + o.z]);
+      const { w, h } = labelTextBox(o);
+      const tx = ax + o.dx, y0 = o.note || o.wrap ? ay + o.dy - o.size * 0.625 : ay + o.dy - h / 2;
+      b = o.dx >= 0 ? [tx, y0, tx + w, y0 + h] : [tx - w, y0, tx, y0 + h];
+    }
+    return [b[0] - pad * px, b[1] - pad * px, b[2] + pad * px, b[3] + pad * px];
+  }
+
   #handlesMarkup(o, byId, px) {
-    const list = this.handles(o, byId).filter((x) => !this.elev || ['h', 'h0', 'z', 'lt'].includes(x.id));
+    const list = this.handles(o, byId).filter((x) => !this.elev || ['h', 'h0', 'z', 'lt', 'lw', 'lw1', 'lw2'].includes(x.id));
     return list.map(({ id, p, from }) => {
       if (id === 'h' || id === 'h0' || id === 'z') {
         const r = 5.5;
@@ -460,6 +496,17 @@ export class DrawingView {
         return `<path d="M${r3(from[0])} ${r3(from[1])}L${r3(p[0])} ${r3(p[1])}" stroke="${SEL}" stroke-width="${r3(px * 1.2)}" pointer-events="none"/>`
           + `<circle class="handle handle-rot" data-handle="rot" cx="${r3(p[0])}" cy="${r3(p[1])}" r="${r3(5.5 * px)}" fill="${SEL}" stroke="#fff" stroke-width="${r3(px * 1.5)}"/>`
           + `<path d="M${r3(p[0] - 2.6 * px)} ${r3(p[1] + 0.6 * px)}A${r3(2.6 * px)} ${r3(2.6 * px)} 0 1 1 ${r3(p[0] + 0.6 * px)} ${r3(p[1] + 2.6 * px)}" fill="none" stroke="#fff" stroke-width="${r3(px * 1.1)}" pointer-events="none"/>`;
+      }
+      if (id === 'lw') {
+        // a grip on the far side of the box, pulled sideways: a bar with two arrows ↔ (what it does, at a glance)
+        const tip = `<title>${t('label.wrapHandleTip')}</title>`;
+        // the double arrow sits outside the box, beside the grip, so it never covers the text
+        const sg = o.dx >= 0 ? 1 : -1, x0 = p[0] + sg * 9 * px, x1 = p[0] + sg * 23 * px, hh = 3.5 * px, ah = 3.5 * px * sg;
+        return `<rect class="handle handle-lw" data-handle="lw" x="${r3(p[0] - 4 * px)}" y="${r3(p[1] - 11 * px)}" width="${r3(8 * px)}" height="${r3(22 * px)}" rx="${r3(3 * px)}" fill="${SEL}" stroke="#fff" stroke-width="${r3(px * 1.5)}">${tip}</rect>`
+          + `<path class="lw-arrows" d="M${r3(x0)} ${r3(p[1])}H${r3(x1)}M${r3(x0 + ah)} ${r3(p[1] - hh)}L${r3(x0)} ${r3(p[1])}L${r3(x0 + ah)} ${r3(p[1] + hh)}M${r3(x1 - ah)} ${r3(p[1] - hh)}L${r3(x1)} ${r3(p[1])}L${r3(x1 - ah)} ${r3(p[1] + hh)}" fill="none" stroke="${SEL}" stroke-width="${r3(px * 1.5)}" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>`;
+      }
+      if (id === 'lw1' || id === 'lw2') {
+        return `<rect class="handle handle-lw" data-handle="${id}" x="${r3(p[0] - 4 * px)}" y="${r3(p[1] - 4 * px)}" width="${r3(8 * px)}" height="${r3(8 * px)}" fill="#fff" stroke="${SEL}" stroke-width="${r3(px * 1.6)}"><title>${t('label.wrapHandleTip')}</title></rect>`;
       }
       if (id[0] === 'm') return `<circle class="handle handle-mid" data-handle="${id}" cx="${r3(p[0])}" cy="${r3(p[1])}" r="${r3(3 * px)}" fill="${SEL}" fill-opacity="0.35" stroke="${SEL}" stroke-width="${r3(px)}"/>`;
       if (id[0] === 'p') return `<rect class="handle handle-pt" data-handle="${id}" x="${r3(p[0] - 4.5 * px)}" y="${r3(p[1] - 4.5 * px)}" width="${r3(9 * px)}" height="${r3(9 * px)}" fill="#fff" stroke="${SEL}" stroke-width="${r3(px * 1.6)}"/>`;
@@ -547,9 +594,30 @@ export class DrawingView {
     const rotate = this.mode === 'axon' ? h('div.tool-group',
       h('button.tool', { title: t('drawing.rotateLeft'), html: icon('rotateLeft', 17), onclick: () => this.s.commands.rotateView(-1) }),
       h('button.tool', { title: t('drawing.rotateRight'), html: icon('rotateRight', 17), onclick: () => this.s.commands.rotateView(1) })) : null;
-    setChildren(this.toolbar, tools, options ? h('span.sep') : null, options, level ? h('span.sep') : null, level,
+    // platforms and slopes that touch drawn as one terrain (a setting of the project, kept in the file)
+    const joined = toggleSwitch(t('site.joined'), doc.project.site.joined,
+      (v) => this.s.commands.setProject((p) => { p.site.joined = v; }, 'site.join'), { 'data-key': 'siteJoined', title: t('site.joinedTip') });
+    joined.classList.add('toolbar-switch');
+    setChildren(this.toolbar, tools, options ? h('span.sep') : null, options, h('span.sep'), joined, level ? h('span.sep') : null, level,
       h('span.sep'), history, h('span.sep'), h('div.tool-group', cuts, mesh), rotate ? h('span.sep') : null, rotate,
       h('span.grow'));
+    this.#fitToolbar();
+  }
+
+  /**
+   * When the toolbar is too narrow for everything, the switches show without their words (the tooltip says
+   * them), so that no button is cut off and the toolbar keeps its one line (the drawing does not jump).
+   */
+  #fitToolbar() {
+    const tb = this.toolbar;
+    if (!tb.isConnected) return;
+    tb.classList.remove('compact');
+    if (tb.scrollWidth > tb.clientWidth + 1) tb.classList.add('compact');
+    if (!this.toolbarWatch) {
+      let last = tb.clientWidth;
+      this.toolbarWatch = new ResizeObserver(() => { if (Math.abs(tb.clientWidth - last) > 2) { last = tb.clientWidth; this.#fitToolbar(); } });
+      this.toolbarWatch.observe(tb);
+    }
   }
 
   /** Elevation: select or new plane, the side it is seen from, undo, the active plane. */
@@ -736,6 +804,11 @@ export class DrawingView {
       const target = document.elementFromPoint(e.clientX, e.clientY) || e.target;
       const hd = target.closest?.('[data-handle]')?.dataset.handle;
       const one = this.doc.selected()[0];
+      if (hd?.startsWith('lw') && one?.type === 'label') {
+        // a double click on the side of the box: back to one line per line typed
+        this.doc.run('label.wrap', (_p, step) => { const o = step.objects.find((x) => x.id === one.id); if (o) o.wrap = null; });
+        return;
+      }
       if (hd && hd[0] === 'p' && one && isPoly(one) && one.pts.length > 3) {
         // a double click on a corner takes it out
         const world = polyWorld(one).filter((_, i) => i !== Number(hd.slice(1)));
@@ -878,7 +951,8 @@ export class DrawingView {
     const rects = texts.map((x) => x.getBoundingClientRect());
     const left = Math.min(...rects.map((r) => r.left)), right = Math.max(...rects.map((r) => r.right));
     const top = Math.min(...rects.map((r) => r.top)), bottom = Math.max(...rects.map((r) => r.bottom));
-    const lines = Math.max(1, String(o.text || '').split('\n').length);
+    // the lines as drawn (a text with a width breaks into more lines than were typed)
+    const lines = Math.max(1, texts[0].querySelectorAll('tspan').length || String(o.text || '').split('\n').length);
     const fontPx = Math.max(11, Math.min(40, ((bottom - top) / lines) * 0.78));
     let done = false;
     const close = (apply) => {
@@ -908,7 +982,7 @@ export class DrawingView {
       onpointerdown: (e) => e.stopPropagation(),
     });
     area.value = o.text || '';
-    this.labelBox = h('div.label-box', { style: { left: `${Math.round(left - wrap.left - 7)}px`, top: `${Math.round(top - wrap.top - 5)}px`, minWidth: `${Math.round(right - left + 30)}px` } }, area);
+    this.labelBox = h('div.label-box', { style: { left: `${Math.round(left - wrap.left - 7)}px`, top: `${Math.round(top - wrap.top - 5)}px`, minWidth: `${Math.round(right - left + 30)}px`, ...(o.wrap ? { width: `${Math.round(right - left + 30)}px` } : {}) } }, area);
     this.closeLabel = close;
     this.wrap.append(this.labelBox);
     // the double click that opened the box may still take the focus away: take it back once
@@ -1063,6 +1137,14 @@ export class DrawingView {
       kind: 'handle', handle, zp, g0, y0: this.toDrawing(e)[1], start: structuredClone(o),
       a0: Math.atan2(g0[1] - o.y, g0[0] - o.x), group: handle === 'rot' ? this.#withStacked() : null,
     };
+    if (handle.startsWith('lw') && o.type === 'label') {
+      // the width is pulled on the text as drawn; the renderer breaks lines on its estimate of a letter's
+      // width, so the measured box gives the factor between the two (the edge stays under the mouse)
+      const b = this.#labelBox(o, 0);
+      const est = labelTextBox(o).w - o.size * 0.4;
+      this.drag.from = o.dx >= 0 ? b[0] : b[2];
+      this.drag.k = est > 0 && b[2] - b[0] > 0 ? est / (b[2] - b[0]) : 1;
+    }
     this.doc.begin(handle === 'rot' ? 'object.rotate' : 'object.resize');
   }
 
@@ -1246,6 +1328,12 @@ export class DrawingView {
         const z = this.levelZ(s0.level) + s0.z;
         const p = this.#ground(e, z).map((v) => this.#snap(v, e));
         if (H === 'a1') { o.x1 = r3(p[0]); o.y1 = r3(p[1]); } else { o.x2 = r3(p[0]); o.y2 = r3(p[1]); }
+      } else if (H.startsWith('lw')) {
+        // the text breaks at the width pulled to (never narrower than two letters)
+        const [X] = this.toDrawing(e);
+        const width = (s0.dx >= 0 ? X - d.from : d.from - X) - 5 / this.cam.scale;
+        o.wrap = r3(Math.max(s0.size * 2, width * (d.k || 1)));
+        this.badge.textContent = `${t('label.wrap')}: ${formatNumber(o.wrap)} m`;
       } else if (H === 'lt') {
         const [X, Y] = this.toDrawing(e);
         const [ax, ay] = project(this.view, [s0.x, s0.y, this.levelZ(s0.level) + s0.z]);

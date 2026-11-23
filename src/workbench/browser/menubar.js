@@ -48,6 +48,12 @@ export function buildMenus(s) {
         { label: 'SVG', run: () => cmd.exportStep('svg') },
         { label: 'PNG', run: () => cmd.exportStep('png') },
       ] },
+      { label: t('menu.exportAllSteps'), items: [
+        { label: 'PNG', run: () => cmd.exportAllSteps(['png']) },
+        { label: 'SVG', run: () => cmd.exportAllSteps(['svg']) },
+        { label: 'PDF', run: () => cmd.exportAllSteps(['pdf']) },
+        { label: t('menu.exportAllFormats'), run: () => cmd.exportAllSteps(['png', 'svg', 'pdf']) },
+      ] },
       { label: t('gif.export') + '…', run: () => cmd.exportGif() },
       SEP,
       { label: t('menu.closeTab'), key: 'Ctrl+W', run: () => cmd.closeTab() },
@@ -118,6 +124,7 @@ export function buildMenus(s) {
     ] },
     { id: 'step', label: t('menu.step'), items: [
       { label: t('steps.addLong'), run: () => cmd.addStep() },
+      { label: t('steps.duplicate'), key: 'Ctrl+Shift+D', run: () => cmd.duplicateStep() },
       { label: t('steps.prev'), key: 'PgUp', run: () => doc.setStep(doc.stepIndex - 1), disabled: () => doc.stepIndex === 0 },
       { label: t('steps.next'), key: 'PgDn', run: () => doc.setStep(doc.stepIndex + 1), disabled: () => doc.stepIndex >= doc.project.steps.length - 1 },
       SEP,

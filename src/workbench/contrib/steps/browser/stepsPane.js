@@ -9,6 +9,7 @@
 import { h, setChildren } from '../../../../base/browser/dom.js';
 import { icon } from '../../../../base/browser/icons.js';
 import { t } from '../../../../base/common/nls.js';
+import { showContextMenu } from '../../../browser/contextMenu.js';
 import { stepSvg, stepViews } from '../../../services/render/common/renderer.js';
 import { meters } from '../../../services/export/browser/exportService.js';
 
@@ -68,6 +69,16 @@ export class StepsPane {
           card.classList.add(this.dragFrom < i ? 'drop-after' : 'drop-before');
         },
         ondragleave: () => card.classList.remove('drop-before', 'drop-after'),
+        oncontextmenu: (e) => {
+          e.preventDefault();
+          showContextMenu(e.clientX, e.clientY, [
+            { label: t('steps.duplicate'), run: () => this.s.commands.duplicateStep(i) },
+            { label: t('steps.up'), disabled: i === 0, run: () => doc.moveStep(i, i - 1) },
+            { label: t('steps.down'), disabled: i === steps.length - 1, run: () => doc.moveStep(i, i + 1) },
+            { sep: true },
+            { label: t('steps.remove') + '…', danger: true, disabled: steps.length <= 1, run: () => this.s.commands.removeStep(i) },
+          ]);
+        },
         ondrop: (e) => { e.preventDefault(); const from = this.dragFrom; this.dragFrom = null; if (from != null && from !== i) doc.moveStep(from, i); },
         'aria-label': `${t('sheet.step')} ${n} ${step.title}`,
         onclick: () => doc.setStep(i),
@@ -81,6 +92,7 @@ export class StepsPane {
         h('span.step-actions',
           h('button.icon-button', { title: t('steps.up'), disabled: i === 0, html: icon('up', 14), onclick: (e) => { e.stopPropagation(); doc.moveStep(i, i - 1); } }),
           h('button.icon-button', { title: t('steps.down'), disabled: i === steps.length - 1, html: icon('down', 14), onclick: (e) => { e.stopPropagation(); doc.moveStep(i, i + 1); } }),
+          h('button.icon-button', { 'data-action': 'duplicate-step', title: t('steps.duplicate') + ' (Ctrl+Shift+D)', 'aria-label': t('steps.duplicate'), html: icon('duplicate', 14), onclick: (e) => { e.stopPropagation(); this.s.commands.duplicateStep(i); } }),
           h('button.icon-button.danger', { title: t('steps.remove'), disabled: steps.length <= 1, html: icon('trash', 14), onclick: (e) => { e.stopPropagation(); this.s.commands.removeStep(i); } }))));
       return card;
     }));

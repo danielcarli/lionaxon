@@ -365,3 +365,60 @@ export function openingShape(o, v, base) {
   const lines = o.kind === 'window' ? [[at(0, 0), at(0, o.h)], [at(-w / 2, o.h / 2), at(w / 2, o.h / 2)]] : [];
   return { pts, n, lines };
 }
+
+/**
+ * The top of what stands under a point (x, y) for someone whose feet are at `z`: the highest of the
+ * platforms, slopes and volumes there that start at or below the feet (so a block raised on pilotis does
+ * not count, and neither does a courtyard cut through a volume). A person or a tree stands on it: never
+ * lower than `z`. `levels` gives the elevations; `baseOfVolume` the base of a volume (stacks).
+ */
+export function restingHeight(objects, levels, x, y, z, baseOfVolume, elevationOf) {
+  const FEET = 0.05;
+  let top = z;
+  // inside, and not just on its edge (someone standing beside a block, against its wall, stays on the ground)
+  const inside = (ring) => pointInRingXY(x, y, ring) && edgeDistance(x, y, ring) > 0.15;
+  for (const o of objects) {
+    if (o.hidden) continue;
+    if (o.type === 'platform') {
+      const e = elevationOf(levels, o.level) + (o.z || 0);
+      if (e > top && inside(rectRing(o.x, o.y, o.w, o.d, o.rot))) top = e;
+    } else if (o.type === 'slope') {
+      if (!inside(rectRing(o.x, o.y, o.w, o.d, o.rot))) continue;
+      const zA = elevationOf(levels, o.from) + (o.zFrom || 0), zB = elevationOf(levels, o.to) + (o.zTo || 0);
+      const a = ((o.rot || 0) * Math.PI) / 180;
+      const ly = -(x - o.x) * Math.sin(a) + (y - o.y) * Math.cos(a);
+      const e = zA + (zB - zA) * Math.min(1, Math.max(0, (ly + o.d / 2) / o.d));
+      if (e > top) top = e;
+    } else if (o.type === 'volume') {
+      if (o.state === 'ghost' || o.shape === 'sphere' || o.shape === 'cone' || o.shape === 'pyramid') continue;
+      const base = baseOfVolume(o);
+      const e = base + o.h;
+      if (base > z + FEET || e <= top || !inside(footprintOf(o))) continue;
+      // a cut through the top there (a courtyard, a notch): not a place to stand on
+      const holed = objects.some((c) => c.type === 'cut' && (!c.target || c.target === o.id) && !c.hidden
+        && (elevationOf(levels, c.level) + (c.z || 0)) + c.h >= e - 0.01 && inside(footprintOf(c)));
+      if (!holed) top = e;
+    }
+  }
+  return top;
+}
+
+function pointInRingXY(x, y, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i], [xj, yj] = ring[j];
+    if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+
+function edgeDistance(x, y, ring) {
+  let best = Infinity;
+  for (let i = 0; i < ring.length; i++) {
+    const [ax, ay] = ring[i], [bx, by] = ring[(i + 1) % ring.length];
+    const dx = bx - ax, dy = by - ay, L = dx * dx + dy * dy;
+    const t = L ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / L)) : 0;
+    best = Math.min(best, Math.hypot(x - ax - t * dx, y - ay - t * dy));
+  }
+  return best;
+}

@@ -7,8 +7,9 @@
 import { h, setChildren } from '../../../../base/browser/dom.js';
 import { icon } from '../../../../base/browser/icons.js';
 import { t } from '../../../../base/common/nls.js';
-import { numField, segmented, selectField, checkbox, textField, row, section } from '../../../browser/widgets.js';
+import { toggleSwitch, numField, segmented, selectField, checkbox, textField, row, section } from '../../../browser/widgets.js';
 import { PAPERS, SHEET_SCALES } from '../../../services/model/common/model.js';
+import { parseStepRange, formatStepRange } from '../../../services/export/common/stepRange.js';
 
 export class SheetPane {
   constructor(services) {
@@ -20,6 +21,40 @@ export class SheetPane {
     this.element = h('div.pane', { 'data-pane': 'sheet' }, h('div.pane-header', h('span.grow', t('activity.sheet'))), this.body);
     this.doc.onDidChange((e) => { if (!e.live && e.kind !== 'selection') this.render(); });
     this.render();
+  }
+
+  /**
+   * Export some steps: a field for which ones ("7", "3-7", "1, 4, 6-8", empty for the step shown), each
+   * drawing in a file of its own or a sheet of just those steps, in PDF, SVG or PNG.
+   */
+  #stepsSection() {
+    const count = this.doc.project.steps.length;
+    const current = this.doc.stepIndex;
+    const hint = h('p.pane-hint', { 'data-steps-hint': '' });
+    const update = () => {
+      const { indexes, error } = parseStepRange(field.value, count, current);
+      hint.classList.toggle('warn', error != null);
+      field.classList.toggle('invalid', error != null);
+      if (error != null) { hint.textContent = t('export.stepsInvalid', { part: error, n: count }); return; }
+      const list = formatStepRange(indexes);
+      hint.textContent = this.stepsMode === 'sheet' ? t('sheet.stepsHintSheet', { list })
+        : indexes.length === 1 ? t('sheet.exportStepHint', { n: String(indexes[0] + 1).padStart(2, '0') })
+          : t('sheet.stepsHintFiles', { list, n: indexes.length });
+    };
+    const field = h('input.input', {
+      type: 'text', value: this.stepsText || '', 'data-key': 'exportSteps', spellcheck: 'false',
+      placeholder: t('sheet.stepsPlaceholder', { n: current + 1 }),
+      oninput: () => { this.stepsText = field.value; update(); },
+      onkeydown: (e) => { if (e.key === 'Enter') field.blur(); e.stopPropagation(); },
+    });
+    const go = (kind) => this.cmd.exportStepRange(field.value, { mode: this.stepsMode || 'files', kind, dpi: this.dpi });
+    const btn = (kind, label) => h('button.btn.btn-secondary.btn-sm', { 'data-export-steps': kind, onclick: () => go(kind) }, h('span', { html: icon('download', 14) }), label);
+    update();
+    return section(t('sheet.exportSteps'), h('div.form',
+      row(t('sheet.stepsField'), field),
+      segmented([['files', t('sheet.stepsFiles')], ['sheet', t('sheet.stepsSheet')]], this.stepsMode || 'files', (v) => { this.stepsMode = v; update(); }, { title: t('sheet.exportSteps') }),
+      h('div.btn-row', btn('pdf', 'PDF'), btn('svg', 'SVG'), btn('png', 'PNG')),
+      hint));
   }
 
   /** What the chosen scale gives: the scale on "auto", the number of pages, or that it does not fit. */
@@ -36,11 +71,21 @@ export class SheetPane {
   }
 
   render() {
-    if (this.element.contains(document.activeElement) && document.activeElement !== document.body) {
-      clearTimeout(this.retry);
+    clearTimeout(this.retry);
+    // only a field being typed in holds the pane back (it is redrawn when the field is left); a button, a
+    // switch or a list keeps the focus and is redrawn at once, so the pane always shows what was picked
+    const active = document.activeElement;
+    if (this.element.contains(active) && active.matches('input:not([type=checkbox]), textarea')) {
       this.retry = setTimeout(() => this.render(), 400);
       return;
     }
+    const focusables = () => [...this.body.querySelectorAll('button, select, input, textarea')];
+    const focused = this.element.contains(active) ? focusables().indexOf(active) : -1;
+    this.#build();
+    if (focused >= 0) focusables()[focused]?.focus({ preventScroll: true });
+  }
+
+  #build() {
     const sh = this.doc.project.sheet;
     const set = (fn) => this.cmd.setProject((p) => fn(p.sheet), 'sheet.set');
     const exp = (kind, label) => h('button.btn.btn-secondary.btn-sm', { 'data-export': kind, onclick: () => this.cmd.exportSheet(kind, { dpi: this.dpi }) }, h('span', { html: icon('download', 14) }), label);
@@ -50,7 +95,8 @@ export class SheetPane {
         h('label.form-label', t('sheet.subtitle')), textField(sh.subtitle, (v) => set((s) => { s.subtitle = v; }), { placeholder: t('sheet.subtitlePlaceholder'), key: 'sheetSubtitle' }),
         checkbox(t('sheet.showLegend'), sh.legend, (v) => set((s) => { s.legend = v; })),
         sh.legend ? row(t('sheet.legendPlace'), segmented([['top', t('sheet.legendTop')], ['bottom', t('sheet.legendBottom')]], sh.legendPlace || 'top', (v) => set((s) => { s.legendPlace = v; }), { title: t('sheet.legendPlace') })) : null,
-        checkbox(t('sheet.showTexts'), sh.texts, (v) => set((s) => { s.texts = v; })))),
+        checkbox(t('sheet.showTexts'), sh.texts, (v) => set((s) => { s.texts = v; })),
+        toggleSwitch(t('sheet.terrainGrid'), sh.terrainGrid, (v) => set((s) => { s.terrainGrid = v; }), { 'data-key': 'terrainGrid', title: t('sheet.terrainGridTip') }))),
       // free blocks of text in a column on the right of the sheet
       section(t('sheet.blocks'), h('div.form',
         (sh.blocks || []).map((b, i) => h('div.sheet-block', { 'data-block': String(i) },
@@ -66,9 +112,7 @@ export class SheetPane {
           (v) => set((s) => { s.layout = v; if (v === 'vertical') s.orientation = 'portrait'; })),
         sh.layout === 'grid' ? row(t('sheet.cols'), numField({ value: sh.cols, unit: '', step: 1, min: 1, max: 8, digits: 0, onCommit: (v) => set((s) => { s.cols = Math.round(v); }) })) : null,
         row(t('sheet.paper'), selectField(Object.keys(PAPERS).map((k) => [k, `${k} · ${PAPERS[k][0]} × ${PAPERS[k][1]} mm`]), sh.paper, (v) => set((s) => { s.paper = v; }), { 'data-key': 'paper' })),
-        segmented([['landscape', t('sheet.landscape')], ['portrait', t('sheet.portrait')]], sh.orientation, (v) => set((s) => { s.orientation = v; })),
-        h('button.btn.btn-secondary.btn-sm', { 'data-preset': 'a4-vertical', title: t('sheet.presetA4Tip'), onclick: () => set((s) => { s.layout = 'vertical'; s.paper = 'A4'; s.orientation = 'portrait'; }) },
-          h('span', { html: icon('sheet', 14) }), t('sheet.presetA4')))),
+        segmented([['landscape', t('sheet.landscape')], ['portrait', t('sheet.portrait')]], sh.orientation, (v) => set((s) => { s.orientation = v; })))),
       section(t('sheet.scale'), h('div.form',
         selectField(SHEET_SCALES.map((d) => [d, d ? `1:${d}` : t('sheet.scaleAuto')]), sh.scale, (v) => set((s) => { s.scale = Number(v); }), { 'data-key': 'scale' }),
         this.#scaleHint())),
@@ -79,28 +123,48 @@ export class SheetPane {
       section(t('gif.title'), h('div.form',
         h('button.btn.btn-secondary.btn-sm.btn-block', { 'data-action': 'gif', onclick: () => this.cmd.exportGif() }, h('span', { html: icon('film', 14) }), t('gif.export')),
         h('p.pane-hint', t('gif.hint')))),
-      section(t('sheet.exportStep'), h('div.form',
-        h('div.btn-row',
-          h('button.btn.btn-secondary.btn-sm', { onclick: () => this.cmd.exportStep('svg') }, h('span', { html: icon('download', 14) }), 'SVG'),
-          h('button.btn.btn-secondary.btn-sm', { onclick: () => this.cmd.exportStep('png') }, h('span', { html: icon('download', 14) }), 'PNG')),
-        h('p.pane-hint', t('sheet.exportStepHint', { n: String(this.doc.stepIndex + 1).padStart(2, '0') })))),
+      this.#stepsSection(),
     );
   }
 }
 
+/**
+ * The preview of the sheet: the pages one under the other, navigated like the drawing — the wheel zooms where
+ * the mouse is, the middle or right button (or Space, or the left button on the paper) drags it around,
+ * F / Ctrl+0 frames the page, Ctrl+ / Ctrl− zoom, and ← → (or the buttons in the corner) go from page to page.
+ */
 export class SheetView {
+  static GAP = 24; // px between pages
+
   constructor(services) {
     this.s = services;
     this.doc = services.document;
+    this.cam = null;   // { k: px per mm, x, y: where the top left of the first page is } — null: framed
+    this.page = 0;     // the page in view
     this.paper = h('div.sheet-paper');
-    this.wrap = h('div.sheet-wrap', this.paper);
+    this.zoomLabel = h('button.zoom-label', { title: t('zoom.reset'), 'data-zoom': 'label', onclick: () => this.fit() }, '100%');
+    this.pageLabel = h('span.sheet-page-label', { 'data-page-label': '' });
+    this.pager = h('div.zoom-box.sheet-pager', { role: 'group', 'aria-label': t('sheet.pages') },
+      h('button.icon-button', { title: `${t('sheet.pagePrev')} (←)`, 'data-page-nav': 'prev', html: icon('prev', 14), onclick: () => this.goPage(this.page - 1) }),
+      this.pageLabel,
+      h('button.icon-button', { title: `${t('sheet.pageNext')} (→)`, 'data-page-nav': 'next', html: icon('next', 14), onclick: () => this.goPage(this.page + 1) }));
+    this.wrap = h('div.sheet-wrap', { tabindex: '-1' }, this.paper,
+      h('div.canvas-corner',
+        this.pager,
+        h('div.zoom-box', { role: 'group', 'aria-label': t('zoom.title') },
+          h('button.icon-button', { title: t('zoom.out') + ' (Ctrl+−)', 'data-zoom': 'out', html: icon('minus', 14), onclick: () => this.zoomBy(1 / 1.25) }),
+          this.zoomLabel,
+          h('button.icon-button', { title: t('zoom.in') + ' (Ctrl++)', 'data-zoom': 'in', html: icon('plus', 14), onclick: () => this.zoomBy(1.25) })),
+        h('button.icon-button', { title: t('sheet.fitPage') + ' (F)', 'data-zoom': 'fit', html: icon('fit', 16), onclick: () => this.fit() })));
     this.element = h('div.editor-view', { 'data-view': 'sheet' }, this.wrap);
     this.doc.onDidChange((e) => { if (e.kind !== 'selection' && e.kind !== 'file') this.#schedule(e.live ? 300 : 60); });
     services.layout.onDidChange((w) => { if (w === 'tab' && this.visible) this.render(); });
-    new ResizeObserver(() => { if (this.visible) this.#fitPaper(); }).observe(this.wrap);
+    new ResizeObserver(() => { if (this.visible) this.#place(); }).observe(this.wrap);
+    this.#bindPointer();
   }
 
   get visible() { return this.s.layout.tab === 'sheet'; }
+  get pages() { return this.paper.children.length; }
 
   #schedule(ms) {
     if (!this.visible) return;
@@ -111,24 +175,125 @@ export class SheetView {
   render() {
     if (!this.visible) return;
     const { pages, width, height } = this.s.export.sheet();
+    const changed = !this.size || this.size[0] !== width || this.size[1] !== height || pages.length !== this.pages;
     this.size = [width, height];
-    // every page of the sheet, one under the other (the first is the whole sheet when it fits one page)
+    // every page of the sheet, one under the other
     setChildren(this.paper, pages.map((svg, i) => {
       const page = h('div.sheet-page', { 'data-page': String(i + 1) });
       page.innerHTML = svg;
       return page;
     }));
     this.paper.classList.toggle('multi', pages.length > 1);
-    this.#fitPaper();
+    // another paper, another orientation or another number of pages: framed again
+    if (changed) { this.cam = null; this.page = Math.min(this.page, pages.length - 1); }
+    this.#place();
   }
 
-  #fitPaper() {
-    if (!this.size) return;
+  /** The scale (px per mm) that shows a whole page. */
+  #fitK() {
     const W = this.wrap.clientWidth - 56, H = this.wrap.clientHeight - 56;
-    const k = Math.min(W / this.size[0], H / this.size[1]);
-    for (const page of this.paper.children) {
-      page.style.width = `${Math.max(100, this.size[0] * k)}px`;
-      page.style.height = `${Math.max(70, this.size[1] * k)}px`;
+    return Math.max(0.05, Math.min(W / this.size[0], H / this.size[1]));
+  }
+
+  /** The camera that frames page `i` at scale k (the page centred; a page taller than the view from its top). */
+  #frame(i, k) {
+    const vw = this.wrap.clientWidth, vh = this.wrap.clientHeight;
+    const pw = this.size[0] * k, ph = this.size[1] * k;
+    return { k, x: (vw - pw) / 2, y: (ph <= vh - 56 ? (vh - ph) / 2 : 28) - i * (ph + SheetView.GAP) };
+  }
+
+  #place() {
+    if (!this.size || !this.wrap.clientWidth) return;
+    const cam = this.cam || this.#frame(this.page, this.#fitK());
+    const pw = this.size[0] * cam.k, ph = this.size[1] * cam.k;
+    for (const page of this.paper.children) { page.style.width = `${pw}px`; page.style.height = `${ph}px`; }
+    this.paper.style.gap = `${SheetView.GAP}px`;
+    this.paper.style.transform = `translate(${cam.x}px, ${cam.y}px)`;
+    this.zoomLabel.textContent = `${Math.round((cam.k / this.#fitK()) * 100)}%`;
+    // the page in view: the one whose middle is nearest the middle of the view
+    const n = this.pages;
+    if (this.cam && n) {
+      const mid = this.wrap.clientHeight / 2 - cam.y;
+      this.page = Math.max(0, Math.min(n - 1, Math.round((mid - ph / 2) / (ph + SheetView.GAP))));
     }
+    this.pager.hidden = n < 2;
+    this.pageLabel.textContent = `${this.page + 1} / ${n}`;
+    this.pager.querySelector('[data-page-nav=prev]').disabled = this.page <= 0;
+    this.pager.querySelector('[data-page-nav=next]').disabled = this.page >= n - 1;
+  }
+
+  /** Frames the page in view (the whole page fits). */
+  fit() { this.cam = null; this.#place(); }
+
+  /** Goes to page `i`, keeping the zoom (framed when the view was framed). */
+  goPage(i) {
+    const n = this.pages;
+    if (!n) return;
+    this.page = Math.max(0, Math.min(n - 1, i));
+    if (this.cam) this.cam = this.#frame(this.page, this.cam.k);
+    this.#place();
+  }
+
+  zoomBy(f) { this.zoomAt(f, this.wrap.clientWidth / 2, this.wrap.clientHeight / 2); }
+
+  /** Zooms by `f` keeping the point (cx, cy) of the view (px) where it is. */
+  zoomAt(f, cx, cy) {
+    if (!this.size) return;
+    const cam = this.cam || this.#frame(this.page, this.#fitK());
+    const fit = this.#fitK();
+    const k = Math.max(fit * 0.2, Math.min(fit * 40, cam.k * f));
+    this.cam = { k, x: cx - ((cx - cam.x) * k) / cam.k, y: cy - ((cy - cam.y) * k) / cam.k };
+    this.#place();
+  }
+
+  panBy(dx, dy) {
+    const cam = this.cam || this.#frame(this.page, this.#fitK());
+    this.cam = { ...cam, x: cam.x + dx, y: cam.y + dy };
+    this.#place();
+  }
+
+  /** Keys while the sheet is shown (nothing being typed): F frames, ← → go from page to page. */
+  key(e) {
+    const key = e.key.toLowerCase();
+    if (key === 'f') { e.preventDefault(); this.fit(); return true; }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); this.goPage(this.page - 1); return true; }
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); this.goPage(this.page + 1); return true; }
+    if (e.key === 'Home') { e.preventDefault(); this.goPage(0); return true; }
+    if (e.key === 'End') { e.preventDefault(); this.goPage(this.pages - 1); return true; }
+    return false;
+  }
+
+  #bindPointer() {
+    const wrap = this.wrap;
+    const at = (e) => { const r = wrap.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+    wrap.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const [x, y] = at(e);
+      this.zoomAt(Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.0015)), x, y);
+    }, { passive: false });
+    let drag = null, lastMiddle = 0;
+    wrap.addEventListener('pointerdown', (e) => {
+      if (e.target.closest('.canvas-corner')) return;
+      if (e.button === 1) {
+        // a double click of the middle button frames the page, as in the 3D viewer
+        if (performance.now() - lastMiddle < 380) { lastMiddle = 0; e.preventDefault(); this.fit(); return; }
+        lastMiddle = performance.now();
+      }
+      if (e.button > 2) return;
+      e.preventDefault();
+      drag = { id: e.pointerId, x: e.clientX, y: e.clientY };
+      wrap.setPointerCapture(e.pointerId);
+      wrap.classList.add('panning');
+    });
+    wrap.addEventListener('pointermove', (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      this.panBy(e.clientX - drag.x, e.clientY - drag.y);
+      drag.x = e.clientX; drag.y = e.clientY;
+    });
+    const end = (e) => { if (!drag || e.pointerId !== drag.id) return; drag = null; wrap.classList.remove('panning'); };
+    wrap.addEventListener('pointerup', end);
+    wrap.addEventListener('pointercancel', end);
+    wrap.addEventListener('contextmenu', (e) => e.preventDefault());
+    wrap.addEventListener('dblclick', (e) => { if (!e.target.closest('.canvas-corner')) this.fit(); });
   }
 }

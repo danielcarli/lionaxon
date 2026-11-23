@@ -36,8 +36,20 @@ export function orientPolygon(poly) {
   });
 }
 
-const close = (ring) => [...ring.map(([x, y]) => [q(x), q(y)]), [q(ring[0][0]), q(ring[0][1])]];
-const toPc = (poly) => poly.map(close);
+const close = (ring, k = Q) => { const r = (v) => Math.round(v * k) / k; return [...ring.map(([x, y]) => [r(x), r(y)]), [r(ring[0][0]), r(ring[0][1])]]; };
+const toPc = (poly, k = Q) => poly.map((ring) => close(ring, k));
+
+/**
+ * A boolean operation of polygon-clipping that does not give up: its sweep line can fail on points a hair
+ * apart (real building models have them), so it is tried again on a coarser grid (1 cm, then 5 cm) before
+ * `fallback` is taken.
+ */
+function robust(op, mps, fallback) {
+  for (const k of [Q, 100, 20]) {
+    try { return fromPc(pc[op](...mps.map((m) => m.map((poly) => toPc(poly, k))))); } catch { /* a coarser grid */ }
+  }
+  return fallback();
+}
 const fromPc = (mp) => mp
   .map((poly) => poly.map((ring) => ring.slice(0, -1)).filter((r) => r.length >= 3))
   .filter((poly) => poly.length && Math.abs(signedArea(poly[0])) > 1e-6)
@@ -47,19 +59,18 @@ const fromPc = (mp) => mp
 export function difference(subject, clips) {
   if (!subject.length) return [];
   if (!clips.length) return subject.map(orientPolygon);
-  return fromPc(pc.difference(subject.map(toPc), ...clips.map((m) => m.map(toPc))));
+  return robust('difference', [subject, ...clips], () => subject.map(orientPolygon));
 }
 
 export function union(...mps) {
   const list = mps.filter((m) => m.length);
   if (!list.length) return [];
-  if (list.length === 1) return fromPc(pc.union(list[0].map(toPc)));
-  return fromPc(pc.union(...list.map((m) => m.map(toPc))));
+  return robust('union', list, () => list.flat().map(orientPolygon));
 }
 
 export function intersection(a, b) {
   if (!a.length || !b.length) return [];
-  return fromPc(pc.intersection(a.map(toPc), b.map(toPc)));
+  return robust('intersection', [a, b], () => []);
 }
 
 export function multiArea(mp) {

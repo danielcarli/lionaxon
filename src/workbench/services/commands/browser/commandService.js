@@ -6,9 +6,10 @@
 // Named commands: every action of the interface that changes the project or the files, in one place.
 // Toolbar buttons, keyboard shortcuts, the panes and the tests all call these, so the list is also the
 // base for a command palette and for agents later.
+import { parseStepRange } from '../../export/common/stepRange.js';
 import { t } from '../../../../base/common/nls.js';
 import { newId, clone, createCategory } from './commandHelpers.js';
-import { GROUND_LEVEL, stepAngles, normalizeAngle, MAX_VIEWS, EXTRA_KEYS, baseOf, indexById, elevationOf, normalizeObject, createOpening, isLine, polyFromWorld, polyWorld } from '../../model/common/model.js';
+import { normalizeProject, GROUND_LEVEL, stepAngles, normalizeAngle, MAX_VIEWS, EXTRA_KEYS, baseOf, indexById, elevationOf, normalizeObject, createOpening, isLine, polyFromWorld, polyWorld } from '../../model/common/model.js';
 import { rectRing } from '../../../../base/common/geometry/polygon.js';
 
 const CATEGORY_COLORS = ['#e59aa6', '#8fa9cc', '#8aa346', '#e8b464', '#a68bc9', '#6fb3a8', '#d98a6c', '#9a948c'];
@@ -350,6 +351,7 @@ export class CommandService {
   }
 
   addStep() { this.doc.addStep(); }
+  duplicateStep(i = this.doc.stepIndex) { return this.doc.duplicateStep(i); }
 
   // ---- the angles a step is seen from on the sheet (set in the 3D viewer)
 
@@ -599,7 +601,29 @@ export class CommandService {
   }
 
   async exportSheet(kind, opts) { return this.#exported(await this.s.export.exportSheet(kind, opts).catch((e) => ({ ok: false, error: String(e.message || e) }))); }
-  async exportStep(kind) { return this.#exported(await this.s.export.exportStep(kind).catch((e) => ({ ok: false, error: String(e.message || e) }))); }
+  async exportStep(kind, index) { return this.#exported(await this.s.export.exportStep(kind, index ?? this.doc.stepIndex).catch((e) => ({ ok: false, error: String(e.message || e) }))); }
+
+  /**
+   * The steps written in the sheet pane ("7", "3-7", "1, 4, 6-8", empty for the step shown): each drawing in a
+   * file of its own (`mode` 'files'), or a sheet of just those steps ('sheet').
+   */
+  async exportStepRange(text, { mode = 'files', kind = 'png', dpi = 200 } = {}) {
+    const count = this.doc.project.steps.length;
+    const { indexes, error } = parseStepRange(text, count, this.doc.stepIndex);
+    if (error != null) { this.s.notifications.warn(t('export.stepsInvalid', { part: error, n: count })); return null; }
+    if (mode === 'sheet') return this.exportSheet(kind, { dpi, steps: indexes });
+    if (indexes.length === 1) return this.exportStep(kind, indexes[0]);
+    return this.exportAllSteps([kind], { steps: indexes });
+  }
+
+  /** Every step (or `steps`) as files of its own (PNG, SVG, PDF or all three), in a folder chosen once. */
+  async exportAllSteps(kinds, opts = {}) {
+    const res = await this.s.export.exportAllSteps(kinds, opts).catch((e) => ({ ok: false, error: String(e.message || e) }));
+    if (!res) return null;
+    if (res.ok) this.s.notifications.info(t('export.stepsDone', { n: res.count, dir: res.dir }), 8000, { label: t('export.showFolder'), run: () => this.s.host.showExportFolder?.(res.dir) });
+    else this.s.notifications.warn(t('export.failed', { error: res.error || '' }));
+    return res;
+  }
 
   #exported(res) {
     if (!res) return null;
@@ -627,7 +651,7 @@ async function shrinkImage(dataUrl, max = 2200) {
   return { src: canvas.toDataURL('image/jpeg', 0.86), ratio: img.naturalHeight / img.naturalWidth };
 }
 /** Fields kept only when set, and the kinds of object that may have them. */
-const OPTIONAL = { color: ['volume'], roofColor: ['volume'], roofDir: ['volume'], z2: ['arrow'], note: ['label'], mark: ['label'], joints: ['area'] };
+const OPTIONAL = { color: ['volume'], roofColor: ['volume'], roofDir: ['volume'], z2: ['arrow'], note: ['label'], mark: ['label'], wrap: ['label'], joints: ['area'] };
 
 /** What was copied (shared by every open diagram). */
 let clipboard = null;

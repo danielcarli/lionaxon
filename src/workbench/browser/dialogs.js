@@ -8,6 +8,7 @@
 import { h, setChildren } from '../../base/browser/dom.js';
 import { icon } from '../../base/browser/icons.js';
 import { t, formatNumber } from '../../base/common/nls.js';
+import { segmented, checkbox } from './widgets.js';
 
 function modal(cls, content) {
   const close = () => { overlay.remove(); document.removeEventListener('keydown', onKey, true); };

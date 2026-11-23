@@ -362,7 +362,10 @@ export class PropertiesPanel {
         selectField(LABEL_FONT_IDS.map((id) => [id, LABEL_FONTS[id].name]), o.font, (v) => this.set({ font: v }), { 'data-key': 'font' }),
         h('div.font-sample', { style: { fontFamily: LABEL_FONTS[o.font]?.family, fontWeight: LABEL_FONTS[o.font]?.weight } }, o.caps ? (o.text || t('label.default')).split('\n')[0].toUpperCase() : (o.text || t('label.default')).split('\n')[0]),
         checkbox(t('label.caps'), o.caps, (v) => this.set({ caps: v })),
-        row(t('label.size'), numField({ value: o.size, unit: 'm', step: 0.1, min: 0.2, max: 20, onCommit: (v) => this.set({ size: v }) })))),
+        row(t('label.size'), numField({ value: o.size, unit: 'm', step: 0.1, min: 0.2, max: 20, onCommit: (v) => this.set({ size: v }) })),
+        // the width the text is broken to (0: one line per line typed); also by the handle at the side of the text
+        row(t('label.wrap'), numField({ value: o.wrap || 0, unit: 'm', step: 1, min: 0, max: 1000, key: 'wrap', title: t('label.wrapTip'), onCommit: (v) => this.set({ wrap: v > 0 ? Math.max(1, v) : null }) })),
+        h('p.pane-hint', t('label.wrapTip')))),
       section(t('label.anchor'), h('div.form-grid.three', this.#num('X', 'x', o), this.#num('Y', 'y', o), this.#num('Z', 'z', o, { step: 0.5, title: t('prop.zOnPlane') })),
         h('div.form', { style: { marginTop: '6px' } }, this.#levelRow(o))),
       section(t('label.offset'), h('div.form-grid', this.#num('dX', 'dx', o, { step: 1 }), this.#num('dY', 'dy', o, { step: 1 }))),

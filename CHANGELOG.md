@@ -2,6 +2,138 @@
 
 All notable changes to LionAxon are documented here. The project follows [Semantic Versioning](https://semver.org).
 
+## [0.17.0] — 2026-11-23
+
+### Added
+- **Export steps** in the *Sheet* pane (instead of "Export only the current step"): a field where you write which steps — `7`, `3-7`, `3 a 7`, `1, 4, 6-8`, `*` for all, empty for the step shown — and whether they come out as **separate files** (each step's drawing alone, in a file of its own: one step asks where to save it, several go into a folder, all in the same frame and scale) or as **one sheet** with just those steps, in the layout, paper and scale chosen in the pane. In PDF, SVG or PNG. The hint under it says what will come out, or how to write it when it cannot be read.
+- **The sheet preview is navigated like the drawing**: the wheel zooms where the mouse is; the middle or right button, Space or the left button drag the paper; F, Ctrl+0, a double click or the button in the corner frame the page; Ctrl+ and Ctrl− zoom; the zoom box in the corner as in the drawing. A sheet of several pages goes from page to page with the arrows in the corner or ← → (Home, End).
+- **The text box of a label is resized on the drawing**: the selected label shows a box hugging its text, lightly filled, its far side drawn heavier with a grip ↔ in the middle and handles at its corners. Pull the side, the grip or a corner in and the text breaks into lines; the side stays under the mouse. A double click on it puts the lines back as typed. The tooltip says so.
+
+### Changed
+- **Sheets use the paper better.** The captions under the drawings take the room their text needs, not a fixed height. When the drawings are held by the height (a column, a grid of wide cells, an upright paper), the captions go to the **left of the drawings** and the drawings grow — in a column on an upright A3, from about 38 mm wide to about 77 to 96 mm in the examples. The steps line up in columns, the drawings beside their captions, the block centred on the paper.
+- PDF of a single step's drawing (it was SVG and PNG only).
+
+### Removed
+- **File › Import from IFC…** and the IFC reader (web-ifc) are taken out: the import did not yet work with real models. It will come back, tested on real projects (and, later, Rev files).
+- The *Vertical evolution sheet on A4* button: the vertical layout already turns the paper upright, and A4 is chosen in the paper list.
+
+### Fixed
+- A button of the *Sheet* pane (layout, orientation, legend place) sometimes did not take the click. After a click the button kept the focus, and the pane waited for the focus to leave before showing the change: it still showed the old choice (and the old scale hint, "A4" with A1 chosen), and clicking that old choice did nothing, as it looked already picked. Now only a field being typed in holds the pane back, and a choice is compared with what the control shows.
+
+## [0.16.0] — 2026-11-23
+
+### Added
+- **File › Export all steps › PNG, SVG, PDF, or PNG, SVG and PDF**: every step of the evolution as an image of its own, in one go. The folder is chosen once; the files go into a folder of their own inside it, "<project> — steps", named by step number and title ("Step 01 Terreno.png"). All the images have the same frame and the same scale, so they line up one after the other in a presentation or a board. PNG at 2400 px, SVG in vectors, PDF in vectors on a page 297 mm wide. Exporting again replaces the files. The message at the end has a button that shows the folder.
+- **Terrain as grid** on the sheet — a switch in the *Sheet* pane: the terrain is drawn as in the editor, see-through, with the grid on its surfaces; the flat grid stays inside the site. It is in the exported sheet, in the images of the steps and in the GIF too.
+- **The width of a label**: a bar on the far side of the selected label's text; pull it in and the text — the title and the quieter line under it — breaks into lines by itself. The width is also a field in the properties (*Text width*; 0: one line per line typed). A label with a note or a width hangs under its first line, where the leader comes to, as a block of text.
+
+### Changed
+- When the toolbar of the drawing is too narrow, the *Join terrain* switch shows without its words (the tooltip says them), so the toolbar keeps one line and the drawing does not jump.
+
+## [0.15.1] — 2026-11-23
+
+### Changed
+- The **Join terrain** switch moved from *Project › Site* to the toolbar of the drawing (axonometric and plan), beside the tools, where it is at hand while drawing the terrain. One undo still turns it back.
+- The toolbar of the drawing goes on to a second line in a narrow window, instead of hiding its last buttons (the turns of the view).
+
+## [0.15.0] — 2026-11-23
+
+### Added
+- **Join terrain** — a switch in *Project › Site*, off by default: platforms and slopes that touch are drawn as one terrain. Faces of the ground in the same plane that touch become one (the line between two platforms at the same height goes, and so does the vertical line on a front that runs on), and the fold where a slope meets a plateau is not drawn; steps (a wall going down) stay. It changes only the drawing: the platforms and slopes stay separate objects, to be moved and edited as before.
+- **People and trees stand on what is under them**: on a plateau, half way up a slope, on the roof of a block. They never go below where they were put, and they do not climb onto a block raised on pilotis, into a courtyard cut through a volume, or onto a block they only stand beside.
+
+## [0.14.4] — 2026-11-22
+
+### Added
+- **Cancel loading and start without a project**: when opening the last session takes more than a few seconds, the loading screen shows this button. The work of that session is not lost: each of its diagrams that was not saved is written as a `.lionaxon` file in a folder of its own in *Documents › LionAxon*, and a message says where (with a button to show the folder).
+- If the window hangs while it starts (and so cannot show the button), after 15 s the app asks in a dialog of the system whether to keep waiting or to start without the project; the page that hangs is stopped and the app starts afresh.
+- The window can be closed while it is still starting, even if the page hangs.
+
+### Fixed
+- A diagram imported from a big model could make the app slow to open (minutes): stacked outlines with many points are slow to sort for drawing. The outlines of each step are simplified until the step has at most 3,000 points (64 per outline); in the step of the uses, the rooms of one use on one storey make one volume, at most the 60 biggest, and rooms under 2 m² are left out.
+
+## [0.14.3] — 2026-11-22
+
+### Fixed
+- Models with curved surfaces filled the terminal with thousands of `[WEB-IFC][error][TriangulateBounds()] No basis found for brep!` — faces the IFC reader cannot triangulate (curved or broken faces of a brep). They are now counted instead of printed, and the import dialog says how many there were.
+- An element whose top and bottom were among those faces, with only its sides read, was left out of the diagram (seen from above, sides have no area). It now comes by the outline around its points, and the dialog says how many elements came that way.
+
+## [0.14.2] — 2026-11-22
+
+### Fixed
+- The import of a real model could stay on "Drawing the outlines of the storeys…" for good. A single element far from the building (a survey marker, a stray element kilometres away) made the grid of the outlines grow to hundreds of millions of cells. Now the grid never has more than 1,600 cells a side, and the elements more than 1 km from the middle of the building are left out (the message at the end says how many).
+- Models placed at their survey coordinates (hundreds of kilometres from the origin) kept their points to only half a metre: they are now kept from the first point of the model, to the millimetre.
+
+### Changed
+- The diagram is made in a worker, away from the window: the window keeps answering, the progress says which step is done, the seconds keep counting, and **Cancel** works at this stage too.
+- One mass keeps at most its 40 biggest pieces (each at least 2 m², besides the biggest), so that the drawing stays light.
+
+## [0.14.1] — 2026-11-22
+
+The import of IFC files with real, big models.
+
+### Fixed
+- A real model could not be imported: "Unable to find segment … in SweepLine tree". The outlines of the storeys were an exact union of thousands of triangles, and the polygon library fails on points a hair apart, as real models have them (far from the origin, many short pieces). The outlines are now drawn on a fine grid (5 cm for a building of 80 m) and traced back: it cannot fail, and it is much quicker. Gaps narrower than 60 cm (joints, a row of columns) are closed, so a storey is one outline, not hundreds of parts.
+- The boolean operations of the whole app (subtractions, stacks) no longer fail on such points either: they try again on a 1 cm, then a 5 cm grid before giving up gracefully.
+
+### Changed
+- **Big models**: the IFC file is read in a worker thread, so the window does not stop; a window shows how far the reading got (the file, the phases, the model, the geometry element by element) with **Cancel**. The phases are found in the text of the file instead of opening every property; only the faces that look up are kept. A model of 550 MB with 200,000 elements is read in about 20 s here, and the diagram is made in about 5 s more.
+- What rises above or sinks below its storey is grouped by its heights (one volume per group, not one per element).
+
+## [0.14.0] — 2026-11-22
+
+A diagram made from a building model: LionAxon reads an IFC file and builds the steps by itself.
+
+### Added
+- **File › Import from IFC…** — opens an IFC file (the open exchange format that BIM tools export) and turns the model into masses:
+  - on each storey, the outline of everything built there (walls, slabs, roofs, columns, masses…) seen from above becomes one volume per piece, with its courtyards cut out;
+  - what rises well above its storey (a fly tower, a chimney) or sinks below it becomes a volume of its own;
+  - the model is moved onto a site with a margin around it; the sheet takes the project's name.
+- **The steps are built from the model**, as chosen in the import dialog (which first says what was found: storeys, elements, rooms, phases):
+  - *Phases, then storeys* (the default when the file has phases): each earlier phase as a step, then the last phase storey by storey;
+  - *Phases*: one step per phase — what is built in it appears, what is taken down disappears and shows dashed;
+  - *Storeys*: from the lowest storey up.
+  Phases are read from the "Phase Created" and "Phase Demolished" properties, when the model exports them; "existing" comes first, and a demolition always after the building.
+- **A last step with the uses**: the rooms, coloured by their names (the eight biggest uses get a category each, the rest go together), inside the masses seen as ghosts.
+- The diagram opens in a new tab, not saved yet; titles, texts and the order of the steps are yours to change.
+- **A0 paper** for the sheet (1189 × 841 mm), beside A4, A3, A2 and A1; it exports as PDF, SVG and PNG (at 300 dpi, 14043 × 9933 px).
+- web-ifc (MPL 2.0) reads the IFC files, in the main process; it is kept in `src/vendor/web-ifc`.
+
+### Notes
+- Spheres, terrain and openings of the model are not brought in; curved walls come as many short sides.
+- The import has been tested with IFC files made for the tests (IFC4, millimetres); files exported by the BIM tools in use may still show cases to adjust.
+
+## [0.13.2] — 2026-11-22
+
+### Changed
+- The two mouse modes of the 3D viewer are called only **Rev** and **Sketch**, everywhere: the toolbar, its tooltips, the status bar, the documentation.
+
+## [0.13.1] — 2026-11-22
+
+### Changed
+- The *Mouse* choice of the 3D viewer reads **Rev / Sketch** (shorter, so the toolbar fits on one line more often).
+
+## [0.13.0] — 2026-11-22
+
+The 3D viewer has two mouse modes, shapes are resized in it, and a step can be duplicated.
+
+### Added
+- **Two mouse modes in the 3D viewer, Rev and Sketch** — a choice in the viewer's toolbar (*Mouse*), kept between sessions:
+  - *Rev* (the default): dragging with the middle button pans, `Shift` + middle button orbits;
+  - *Sketch*: dragging with the middle button orbits, `Shift` + middle button pans;
+  - in both: the wheel zooms at the mouse, a double press of the middle button fits the drawing, the right button pans and `Shift` + right button orbits.
+- **Orbit and Pan tools** for the left button on the paper, with the keys `O` orbit (as before), `H` pan.
+- **The view turns around what is selected**; with nothing selected, around the middle of the site.
+- **A view cube** in the corner of the viewer: a click on a face looks straight at that side, a click on a corner looks from it (isometric).
+- **Labels are optional in the 3D viewer**, and off by default: a *Labels* switch in its toolbar (the choice is kept). The sheet and the other tabs draw them as always.
+- **Resizing in the 3D viewer**: a selected shape shows handles on its sides and corners — volumes, cuts, platforms, slopes and flat areas; a sphere by its diameter. The opposite side stays where it is; the size follows the grid (`Alt`: free, at least 0.1 m); turned shapes grow along their own sides; one undo per pull. The round handle of the height is still there. Free outlines are not resized here.
+- **Duplicate step**: a button on each card of the list of steps, in the card's right-button menu and in the *Step* menu (`Ctrl+Shift+D`). The copy comes right below, selected, with the same title, text, drawing, exploded view, angles, ghost and sign; the objects keep their ids (that is how the changes between steps are told). One undo takes it out.
+
+### Changed
+- In the 3D viewer the middle button used to pan only; it now follows the chosen way (Rev: the same as before, plus `Shift` to orbit).
+- `Shift` snaps the turn to 15° only with the left button.
+- The viewer's toolbar goes to a second line in a narrow window.
+
 ## [0.12.0] — 2026-11-22
 
 Updating from the app, as in the other apps of the Lion family, and two things found in use.

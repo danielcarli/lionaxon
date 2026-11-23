@@ -6,7 +6,7 @@
 // Exporting the sheet or a step: SVG (the same vector the screen shows), PNG (drawn by the window at the
 // chosen resolution, bytes sent here) and PDF (the SVG printed by a hidden window, with the fonts embedded).
 // The file name and folder are always chosen by the person in a native dialog.
-const { app, dialog, BrowserWindow } = require('electron');
+const { app, dialog, BrowserWindow, shell } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const { t } = require('../../nls/common/nls');
@@ -23,6 +23,7 @@ class ExportMainService {
   constructor(scheme) {
     this.scheme = scheme;
     this.lastDir = null;
+    this.folders = new Set(); // the folders written in this session (only these can be shown)
   }
 
   registerChannels(ipc) {
@@ -31,6 +32,8 @@ class ExportMainService {
     ipc.handle('export:svg', (e, name, text) => this.write(e, 'svg', name, () => many(text, (v) => Buffer.from(String(v), 'utf8'))));
     ipc.handle('export:gif', (e, name, bytes) => this.write(e, 'gif', name, () => Buffer.from(bytes)));
     ipc.handle('export:png', (e, name, bytes) => this.write(e, 'png', name, () => many(bytes, (v) => Buffer.from(v))));
+    ipc.on('export:showFolder', (_e, dir) => { const d = path.resolve(String(dir || '')); if (this.folders.has(d)) shell.openPath(d); });
+    ipc.handle('export:steps', (e, folder, files) => this.writeSteps(e, String(folder || 'lionaxon'), Array.isArray(files) ? files.slice(0, 600) : []));
     ipc.handle('export:pdf', (e, name, svg, w, h) => this.write(e, 'pdf', name, () => this.printPdf(Array.isArray(svg) ? svg.slice(0, 200).map(String) : [String(svg)], Number(w), Number(h))));
   }
 
@@ -63,6 +66,44 @@ class ExportMainService {
       }
       fs.writeFileSync(file, data);
       return { ok: true, path: file, name: path.basename(file), bytes: data.length };
+    } catch (err) {
+      return { ok: false, error: String(err.message || err) };
+    }
+  }
+
+  /**
+   * The files of every step (PNG bytes, SVG text, PDF to print), in a folder of their own inside the one the
+   * person chooses: "<project> — steps". A file of the same name there is replaced (exporting again updates them).
+   */
+  async writeSteps(event, folder, files) {
+    try {
+      let base;
+      if (process.env.LIONAXON_TEST_DIR) base = process.env.LIONAXON_TEST_DIR;
+      else {
+        const win = BrowserWindow.fromWebContents(event.sender);
+        const res = await dialog.showOpenDialog(win, {
+          title: t('dialog.exportStepsTitle'), buttonLabel: t('dialog.exportStepsButton'),
+          defaultPath: this.lastDir || app.getPath('documents'), properties: ['openDirectory', 'createDirectory'],
+        });
+        if (res.canceled || !res.filePaths[0]) return null;
+        base = res.filePaths[0];
+      }
+      this.lastDir = base;
+      const dir = path.join(base, sanitize(folder));
+      fs.mkdirSync(dir, { recursive: true });
+      this.folders.add(path.resolve(dir));
+      const written = [];
+      for (const f of files) {
+        const kind = KINDS[f?.kind] && f.kind !== 'gif' ? f.kind : null;
+        if (!kind) continue;
+        const file = path.join(dir, `${sanitize(f.name)}.${KINDS[kind].ext}`);
+        const data = kind === 'svg' ? Buffer.from(String(f.data), 'utf8')
+          : kind === 'png' ? Buffer.from(f.data)
+          : await this.printPdf([String(f.svg)], Number(f.w), Number(f.h));
+        fs.writeFileSync(file, data);
+        written.push(file);
+      }
+      return { ok: true, dir, paths: written, count: written.length, name: path.basename(dir) };
     } catch (err) {
       return { ok: false, error: String(err.message || err) };
     }

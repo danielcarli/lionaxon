@@ -216,12 +216,61 @@ class ProjectMainService {
     }
   }
 
+  /**
+   * The work of the last session put aside, so that the app can start without it (it took too long to
+   * open): each diagram of it, unsaved or not, is written as its own .lionaxon file in a folder of its own
+   * in Documents › LionAxon, and the recovery copy is emptied. Returns { dir, files } or null.
+   */
+  setAsideRecovery() {
+    const rec = this.readRecovery();
+    if (!rec?.text) return null;
+    let tabs;
+    try {
+      const data = JSON.parse(rec.text);
+      tabs = Array.isArray(data.tabs) ? data.tabs : [{ project: data, path: rec.path }];
+    } catch { tabs = null; }
+    const stamp = new Date().toISOString().slice(0, 16).replace('T', ' ').replace(':', 'h');
+    const dir = path.join(asideBase(), `${t('boot.asideFolder')} ${stamp}`);
+    const files = [];
+    try {
+      if (!tabs) {
+        fs.mkdirSync(dir, { recursive: true });
+        // not readable as a session: kept as it was
+        writeAtomic(path.join(dir, 'session.lionaxon'), rec.text);
+        files.push(path.join(dir, 'session.lionaxon'));
+      } else {
+        const used = new Set();
+        tabs.forEach((tab, i) => {
+          // a diagram saved and unchanged is in its own file already; a new one never touched holds nothing
+          if (!tab?.project || untouchedNew(tab)) return;
+          fs.mkdirSync(dir, { recursive: true });
+          let name = sanitize(tab.project.name || `${i + 1}`);
+          while (used.has(name.toLowerCase())) name += ` (${i + 1})`;
+          used.add(name.toLowerCase());
+          const file = path.join(dir, `${name}.lionaxon`);
+          writeAtomic(file, JSON.stringify(tab.project, null, 1));
+          files.push(file);
+        });
+      }
+      this.clearRecovery();
+      return files.length ? { dir, files } : null;
+    } catch {
+      return null;
+    }
+  }
+
   clearRecovery() {
     fs.rmSync(this.recoveryDir, { recursive: true, force: true });
     return true;
   }
 }
 
+/** A new diagram nobody drew in: one step, nothing in it, never saved. */
+const untouchedNew = (tab) => !tab.path && !tab.dirty && Array.isArray(tab.project?.steps) && tab.project.steps.length <= 1 && !(tab.project.steps[0]?.objects || []).length;
+
+/** Where the work of a session put aside goes: Documents › LionAxon (in the test folder, during tests). */
+const asideBase = () => (!app.isPackaged && process.env.LIONAXON_TEST_DIR ? path.join(process.env.LIONAXON_TEST_DIR, 'documents', 'LionAxon') : path.join(app.getPath('documents'), 'LionAxon'));
+
 const sanitize = (name) => String(name).replace(/[\\/:*?"<>|\u0000-\u001f]+/g, ' ').trim().slice(0, 120) || 'project';
 
-module.exports = { ProjectMainService, sanitize };
+module.exports = { asideBase, ProjectMainService, sanitize };

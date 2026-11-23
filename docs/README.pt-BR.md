@@ -13,7 +13,7 @@ Simples de aprender em uma tarde. O mesmo programa no Windows, no macOS e no Lin
 
 [English](../README.md) · **Português (Brasil)**
 
-![Versão 0.12.0](https://img.shields.io/badge/vers%C3%A3o-0.12.0-23272b)
+![Versão 0.17.0](https://img.shields.io/badge/vers%C3%A3o-0.17.0-23272b)
 ![Experimental](https://img.shields.io/badge/status-experimental-b5532d)
 ![Plataformas: Windows, macOS, Linux](https://img.shields.io/badge/plataforma-Windows%20%7C%20macOS%20%7C%20Linux-23272b)
 ![10 línguas](https://img.shields.io/badge/l%C3%ADnguas-10-d0673f)
@@ -80,10 +80,10 @@ Software livre (GPL-3.0). Sem conta, sem assinatura, sem telemetria, e funciona 
 - **Etapas** com título e texto, reordenadas arrastando; mudanças aplicadas às etapas seguintes com um clique; sinais entre as etapas (+ − = →).
 - **Categorias** com cor *e* hachura (circulação, núcleo de escada, teatro…): a legenda funciona em impressão cinza e para quem não distingue as cores.
 - **Alinhar faces** (`L`): clique na face de referência e depois na face de outra forma, e ela se move até as duas ficarem no mesmo plano — lado com lado, topo com topo.
-- **Setas, pessoas, rótulos, cotas e árvores** — as pessoas na altura real, para dar a escala. Duplo clique em um rótulo para escrever o texto direto no desenho.
+- **Setas, pessoas, rótulos, cotas e árvores** — as pessoas na altura real, para dar a escala; pessoas e árvores ficam em cima do que estiver embaixo delas (um platô, um talude, uma cobertura). Duplo clique em um rótulo para escrever o texto direto no desenho.
 
 **Moldar o terreno**
-- **Terreno**: platôs, taludes, fossos, planos de referência com linhas de nível na elevação; terreno de qualquer contorno.
+- **Terreno**: platôs, taludes, fossos, planos de referência com linhas de nível na elevação; terreno de qualquer contorno. **Unir terrenos** (uma chave na barra de ferramentas do desenho) desenha platôs e taludes que se tocam como uma peça só, sem as linhas entre eles.
 - **Entorno**: vizinhos em cinza neutro, ruas, gramados, água, e uma planta de situação ou foto aérea por baixo para desenhar por cima.
 - **Sol e sombras** por latitude, dia e hora. **Telhados**: duas águas, uma água e quatro águas, com a cumeeira na direção que você quiser e cor própria.
 - **Portas, janelas, arcos e óculos** desenhados nas paredes: acompanham o volume, sem recortá-lo.
@@ -91,20 +91,22 @@ Software livre (GPL-3.0). Sem conta, sem assinatura, sem telemetria, e funciona 
 
 **Ver de qualquer lugar**
 - **Axonometria, planta e quatro elevações**, com **cortes**.
-- Um **visualizador 3D** que gira em todas as direções — e onde também dá para **selecionar, mover e puxar alturas**. Uma moldura azul avisa que você está nele.
+- Um **visualizador 3D** que gira em todas as direções — e onde também dá para **selecionar, mover, redimensionar e puxar alturas**. O mouse tem **dois modos, Rev e Sketch** (você escolhe), com um cubo de vistas no canto. Uma moldura azul avisa que você está nele.
+- **Duplicar uma etapa** com um clique, para contar o próximo movimento a partir de onde o anterior parou.
 - **`Tab` alcança o que está atrás**: o próximo objeto no mesmo ponto ganha um contorno de outra cor e o resto fica transparente.
 - **Vistas explodidas**, e uma etapa **vista de vários ângulos lado a lado** na prancha.
 
 **Levar embora**
-- **PDF e SVG vetoriais** (uma camada por etapa no Illustrator e no Inkscape), **PNG** até 300 dpi, as etapas em **GIF animado**.
-- **Blocos de texto** ao lado dos desenhos (estratégia, prós e contras com + e −), a **legenda** abaixo do título ou no rodapé; rótulos com uma segunda linha mais discreta e marcadores (! × + −).
-- Pranchas em linha, grade, coluna ou vertical, de A4 a A1, em escala, em quantas páginas for preciso.
+- **PDF e SVG vetoriais** (uma camada por etapa no Illustrator e no Inkscape), **PNG** até 300 dpi, as etapas em **GIF animado**, e **cada etapa como imagem própria** (PNG, SVG ou PDF, todas no mesmo enquadramento e escala) de uma vez.
+- **Blocos de texto** ao lado dos desenhos (estratégia, prós e contras com + e −), a **legenda** abaixo do título ou no rodapé; rótulos com uma segunda linha mais discreta e marcadores (! × + −), que quebram em linhas na largura até onde você puxa a lateral da caixa de texto. O terreno pode ir para a prancha **em grade**, como na edição.
+- Pranchas em linha, grade, coluna ou vertical, de A4 a A0, em escala, em quantas páginas for preciso; quando os desenhos ficam presos pela altura, as legendas vão para o lado e os desenhos crescem. A prévia tem zoom pela roda e se arrasta como o desenho, página a página.
+- **Exportar as etapas que você escrever** — `7`, `3-7`, `1, 4, 6-8` — cada uma num arquivo próprio, ou numa prancha só com elas.
 - **Oito estilos de desenho**, interface clara e escura e dois temas coloridos.
 
 <table>
 <tr>
 <td><img src="screenshots/pt-BR/terrain-levels.png" alt="Terreno com platô, talude e fosso; volumes curvos"><br><sub>Terreno, planos de referência e volumes curvos</sub></td>
-<td><img src="screenshots/pt-BR/viewer-3d-edit.png" alt="O visualizador 3D com um volume selecionado e a alça da altura"><br><sub>O visualizador 3D: gire, selecione, mova, puxe a altura</sub></td>
+<td><img src="screenshots/pt-BR/viewer-3d-edit.png" alt="O visualizador 3D com um volume selecionado e a alça da altura"><br><sub>O visualizador 3D: gire, selecione, mova, redimensione, puxe a altura</sub></td>
 </tr>
 <tr>
 <td><img src="screenshots/pt-BR/surroundings.png" alt="Volumes de entorno, rua, árvores e sombras"><br><sub>Entorno, árvores, sol e sombras</sub></td>
@@ -149,7 +151,7 @@ Baixe o instalador do seu sistema. Os links trazem sempre a **versão mais recen
 
 > Os instaladores ainda não são assinados com um certificado pago. Na primeira execução, o Windows pode mostrar "O Windows protegeu o computador" (**Mais informações › Executar assim mesmo**) e o macOS pede para liberar o programa em **Ajustes do Sistema › Privacidade e Segurança › Abrir Mesmo Assim**. As somas de verificação de cada arquivo estão em [`SHA256SUMS.txt`](https://github.com/danielcarli/lionaxon/releases/latest/download/SHA256SUMS.txt).
 
-O LionAxon é **experimental** (versão 0.12): já faz um diagrama de partido inteiro e exporta, mas o formato do arquivo e o comportamento ainda podem mudar antes da 1.0. **Atualizar pelo programa.** Clique no número da versão, no canto inferior direito, e em *Verificar agora*: se houver versão mais nova, *Atualizar agora* baixa o instalador da sua cópia (o assistente do Windows, o `.dmg`, o AppImage, o `.deb` ou o `.rpm`), confere o SHA-256 com o da release e abre. As duas coisas só acontecem quando você clica.
+O LionAxon é **experimental** (versão 0.17): já faz um diagrama de partido inteiro e exporta, mas o formato do arquivo e o comportamento ainda podem mudar antes da 1.0. **Atualizar pelo programa.** Clique no número da versão, no canto inferior direito, e em *Verificar agora*: se houver versão mais nova, *Atualizar agora* baixa o instalador da sua cópia (o assistente do Windows, o `.dmg`, o AppImage, o `.deb` ou o `.rpm`), confere o SHA-256 com o da release e abre. As duas coisas só acontecem quando você clica.
 
 Os instaladores são gerados pelo GitHub Actions a cada tag de versão (`.github/workflows/release.yml`), em máquinas Windows, macOS e Linux, a partir do código deste repositório.
 
@@ -177,6 +179,7 @@ O programa abre em uma tela inicial com seis exemplos — do partido em cinco et
 | `V` `B` `S` `G` `A` `P` `T` | Selecionar · volume · subtrair · terreno · seta · pessoa · rótulo |
 | `N` | Novo plano de referência (na elevação) |
 | `Delete` · `Ctrl+D` | Apagar · duplicar a seleção |
+| `Ctrl+Shift+D` | Duplicar a etapa atual |
 | `D` · `E` | Cota · árvore |
 | `Enter` · duplo clique | Terminar um contorno desenhado ponto a ponto |
 | `Ctrl+C` · `Ctrl+X` · `Ctrl+V` | Copiar · recortar · colar (também em outra etapa ou diagrama) |
@@ -197,9 +200,12 @@ O programa abre em uma tela inicial com seis exemplos — do partido em cinco et
 | `Alt` ao arrastar | Sair da grade |
 | `Alt` · `F10` | A barra de menus (setas para andar, `Enter` para executar, `Esc` para fechar) |
 | `PgUp` · `PgDn` | Etapa anterior · seguinte |
+| Na prancha: roda · arrastar · `F` · `←` `→` | Zoom no mouse · mover o papel · enquadrar a página · página anterior · seguinte |
 | `Ctrl+1` `2` `3` `4` `5` | Axonometria · planta · elevação · prancha · visualizador 3D |
 | No visualizador 3D: arrastar no papel · `←` `→` `↑` `↓` · `I` | Girar em todas as direções · girar 15° (`Shift`: 5°) · isométrica |
-| No visualizador 3D: clique · arrastar uma forma · a alça redonda · `Delete` | Selecionar · deslizar no chão · puxar a altura · apagar |
+| No visualizador 3D: clique · arrastar uma forma · as alças quadradas · a alça redonda · `Delete` | Selecionar · deslizar no chão · redimensionar · puxar a altura · apagar |
+| No visualizador 3D: botão do meio · `Shift` + botão do meio · botão direito · roda · botão do meio duas vezes | Mover a vista · orbitar (o contrário no modo Sketch) · mover a vista (`Shift`: orbitar) · zoom no ponteiro · enquadrar |
+| No visualizador 3D: `O` · `H` | Botão esquerdo orbita · botão esquerdo move a vista |
 | `Ctrl+N` · `Ctrl+O` · `Ctrl+S` · `Ctrl+Shift+S` | Novo · abrir · salvar · salvar como |
 | `Ctrl+W` · `Ctrl+Tab` | Fechar o diagrama · próximo diagrama (`Shift`: anterior) |
 | `Esc` | Voltar a selecionar, limpar a seleção |
@@ -253,6 +259,11 @@ Código, comentários, identificadores e documentação em inglês. A interface 
 
 ## Próximas versões
 
+- **0.17** ✓ — exportar as etapas que você escrever (3-7, 1, 4, 6), em arquivos separados ou numa prancha; a prévia da prancha com zoom e arrasto como no desenho, página a página; legendas ao lado dos desenhos quando isso os deixa maiores; a caixa de texto do rótulo redimensionada pela lateral; a importação de IFC retirada até ler modelos reais.
+- **0.16** ✓ — cada etapa exportada como imagem própria (PNG, SVG, PDF); terreno em grade na prancha; rótulos com largura, com quebra de linha automática.
+- **0.15** ✓ — unir terrenos (platôs e taludes que se tocam desenhados como um só); pessoas e árvores em cima do que está embaixo delas.
+- **0.14** ✓ — uma primeira importação de modelos de edifício (IFC); retirada na 0.17, ainda não lia modelos reais.
+- **0.13** ✓ — o visualizador 3D com dois modos de mouse (Rev e Sketch), cubo de vistas, rótulos opcionais e redimensionamento pelas alças; duplicar etapa.
 - **0.12** ✓ — atualização pelo programa, com o instalador de cada sistema; objetos travados podem ser selecionados para destravar; os painéis mantêm a rolagem.
 - **0.11** ✓ — a ferramenta de alinhar: uma face levada ao plano de outra.
 - **0.10** ✓ — aberturas nas paredes; direção da cumeeira e cor do telhado; cor própria; pisos com paginação; setas entre níveis; observações e marcadores nos rótulos; blocos de texto e legenda no rodapé da prancha; áreas planas agora aparecem sobre terreno com espessura.
@@ -261,10 +272,10 @@ Código, comentários, identificadores e documentação em inglês. A interface 
 - **0.7** ✓ — contornos de qualquer forma; entorno; sol e sombras; telhados; cotas; fantasmas e sinais entre etapas; cortes; as etapas em GIF; um workflow que gera os instaladores.
 - **0.6** ✓ — usabilidade: copiar e colar, menu do botão direito, retângulo de seleção, alinhar e guias, tamanhos digitados, nomes, travar e ocultar, tela inicial, arquivos recentes, hachuras nas categorias.
 - **0.5 – 0.1** ✓ — o visualizador 3D e vários ângulos por etapa; barra de menus e exemplos; elevações, vistas explodidas e pranchas verticais; terreno, planos de referência e formas curvas; abas; os primeiros volumes, etapas e prancha.
-- **Depois** — várias pranchas e alternativas no mesmo projeto; terreno livre; escadas; plantas de zoneamento; pátios e união de volumes; lajes soltas e pilotis; sombras sobre volumes e terreno; cortes na prancha; desenhar formas novas no visualizador 3D; paleta de comandos; instaladores assinados.
+- **Depois** — a importação de modelos de edifício (IFC, depois arquivos Rev), testada em projetos reais; várias pranchas e alternativas no mesmo projeto; terreno livre; escadas; plantas de zoneamento; pátios e união de volumes; lajes soltas e pilotis; sombras sobre volumes e terreno; cortes na prancha; desenhar formas novas no visualizador 3D; paleta de comandos; instaladores assinados.
 - **1.0** — DXF de entrada e saída; manual e tutoriais na ordem de um ateliê de projeto; traduções revisadas.
 
-O histórico completo está no [CHANGELOG](../CHANGELOG.md) — versão atual: **0.12.0**.
+O histórico completo está no [CHANGELOG](../CHANGELOG.md) — versão atual: **0.17.0**.
 
 ## Créditos
 

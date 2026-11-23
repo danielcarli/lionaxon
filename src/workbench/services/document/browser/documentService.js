@@ -9,7 +9,7 @@
 // same commands can serve the interface, scripts and agents. The open tabs are kept in a session copy
 // while the person works, so closing the app never loses work.
 import { Emitter } from '../../../../base/common/event.js';
-import { createProject, normalizeProject, copyStep, clone, stepHasContent, GROUND_LEVEL } from '../../model/common/model.js';
+import { newId, createProject, normalizeProject, copyStep, clone, stepHasContent, GROUND_LEVEL } from '../../model/common/model.js';
 
 /** The examples that come with the app, in the order the menu lists them. */
 export const EXAMPLES = ['parti', 'plateaus', 'tower', 'slope', 'school', 'corner'];
@@ -222,6 +222,17 @@ export class DocumentService {
       p.steps.splice(this.stepIndex + 1, 0, copyStep(this.step));
     });
     this.setStep(this.stepIndex + 1);
+  }
+
+  /** A copy of a step, whole (title, text, drawing, exploded view, angles…), right below it; the copy becomes the current step. */
+  duplicateStep(i = this.stepIndex) {
+    const from = this.project.steps[i];
+    if (!from) return false;
+    this.run('step.duplicate', (p) => {
+      p.steps.splice(i + 1, 0, { ...structuredClone(from), id: newId('s') });
+    });
+    this.setStep(i + 1);
+    return true;
   }
 
   moveStep(from, to) {

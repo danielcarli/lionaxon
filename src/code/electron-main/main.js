@@ -5,17 +5,17 @@
  *--------------------------------------------------------------------------------------------*/
 // Main process entry point (equivalent to VS Code's src/vs/code/electron-main).
 // Creates the window, registers the app:// protocol that serves the UI and instantiates the services.
-const { app, BrowserWindow, protocol, nativeTheme, ipcMain } = require('electron');
+const { app, BrowserWindow, protocol, nativeTheme, ipcMain, dialog, shell } = require('electron');
 
 app.setName('LionAxon');
 if (process.platform === 'win32') app.setAppUserModelId('br.dmdc.lionaxon');
 const path = require('path');
 const fs = require('fs');
 
-const { ProjectMainService } = require('../../platform/project/electron-main/projectMainService');
+const { ProjectMainService, asideBase } = require('../../platform/project/electron-main/projectMainService');
 const { ExportMainService } = require('../../platform/export/electron-main/exportMainService');
 const { UpdateMainService } = require('../../platform/update/electron-main/updateMainService');
-const { setLocale } = require('../../platform/nls/common/nls');
+const { setLocale, t } = require('../../platform/nls/common/nls');
 
 const APP_ROOT = path.resolve(__dirname, '..', '..', '..');
 const SCHEME = 'app';
@@ -81,6 +81,57 @@ function overlayColors(dark, theme) {
 }
 
 let mainWindow = null;
+const START_URL = `${SCHEME}://bundle/src/workbench/browser/workbench.html`;
+/** Tests only (never in an installed app): a start made slow on purpose, and the answer to the question. */
+const TEST_BOOT = !app.isPackaged && process.env.LIONAXON_TEST_SLOW_BOOT ? `?slowBoot=${encodeURIComponent(process.env.LIONAXON_TEST_SLOW_BOOT)}` : '';
+/** How long the start may take before the app asks whether to start without the last session (ms). */
+const BOOT_ASK_MS = Number(process.env.LIONAXON_BOOT_ASK_MS) || 15000;
+let projectsService = null;
+
+/** The start is over: no question any more (a question already on screen goes away). */
+function bootReady(win) {
+  win.booting = false;
+  clearTimeout(win.bootTimer);
+  win.bootAsk?.abort();
+  win.bootAsk = null;
+}
+
+/**
+ * Starts the window again without the work of the last session: that work is put aside in Documents ›
+ * LionAxon (nothing is lost), and the page loads afresh. A page that hangs is stopped first.
+ */
+function startEmpty(win, hung = false) {
+  bootReady(win);
+  win.startedEmpty = true;
+  const aside = projectsService?.setAsideRecovery() || null;
+  const q = new URLSearchParams({ fresh: '1', ...(aside ? { aside: aside.dir, n: String(aside.files.length) } : {}) });
+  win.booting = true;
+  let loaded = false;
+  const load = () => { if (loaded || win.isDestroyed()) return; loaded = true; win.loadURL(`${START_URL}?${q}`); };
+  if (!hung) { load(); return; }
+  // a page that hangs is stopped first; the new one is loaded once the old one is gone
+  win.webContents.once('render-process-gone', () => setTimeout(load, 50));
+  setTimeout(load, 2000);
+  try { win.webContents.forcefullyCrashRenderer(); } catch { load(); }
+}
+
+/** The native question, for a start that takes long (asked once per start; it goes away if the start ends). */
+async function askStartEmpty(win) {
+  // once started without the last session, a fresh start is never asked about again
+  if (!win.booting || win.bootAsk || win.startedEmpty || win.isDestroyed()) return;
+  const ctrl = new AbortController();
+  win.bootAsk = ctrl;
+  try {
+    if (!app.isPackaged && process.env.LIONAXON_TEST_BOOT_ANSWER === 'skip') { startEmpty(win, true); return; }
+    const { response } = await dialog.showMessageBox(win, {
+      type: 'question', signal: ctrl.signal, noLink: true, defaultId: 0, cancelId: 0,
+      title: 'LionAxon', message: t('boot.slowTitle'), detail: t('boot.slowDetail'),
+      buttons: [t('boot.keepWaiting'), t('boot.skip')],
+    });
+    if (response === 1 && win.booting && !win.isDestroyed()) startEmpty(win, true);
+  } catch { /* the question was taken away: the start ended */ }
+  if (win.bootAsk === ctrl) win.bootAsk = null;
+}
 
 function createWindow() {
   const isMac = process.platform === 'darwin';
@@ -111,13 +162,24 @@ function createWindow() {
   // confirms (or cancels) and the window closes for real.
   win.allowClose = false;
   win.on('close', (e) => {
-    if (win.allowClose || win.webContents.isCrashed?.() || !win.webContents.getURL()) return;
+    // while it is still starting there is nothing to save (and a page that hangs could not answer)
+    if (win.allowClose || win.booting || win.webContents.isCrashed?.() || !win.webContents.getURL()) return;
     e.preventDefault();
     win.webContents.send('app:closeRequest');
   });
 
+  // ---- the start may take long (a heavy diagram of the last session): the page shows a button to start
+  // without it; if the page hangs and cannot show it, the app asks in a native dialog
+  win.booting = true;
+  win.webContents.on('did-start-loading', () => {
+    win.booting = true;
+    clearTimeout(win.bootTimer);
+    win.bootTimer = setTimeout(() => askStartEmpty(win), BOOT_ASK_MS);
+  });
+  win.on('unresponsive', () => { if (win.booting) askStartEmpty(win); });
+
   if (process.env.LIONAXON_HIDDEN !== '1') win.show();
-  win.loadURL(`${SCHEME}://bundle/src/workbench/browser/workbench.html`);
+  win.loadURL(START_URL + TEST_BOOT);
   mainWindow = win;
   win.on('closed', () => { if (mainWindow === win) mainWindow = null; });
   return win;
@@ -165,6 +227,15 @@ if (gotTheLock) app.whenReady().then(() => {
   createWindow();
 
   const projects = new ProjectMainService(APP_ROOT);
+  projectsService = projects;
+  // the start: over (the page says so), or to be done again without the last session (the page's button)
+  ipcMain.on('boot:ready', (event) => { const win = BrowserWindow.fromWebContents(event.sender); if (win) bootReady(win); });
+  ipcMain.on('boot:startEmpty', (event) => { const win = BrowserWindow.fromWebContents(event.sender); if (win) startEmpty(win); });
+  ipcMain.on('boot:showAside', (_e, dir) => {
+    const docs = asideBase();
+    const target = path.resolve(String(dir || ''));
+    if (target.startsWith(docs) && fs.existsSync(target)) shell.openPath(target);
+  });
   const exporter = new ExportMainService(SCHEME);
   const update = new UpdateMainService(APP_ROOT);
   [projects, exporter, update].forEach((s) => s.registerChannels(ipcMain));

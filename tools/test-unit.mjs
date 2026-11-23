@@ -23,6 +23,9 @@ import { DocumentService } from '../src/workbench/services/document/browser/docu
 import { volumeBands, volumeFaces, renderStep, sortFaces, stepSvg } from '../src/workbench/services/render/common/renderer.js';
 import { renderSheet, wrap, gridOf } from '../src/workbench/services/render/common/sheet.js';
 import { shade } from '../src/workbench/services/render/common/styles.js';
+import { restingHeight } from '../src/workbench/services/render/common/solids.js';
+import { joinTerrain } from '../src/workbench/services/render/common/joinTerrain.js';
+import { parseStepRange, formatStepRange } from '../src/workbench/services/export/common/stepRange.js';
 
 let n = 0;
 const test = (name, fn) => { fn(); n++; console.log(`  ✓ ${name}`); };
@@ -668,6 +671,72 @@ test('gif: LZW that a decoder reads back, one palette, the frames with their del
   assert.deepEqual([gif[6] | (gif[7] << 8), gif[8] | (gif[9] << 8), gif[gif.length - 1]], [8, 6, 0x3b]);
   const gce = [...gif.keys()].filter((i) => gif[i] === 0x21 && gif[i + 1] === 0xf9 && gif[i + 2] === 4);
   assert.deepEqual(gce.map((i) => gif[i + 4] | (gif[i + 5] << 8)), [150, 300]);
+});
+
+// ---- 0.15: people and trees stand on what is under them; terrain joined into one
+test('a person stands on the platform, the slope or the block under it, never inside', () => {
+  const levels = [{ id: 'L1', name: 'Plateau', z: 3 }];
+  const ev = (lv, id) => (lv.find((l) => l.id === id)?.z ?? 0);
+  const objs = [
+    { type: 'platform', id: 'g', x: 10, y: 10, w: 10, d: 10, rot: 0, level: 'L1', z: 0 },
+    { type: 'slope', id: 's', x: 10, y: 22.5, w: 10, d: 5, rot: 0, from: 'L1', zFrom: 0, to: null, zTo: 0 },
+    { type: 'volume', id: 'v', shape: 'box', x: 30, y: 10, w: 10, d: 10, h: 6, rot: 0, z: 0 },
+    { type: 'volume', id: 'p', shape: 'box', x: 50, y: 10, w: 10, d: 10, h: 4, rot: 0, z: 5 },
+    { type: 'cut', id: 'c', shape: 'box', x: 30, y: 10, w: 2, d: 2, h: 6, rot: 0, z: 0, target: 'v' },
+  ];
+  const base = (v) => v.z;
+  const at = (x, y, z = 0) => restingHeight(objs, levels, x, y, z, base, ev);
+  near(at(10, 10), 3, 1e-9);           // on the plateau
+  near(at(10, 22.5), 1.5, 1e-9);        // half way down the slope
+  near(at(27, 10), 6, 1e-9);            // on the roof of the block
+  near(at(30, 10), 0, 1e-9);            // in its courtyard (the cut goes through the top)
+  near(at(50, 10), 0, 1e-9);            // under a block on pilotis: stays on the ground
+  near(at(80, 80, 2), 2, 1e-9);         // nothing under it: where it was put
+});
+
+test('joined terrain: two platforms side by side at one height have one top, and the fold to a slope is not drawn', () => {
+  const ring = (x0, y0, x1, y1, z) => [[x0, y0, z], [x1, y0, z], [x1, y1, z], [x0, y1, z]];
+  const A = { obj: { id: 'a' }, rings: [ring(0, 0, 10, 10, 3)], n: [0, 0, 1], lines: [] };
+  const B = { obj: { id: 'b' }, rings: [ring(10, 0, 20, 10, 3)], n: [0, 0, 1], lines: [] };
+  const S = { obj: { id: 's' }, rings: [[[0, 10, 3], [10, 10, 3], [10, 20, 0], [0, 20, 0]]], n: [0, 0.287, 0.958], lines: [] };
+  const out = joinTerrain([A, B, S]);
+  const tops = out.filter((f) => f.n[2] > 0.999);
+  assert.equal(tops.length, 1);
+  assert.equal(tops[0].rings[0].length, 4);
+  const slope = out.find((f) => f.obj.id === 's');
+  assert.ok(slope.split && slope.edges.filter((e) => !e).length === 1, JSON.stringify(slope.edges));
+  assert.ok(tops[0].edges && tops[0].edges.filter((e) => !e).length === 1);
+});
+
+// ---- 0.17: the steps to export as people write them; captions beside the drawings
+
+test('steps to export: "7", "3-7", "3 a 7", "1, 4, 6-8", "*", an open end, empty for the current one; out of range refused', () => {
+  const p = (s) => parseStepRange(s, 8, 6);
+  assert.deepEqual(p('').indexes, [6]);
+  assert.deepEqual(p('7').indexes, [6]);
+  assert.deepEqual(p('3-7').indexes, [2, 3, 4, 5, 6]);
+  assert.deepEqual(p('3 a 7').indexes, [2, 3, 4, 5, 6]);
+  assert.deepEqual(p('7–3').indexes, [2, 3, 4, 5, 6]);
+  assert.deepEqual(p('1, 4, 6-8').indexes, [0, 3, 5, 6, 7]);
+  assert.deepEqual(p('*').indexes.length, 8);
+  assert.deepEqual(p('todas').indexes.length, 8);
+  assert.deepEqual(p('6-').indexes, [5, 6, 7]);
+  assert.equal(p('9').error, '9');
+  assert.equal(p('x').error, 'x');
+  assert.equal(formatStepRange([2, 3, 4, 5, 6, 8]), '3–7, 9');
+});
+
+test('sheet: a column on upright paper puts the captions beside the drawings, which grow; a subset of steps only', () => {
+  const prj = normalizeProject(JSON.parse(fs.readFileSync(new URL('../examples/plateaus-en.lionaxon', import.meta.url), 'utf8')));
+  const width = (r) => Number(/<svg x="[\d.]+" y="[\d.]+" width="([\d.]+)"/.exec(r.svg)[1]);
+  prj.sheet = { ...prj.sheet, layout: 'column', orientation: 'portrait', paper: 'A3', scale: 0 };
+  const beside = renderSheet(prj, { t: (k) => k });
+  assert.ok(width(beside) > 60, `${width(beside)} mm (the captions under the drawings gave 38 mm)`);
+  const g = /<g id="step-01"[^>]*>(.*?)<\/g>/s.exec(beside.svg)[1];
+  const numX = Number(/<text x="([\d.]+)"/.exec(g)[1]), drawX = Number(/<svg x="([\d.]+)"/.exec(g)[1]);
+  assert.ok(numX < drawX, 'the caption is on the left of the drawing');
+  const some = renderSheet(prj, { t: (k) => k, steps: [0, 2] });
+  assert.ok(some.svg.includes('id="step-01"') && some.svg.includes('id="step-03"') && !some.svg.includes('id="step-02"'));
 });
 
 console.log(`\n${n} passed`);

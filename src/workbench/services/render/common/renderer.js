@@ -18,7 +18,8 @@ import {
   siteOutline, shadowVector, sameGeometry,
 } from '../../model/common/model.js';
 import { getStyle, shade, arrowColor } from './styles.js';
-import { volumeFaces, extrusionFaces, slopeFaces, expandCut, footprintOf, shadowOf, openingShape } from './solids.js';
+import { volumeFaces, extrusionFaces, slopeFaces, expandCut, footprintOf, shadowOf, openingShape, restingHeight } from './solids.js';
+import { joinTerrain } from './joinTerrain.js';
 import { labelFont } from './fonts.js';
 
 export { volumeBands, volumeFaces } from './solids.js';
@@ -326,10 +327,38 @@ function arrowMarkup(view, o, style, categories, attrs, hit) {
 
 const arrowBounds = (view, o) => { const g = arrowGeometry(o); return bboxOf([...g.pts, ...g.heads.flat()].map((p) => project(view, p))); };
 
-function labelLines(o) {
-  return String(o.text || '').split('\n').map((l) => (o.caps ? l.toUpperCase() : l));
+/** How wide a character of a label is, on average (the text, or its note), in drawing units. */
+const titleChar = (o) => o.size * labelFont(o.font).width * (o.caps ? 1 : 0.85);
+const noteChar = (o) => o.size * 0.72 * labelFont(o.font).width * 0.85;
+
+/** The lines of a paragraph broken at the spaces so that none is wider than `max` (a word longer than that stays whole). */
+function wrapLine(line, max, cw) {
+  if (!(max > 0) || line.length * cw <= max) return [line];
+  const out = [];
+  let cur = '';
+  for (const word of line.split(/\s+/).filter(Boolean)) {
+    const next = cur ? `${cur} ${word}` : word;
+    if (cur && next.length * cw > max) { out.push(cur); cur = word; } else cur = next;
+  }
+  if (cur) out.push(cur);
+  return out.length ? out : [line];
 }
-const noteLines = (o) => (o.note ? String(o.note).split('\n') : []);
+
+function labelLines(o) {
+  return String(o.text || '').split('\n').map((l) => (o.caps ? l.toUpperCase() : l)).flatMap((l) => wrapLine(l, o.wrap, titleChar(o)));
+}
+const noteLines = (o) => (o.note ? String(o.note).split('\n').flatMap((l) => wrapLine(l, o.wrap, noteChar(o))) : []);
+
+/** Whether the text of a label hangs under its first line (a note or a width): a block of text. */
+const hangsBelow = (o) => !!(o.note || o.wrap);
+
+/** The box of the text of a label (no leader): its width and height in drawing units, wrapped when it has a width. */
+export function labelTextBox(o) {
+  const lines = labelLines(o), notes = noteLines(o);
+  const w = Math.max(0, ...lines.map((l) => l.length * titleChar(o)), ...notes.map((l) => l.length * noteChar(o))) + o.size * 0.4;
+  const h = lines.length * o.size * 1.25 + notes.length * o.size * 0.72 * 1.3;
+  return { w, h };
+}
 /** The colours of the mark at the point of a label: a warning, a refusal, a gain, a loss. */
 const MARK_COLORS = { '!': '#c8322d', '×': '#c8322d', '+': '#2e8b57', '−': '#c8322d' };
 
@@ -342,7 +371,10 @@ function labelMarkup(view, o, style, attrs) {
   const lh = o.size * 1.25;
   const notes = noteLines(o);
   const ns = o.size * 0.72, nlh = ns * 1.3;
-  const y0 = ty - ((lines.length - 1) * lh + notes.length * nlh) / 2;
+  // with a note or a width, the leader comes to the first line and the rest hangs under it (a block of
+  // text, as in a board); else the lines are centred on the leader
+  const hangs = hangsBelow(o);
+  const y0 = hangs ? ty : ty - ((lines.length - 1) * lh + notes.length * nlh) / 2;
   const x = r3(tx + (right ? 0.35 : -0.35) * o.size);
   let s = `<g${attrs}>`;
   s += `<path d="M${r3(ax)} ${r3(ay)}L${r3(tx)} ${r3(ty)}" fill="none" stroke="${style.text}" stroke-width="${r3(o.size * 0.06)}"/>`;
@@ -365,13 +397,10 @@ function labelMarkup(view, o, style, attrs) {
 
 function labelBounds(view, o) {
   const [ax, ay] = project(view, [o.x, o.y, o.z]);
-  const lines = labelLines(o);
-  const notes = noteLines(o);
-  const fw = labelFont(o.font).width;
-  const w = Math.max(...lines.map((l) => l.length * o.size * fw * (o.caps ? 1 : 0.85)), ...notes.map((l) => l.length * o.size * 0.72 * fw * 0.85)) + o.size * 0.4;
-  const h = lines.length * o.size * 1.25 + notes.length * o.size * 0.72 * 1.3;
+  const { w, h } = labelTextBox(o);
   const tx = ax + o.dx, ty = ay + o.dy;
-  return bboxUnion([ax, ay, ax, ay], o.dx >= 0 ? [tx, ty - h / 2, tx + w, ty + h / 2] : [tx - w, ty - h / 2, tx, ty + h / 2]);
+  const y0 = hangsBelow(o) ? ty - o.size * 0.625 : ty - h / 2;
+  return bboxUnion([ax, ay, ax, ay], o.dx >= 0 ? [tx, y0, tx + w, y0 + h] : [tx - w, y0, tx, y0 + h]);
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -607,12 +636,13 @@ function gridOn(rings, step, zAt) {
 }
 
 /** The grid of the ground left between the terrain pieces that carry their own grid (editor, terrain as mesh). */
-function flatGridMarkup(view, prj, style, lw, holes) {
+function flatGridMarkup(view, prj, style, lw, holes, siteOnly = false) {
   const { site } = prj;
   const g = prj.grid || 1;
   const m = Math.max(10, 0.3 * Math.max(site.w, site.d));
   const step = (site.w + site.d + 2 * m) / g > 600 ? g * 5 : g;
-  const outer = [[-m, -m], [site.w + m, -m], [site.w + m, site.d + m], [-m, site.d + m]];
+  // in the editor the grid runs beyond the site; on the sheet it stays inside the site
+  const outer = siteOnly ? siteRing(site).map(([x, y]) => [x, y]) : [[-m, -m], [site.w + m, -m], [site.w + m, site.d + m], [-m, site.d + m]];
   const area = holes.length ? difference([[outer]], holes.map((r) => [[r]])) : [[outer]];
   const { minor, major } = gridOn(area.flat(), step, () => 0);
   const path = (segs) => segs.map((l) => linePath(l.map((p) => project(view, p)))).join('');
@@ -633,7 +663,7 @@ function groundMarkup(view, prj, style, opts, hasSlab, bottom = 0) {
     const x0 = Math.min(...xs), x1 = Math.max(...xs), pad = (x1 - x0) * 0.08 + 2;
     return `<path class="ax-groundline" d="M${r3(x0 - pad)} 0H${r3(x1 + pad)}" stroke="${style.edge}" stroke-width="${r3(lw * 1.8)}" fill="none"/>`;
   }
-  let s = !opts.grid ? '' : opts.meshHoles ? flatGridMarkup(view, prj, style, lw, opts.meshHoles) : gridMarkup(view, prj, style, lw);
+  let s = !opts.grid ? '' : opts.meshHoles ? flatGridMarkup(view, prj, style, lw, opts.meshHoles, !!opts.gridSiteOnly) : gridMarkup(view, prj, style, lw);
   const ring = siteRing(site).map((p) => project(view, p));
   if (!hasSlab) {
     if (site.mode === 'fill') s += `<path d="${ptsPath(ring)}" fill="${style.ground}" stroke="${style.site}" stroke-width="${r3(lw * 0.8)}"/>`;
@@ -835,7 +865,13 @@ export function renderStep(prj, index, opts) {
   const uid = prj.catPatterns ? ++patternUid : 0;
   const hatchOf = new Map(prj.catPatterns ? prj.categories.map((c, k) => [c.id, k % PATTERN_COUNT]) : []);
   const hatchUsed = new Set();
-  const zShown = (o) => zOf(o) + (exploded.get(o.id) || 0);
+  // people and trees stand on what is under them (a platform, a slope, the top of a block): never inside it
+  const standing = new Map();
+  const restOf = (o) => {
+    if (!standing.has(o.id)) standing.set(o.id, restingHeight(step0.objects, levels, o.x, o.y, zOf(o), (v) => baseOf(v, byId, levels), elevationOf));
+    return standing.get(o.id);
+  };
+  const zShown = (o) => (o.type === 'person' || o.type === 'tree' ? restOf(o) : zOf(o)) + (exploded.get(o.id) || 0);
   const cutObjects = step.objects.filter((o) => o.type === 'cut').map((c) => ({ ...c, z: zOf(c) }));
   const cuts = cutObjects.flatMap(expandCut);
   const cats = new Map(prj.categories.map((c) => [c.id, c.color]));
@@ -854,8 +890,11 @@ export function renderStep(prj, index, opts) {
     smooth: f.smooth && { rim: f.smooth.rim.map((l) => l.map((p) => [p[0], p[1], p[2] + dz])), seams: f.smooth.seams.map((sm) => ({ ...sm, edge: sm.edge.map((p) => [p[0], p[1], p[2] + dz]) })) },
     centre: f.centre && [f.centre[0], f.centre[1], f.centre[2] + dz] } : f);
   const ground = groundSolids(prj, step);
+  // the site's switch: platforms and slopes that touch drawn as one terrain
+  if (prj.site.joined) ground.faces = joinTerrain(ground.faces);
   // editor, terrain as mesh: the terrain is see-through and the grid follows its surfaces
-  const mesh = !!opts.terrainMesh && !!opts.grid && !isElevation(view);
+  // the sheet's "terrain as grid": the same see-through terrain with its grid, the flat grid inside the site
+  const mesh = ((!!opts.terrainMesh && !!opts.grid) || !!opts.terrainGrid) && !isElevation(view);
   const g = prj.grid || 1;
   const gridStep = (prj.site.w + prj.site.d) / g > 400 ? g * 5 : g;
   const meshHoles = [];
@@ -1178,13 +1217,13 @@ export function renderStep(prj, index, opts) {
     }
   }
   for (const o of step.objects) {
-    if (o.type !== 'label' || !o.text) continue;
+    if (o.type !== 'label' || !o.text || opts.labels === false) continue;
     const ro = { ...o, z: zShown(o) };
     top += labelMarkup(view, ro, style, idAttr(o));
     bbox = bboxUnion(bbox, labelBounds(view, ro));
   }
 
-  let groundMarkupStr = groundMarkup(view, prj, style, { ...o2, meshHoles: mesh ? meshHoles : null }, ground.slab, ground.bottom);
+  let groundMarkupStr = groundMarkup(view, prj, style, { ...o2, grid: o2.grid || mesh, gridSiteOnly: mesh && !opts.grid, meshHoles: mesh ? meshHoles : null }, ground.slab, ground.bottom);
   if (!isElevation(view) && view.cam[2] > 0) {
     let under = '';
     // the image under everything (the editor always shows it; the sheet when asked)
@@ -1233,9 +1272,9 @@ export function padBox(b, k = 0.06) {
  * A whole standalone SVG of one step (thumbnails, "export this step"). With `views` (several angles) the
  * drawings sit side by side, at the same scale.
  */
-export function stepSvg(prj, index, { view, views, width = 800, background = true, fmt, fontCss } = {}) {
+export function stepSvg(prj, index, { view, views, width = 800, background = true, fmt, fontCss, terrainGrid = !!prj.sheet?.terrainGrid } = {}) {
   const list = views?.length ? views : [view];
-  const boxes = list.map((v) => padBox(renderStep(prj, index, { view: v, lw: 0.1, fmt }).bbox));
+  const boxes = list.map((v) => padBox(renderStep(prj, index, { view: v, lw: 0.1, fmt, terrainGrid }).bbox));
   const gap = Math.max(...boxes.map((b) => b[2] - b[0])) * 0.06;
   const total = boxes.reduce((a, b) => a + b[2] - b[0], 0) + gap * (list.length - 1);
   const bh = Math.max(...boxes.map((b) => b[3] - b[1]));
@@ -1245,7 +1284,7 @@ export function stepSvg(prj, index, { view, views, width = 800, background = tru
   let x = 0, body = '';
   list.forEach((v, j) => {
     const b = boxes[j], w = b[2] - b[0], hh = b[3] - b[1];
-    const { markup } = renderStep(prj, index, { view: v, lw, fmt });
+    const { markup } = renderStep(prj, index, { view: v, lw, fmt, terrainGrid });
     body += list.length === 1 ? markup
       : `<svg x="${r3(x)}" y="${r3((bh - hh) / 2)}" width="${r3(w)}" height="${r3(hh)}" viewBox="${r3(b[0])} ${r3(b[1])} ${r3(w)} ${r3(hh)}" overflow="visible">${markup}</svg>`;
     x += w + gap;

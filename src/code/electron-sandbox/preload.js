@@ -36,6 +36,10 @@ contextBridge.exposeInMainWorld('host', {
     pickImage: () => ipcRenderer.invoke('project:pickImage'),
     clearRecent: () => ipcRenderer.invoke('project:clearRecent'),
   },
+  // the start of the window: over, or to be done again without the last session
+  bootReady: () => ipcRenderer.send('boot:ready'),
+  startEmpty: () => ipcRenderer.send('boot:startEmpty'),
+  showAside: (dir) => ipcRenderer.send('boot:showAside', dir),
   recovery: {
     write: (text, meta) => ipcRenderer.invoke('recovery:write', text, meta),
     read: () => ipcRenderer.invoke('recovery:read'),
@@ -47,6 +51,8 @@ contextBridge.exposeInMainWorld('host', {
   exportPng: (name, bytes) => ipcRenderer.invoke('export:png', name, bytes),
   exportGif: (name, bytes) => ipcRenderer.invoke('export:gif', name, bytes),
   exportPdf: (name, svg, widthMm, heightMm) => ipcRenderer.invoke('export:pdf', name, svg, widthMm, heightMm),
+  exportSteps: (folder, files) => ipcRenderer.invoke('export:steps', folder, files),
+  showExportFolder: (dir) => ipcRenderer.send('export:showFolder', dir),
 
   // new versions (the app's only network access, and only when asked)
   update: {
