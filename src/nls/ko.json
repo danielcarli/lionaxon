@@ -138,7 +138,7 @@
  "person.pose2": "가리키기",
  "person.hint": "사람은 실제 키(1.75 m)로 그려져 스케일을 보여 줍니다.",
  "label.text": "글자",
- "label.editTip": "Enter로 적용 · Shift+Enter로 줄바꿈 · Esc로 취소",
+ "label.editTip": "Enter 적용 · Shift+Enter 새 줄 · Tab 다른 텍스트로 이동 · Esc 취소",
  "label.default": "라벨",
  "label.textHint": "대문자로 표시됩니다. 줄바꿈하면 둘째 줄이 시작됩니다.",
  "label.anchor": "가리키는 곳",
@@ -732,5 +732,6 @@
  "sheet.pagePrev": "이전 페이지",
  "sheet.pageNext": "다음 페이지",
  "sheet.fitPage": "페이지 맞추기",
- "label.wrapHandleTip": "끌어서 텍스트 상자를 좁히거나 넓히면 자동으로 줄바꿈됩니다. 더블 클릭: 입력한 줄 그대로 되돌리기."
+ "label.wrapHandleTip": "끌어서 텍스트 상자를 좁히거나 넓히면 자동으로 줄바꿈됩니다. 더블 클릭: 입력한 줄 그대로 되돌리기.",
+ "label.noteHint": "작은 글씨 (선택)"
 }

@@ -138,7 +138,7 @@
  "person.pose2": "指さす",
  "person.hint": "人物は実寸（1.75 m）で描かれ、スケール感を示します。",
  "label.text": "テキスト",
- "label.editTip": "Enter で確定 · Shift+Enter で改行 · Esc でキャンセル",
+ "label.editTip": "Enter で適用 · Shift+Enter で改行 · Tab でもう一方のテキストへ · Esc で取り消し",
  "label.default": "ラベル",
  "label.textHint": "大文字で表示されます。改行で 2 行目になります。",
  "label.anchor": "指す位置",
@@ -732,5 +732,6 @@
  "sheet.pagePrev": "前のページ",
  "sheet.pageNext": "次のページ",
  "sheet.fitPage": "ページ全体を表示",
- "label.wrapHandleTip": "ドラッグしてテキスト枠の幅を変えると、自動で折り返します。ダブルクリック：入力した行ごとに戻す。"
+ "label.wrapHandleTip": "ドラッグしてテキスト枠の幅を変えると、自動で折り返します。ダブルクリック：入力した行ごとに戻す。",
+ "label.noteHint": "小さい文字（任意）"
 }

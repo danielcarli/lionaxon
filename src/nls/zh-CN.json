@@ -138,7 +138,7 @@
  "person.pose2": "指向",
  "person.hint": "人物按真实身高（1.75 m）绘制，用来表示尺度。",
  "label.text": "文字",
- "label.editTip": "回车应用 · Shift+回车换行 · Esc 放弃",
+ "label.editTip": "Enter 应用 · Shift+Enter 另起一行 · Tab 切换到另一段文字 · Esc 取消",
  "label.default": "标注",
  "label.textHint": "以大写显示。换行开始第二行。",
  "label.anchor": "指向",
@@ -732,5 +732,6 @@
  "sheet.pagePrev": "上一页",
  "sheet.pageNext": "下一页",
  "sheet.fitPage": "适合页面",
- "label.wrapHandleTip": "拖动可使文本框变窄或变宽，文字会自动换行。双击：恢复按输入的行显示。"
+ "label.wrapHandleTip": "拖动可使文本框变窄或变宽，文字会自动换行。双击：恢复按输入的行显示。",
+ "label.noteHint": "较小的文字（可选）"
 }

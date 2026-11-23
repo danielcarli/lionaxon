@@ -592,9 +592,11 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 4px; }
 .orbit-canvas.cycling .orbit-sel { stroke: #c026d3; }
 
 /* the text of a label, written where it is drawn */
-.label-box { position: absolute; z-index: 5; }
-.label-box textarea { display: block; width: 100%; min-width: 120px; padding: 4px 6px; border-radius: 6px; border: 1.5px solid #2f74e8; background: var(--bg-elevated); color: var(--text-primary); font-family: var(--font-sans, inherit); line-height: 1.25; resize: none; overflow: hidden; box-shadow: var(--shadow-popup, 0 6px 20px rgba(0, 0, 0, 0.18)); white-space: pre; }
-.label-box textarea:focus { outline: none; }
+.label-box { position: absolute; z-index: 5; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; padding: 4px; border-radius: 8px; border: 1.5px solid #2f74e8; background: var(--bg-elevated); box-shadow: var(--shadow-popup, 0 6px 20px rgba(0, 0, 0, 0.18)); }
+.label-box.rtl { align-items: flex-end; }
+.label-box textarea { display: block; min-width: 60px; max-width: 70vw; padding: 1px 4px; border-radius: 4px; border: 1px solid transparent; background: transparent; color: var(--text-primary); resize: none; overflow: hidden; white-space: pre; box-sizing: content-box; }
+.label-box textarea:focus { outline: none; border-color: color-mix(in srgb, #2f74e8 45%, transparent); background: color-mix(in srgb, #2f74e8 6%, transparent); }
+.label-box textarea::placeholder { color: var(--text-secondary); opacity: 0.7; font-style: italic; text-transform: none; }
 
 /* a colour of its own: the well and the way back to none */
 .color-row { display: flex; align-items: center; gap: 8px; min-width: 0; }

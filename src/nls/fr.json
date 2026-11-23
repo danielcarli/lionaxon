@@ -138,7 +138,7 @@
  "person.pose2": "Montrant du doigt",
  "person.hint": "Les personnes sont dessinées à leur taille réelle (1,75 m), pour donner l’échelle.",
  "label.text": "Texte",
- "label.editTip": "Entrée applique · Maj+Entrée commence une autre ligne · Échap abandonne",
+ "label.editTip": "Entrée applique · Maj+Entrée commence une autre ligne · Tab passe à l’autre texte · Échap annule",
  "label.default": "Étiquette",
  "label.textHint": "Affiché en capitales. Un retour à la ligne commence une seconde ligne.",
  "label.anchor": "Désigne",
@@ -732,5 +732,6 @@
  "sheet.pagePrev": "Page précédente",
  "sheet.pageNext": "Page suivante",
  "sheet.fitPage": "Cadrer la page",
- "label.wrapHandleTip": "Faites glisser pour rétrécir ou élargir le cadre du texte ; les lignes se coupent seules. Double-clic : une ligne par ligne tapée."
+ "label.wrapHandleTip": "Faites glisser pour rétrécir ou élargir le cadre du texte ; les lignes se coupent seules. Double-clic : une ligne par ligne tapée.",
+ "label.noteHint": "Texte plus petit (facultatif)"
 }

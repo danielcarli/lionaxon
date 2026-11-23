@@ -13,7 +13,7 @@ Simples de aprender em uma tarde. O mesmo programa no Windows, no macOS e no Lin
 
 [English](../README.md) · **Português (Brasil)**
 
-![Versão 0.17.0](https://img.shields.io/badge/vers%C3%A3o-0.17.0-23272b)
+![Versão 0.17.1](https://img.shields.io/badge/vers%C3%A3o-0.17.1-23272b)
 ![Experimental](https://img.shields.io/badge/status-experimental-b5532d)
 ![Plataformas: Windows, macOS, Linux](https://img.shields.io/badge/plataforma-Windows%20%7C%20macOS%20%7C%20Linux-23272b)
 ![10 línguas](https://img.shields.io/badge/l%C3%ADnguas-10-d0673f)
@@ -80,7 +80,7 @@ Software livre (GPL-3.0). Sem conta, sem assinatura, sem telemetria, e funciona 
 - **Etapas** com título e texto, reordenadas arrastando; mudanças aplicadas às etapas seguintes com um clique; sinais entre as etapas (+ − = →).
 - **Categorias** com cor *e* hachura (circulação, núcleo de escada, teatro…): a legenda funciona em impressão cinza e para quem não distingue as cores.
 - **Alinhar faces** (`L`): clique na face de referência e depois na face de outra forma, e ela se move até as duas ficarem no mesmo plano — lado com lado, topo com topo.
-- **Setas, pessoas, rótulos, cotas e árvores** — as pessoas na altura real, para dar a escala; pessoas e árvores ficam em cima do que estiver embaixo delas (um platô, um talude, uma cobertura). Duplo clique em um rótulo para escrever o texto direto no desenho.
+- **Setas, pessoas, rótulos, cotas e árvores** — as pessoas na altura real, para dar a escala; pessoas e árvores ficam em cima do que estiver embaixo delas (um platô, um talude, uma cobertura). Duplo clique em um rótulo para escrever o texto — e o texto menor embaixo dele — direto no desenho.
 
 **Moldar o terreno**
 - **Terreno**: platôs, taludes, fossos, planos de referência com linhas de nível na elevação; terreno de qualquer contorno. **Unir terrenos** (uma chave na barra de ferramentas do desenho) desenha platôs e taludes que se tocam como uma peça só, sem as linhas entre eles.
@@ -186,7 +186,7 @@ O programa abre em uma tela inicial com seis exemplos — do partido em cinco et
 | `0`–`9` com uma forma selecionada | Digitar o tamanho: largura × profundidade × altura |
 | `L` | Alinhar faces: a face de referência e depois a face a levar até ela |
 | `Tab` · `Shift+Tab` | O próximo · o anterior objeto no mesmo ponto (os outros ficam transparentes) |
-| Duplo clique em um rótulo · `Enter` com ele selecionado | Escrever o texto direto no desenho (`Enter` aplica, `Shift+Enter` nova linha, `Esc` desiste) |
+| Duplo clique em um rótulo · `Enter` com ele selecionado | Escrever o texto e o texto menor direto no desenho (`Enter` aplica, `Shift+Enter` nova linha, `Tab` o outro texto, `Esc` desiste) |
 | `F2` · `Ctrl+L` · `Ctrl+H` | Renomear · travar · ocultar a seleção |
 | Botão direito | Menu do objeto (ou do papel) |
 | `R` · `Espaço` · `Shift` | Girar a seleção 90° (`Shift`: 15°); `Espaço` também ao mover; segure `Espaço` e arraste para deslocar |
@@ -259,7 +259,7 @@ Código, comentários, identificadores e documentação em inglês. A interface 
 
 ## Próximas versões
 
-- **0.17** ✓ — exportar as etapas que você escrever (3-7, 1, 4, 6), em arquivos separados ou numa prancha; a prévia da prancha com zoom e arrasto como no desenho, página a página; legendas ao lado dos desenhos quando isso os deixa maiores; a caixa de texto do rótulo redimensionada pela lateral; a importação de IFC retirada até ler modelos reais.
+- **0.17** ✓ — exportar as etapas que você escrever (3-7, 1, 4, 6), em arquivos separados ou numa prancha; a prévia da prancha com zoom e arrasto como no desenho, página a página; legendas ao lado dos desenhos quando isso os deixa maiores; a caixa de texto do rótulo redimensionada pela lateral, e o texto pequeno escrito direto no desenho; a importação de IFC retirada até ler modelos reais.
 - **0.16** ✓ — cada etapa exportada como imagem própria (PNG, SVG, PDF); terreno em grade na prancha; rótulos com largura, com quebra de linha automática.
 - **0.15** ✓ — unir terrenos (platôs e taludes que se tocam desenhados como um só); pessoas e árvores em cima do que está embaixo delas.
 - **0.14** ✓ — uma primeira importação de modelos de edifício (IFC); retirada na 0.17, ainda não lia modelos reais.
@@ -275,7 +275,7 @@ Código, comentários, identificadores e documentação em inglês. A interface 
 - **Depois** — a importação de modelos de edifício (IFC, depois arquivos Rev), testada em projetos reais; várias pranchas e alternativas no mesmo projeto; terreno livre; escadas; plantas de zoneamento; pátios e união de volumes; lajes soltas e pilotis; sombras sobre volumes e terreno; cortes na prancha; desenhar formas novas no visualizador 3D; paleta de comandos; instaladores assinados.
 - **1.0** — DXF de entrada e saída; manual e tutoriais na ordem de um ateliê de projeto; traduções revisadas.
 
-O histórico completo está no [CHANGELOG](../CHANGELOG.md) — versão atual: **0.17.0**.
+O histórico completo está no [CHANGELOG](../CHANGELOG.md) — versão atual: **0.17.1**.
 
 ## Créditos
 

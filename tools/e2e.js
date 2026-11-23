@@ -1513,6 +1513,21 @@ async function sheet17(win, js) {
   await mouse(win, 'mouseDown', gc, { clickCount: 2 }); await mouse(win, 'mouseUp', gc, { clickCount: 2 });
   await sleep(400);
   check('…a double click on its side puts the lines back as typed', !(await js(`${D}.byId('l-w').wrap`)));
+  // the note is written on the drawing too: a double click on it opens the box with the note in focus
+  await js(`${C}.setProps({ wrap: 30 }); true`);
+  await sleep(400);
+  const noteAt = await js(`(() => { const r = ${canvasQ}.querySelector('[data-id="l-w"] .label-note').getBoundingClientRect(); return JSON.stringify([r.left + 30, r.top + r.height / 2]); })()`).then(JSON.parse);
+  await mouse(win, 'mouseDown', noteAt); await mouse(win, 'mouseUp', noteAt);
+  await mouse(win, 'mouseDown', noteAt, { clickCount: 2 }); await mouse(win, 'mouseUp', noteAt, { clickCount: 2 });
+  await sleep(400);
+  const ed = await js(`(() => { const a = document.activeElement, t = document.querySelector('.label-box [data-key=text]'); return JSON.stringify({ key: a?.dataset.key, note: a?.value, title: t?.value, fs: parseFloat(t?.style.fontSize), lines: t ? Math.round(t.clientHeight / parseFloat(t.style.lineHeight)) : 0 }); })()`).then(JSON.parse);
+  check('…a double click on the small text opens both texts, the small one in focus', ed.key === 'note' && /^Ampliação/.test(ed.note) && ed.title === 'Restaurante e cozinha', JSON.stringify(ed));
+  check('…the text in the box has the size of the drawing and breaks at its width', ed.fs > 6 && ed.fs < 60 && ed.lines >= 1, JSON.stringify(ed));
+  await js(`(() => { const a = document.activeElement; a.value = 'Nova observação'; a.dispatchEvent(new Event('input')); return true; })()`);
+  await key(win, 'Return');
+  await sleep(300);
+  check('…Enter writes the new small text', await js(`${D}.byId('l-w').note === 'Nova observação' && !document.querySelector('.label-box')`));
+  await js(`${C}.setProps({ wrap: null }); true`);
 
   // the sheet pane: a layout button takes the click even with the focus on it, and shows it at once
   await js(`${C}.example('school').then(() => true)`);

@@ -384,7 +384,7 @@ function labelMarkup(view, o, style, attrs) {
   if (notes.length) {
     // the quieter second part: smaller, lighter, never in capitals
     const ny = y0 + (lines.length - 1) * lh + lh * 0.5 + nlh * 0.5;
-    s += `<text x="${x}" y="${r3(ny)}" font-family="${esc(f.family)}" font-size="${r3(ns)}" font-weight="400" fill="${style.text}" fill-opacity="0.62" text-anchor="${right ? 'start' : 'end'}" dominant-baseline="central">`
+    s += `<text class="label-note" x="${x}" y="${r3(ny)}" font-family="${esc(f.family)}" font-size="${r3(ns)}" font-weight="400" fill="${style.text}" fill-opacity="0.62" text-anchor="${right ? 'start' : 'end'}" dominant-baseline="central">`
       + notes.map((line, i) => `<tspan x="${x}"${i ? ` dy="${r3(nlh)}"` : ''}>${esc(line)}</tspan>`).join('') + '</text>';
   }
   if (o.mark) {

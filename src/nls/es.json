@@ -138,7 +138,7 @@
  "person.pose2": "Señalando",
  "person.hint": "Las personas se dibujan a su altura real (1,75 m), para dar la escala.",
  "label.text": "Texto",
- "label.editTip": "Intro aplica · Mayús+Intro empieza otra línea · Esc cancela",
+ "label.editTip": "Enter aplica · Shift+Enter empieza otra línea · Tab pasa al otro texto · Esc cancela",
  "label.default": "Rótulo",
  "label.textHint": "Se muestra en mayúsculas. Un salto de línea empieza una segunda línea.",
  "label.anchor": "Señala a",
@@ -732,5 +732,6 @@
  "sheet.pagePrev": "Página anterior",
  "sheet.pageNext": "Página siguiente",
  "sheet.fitPage": "Encuadrar la página",
- "label.wrapHandleTip": "Arrastre para estrechar o ensanchar la caja de texto; las líneas se cortan solas. Doble clic: vuelve a una línea por línea escrita."
+ "label.wrapHandleTip": "Arrastre para estrechar o ensanchar la caja de texto; las líneas se cortan solas. Doble clic: vuelve a una línea por línea escrita.",
+ "label.noteHint": "Texto menor (opcional)"
 }

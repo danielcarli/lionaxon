@@ -13,7 +13,7 @@ Simple to learn in an afternoon. The same app on Windows, macOS and Linux. Free.
 
 **English** · [Português (Brasil)](docs/README.pt-BR.md)
 
-![Version 0.17.0](https://img.shields.io/badge/version-0.17.0-23272b)
+![Version 0.17.1](https://img.shields.io/badge/version-0.17.1-23272b)
 ![Experimental](https://img.shields.io/badge/status-experimental-b5532d)
 ![Platforms: Windows, macOS, Linux](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-23272b)
 ![10 languages](https://img.shields.io/badge/languages-10-d0673f)
@@ -80,7 +80,7 @@ Free software (GPL-3.0). No account, no subscription, no telemetry, and it works
 - **Steps** with title and text, reordered by dragging; changes applied to the following steps with one click; signs between steps (+ − = →).
 - **Categories** with colour *and* hatch (circulation, stair core, theatre…), so the legend reads in grey print and for people who do not tell colours apart.
 - **Align faces** (`L`): click the face to align to, then the face of another shape, and it moves until the two lie in the same plane — sides with sides, tops with tops.
-- **Arrows, people, labels, dimension lines and trees** — people at their real height, to give the scale; people and trees stand on whatever is under them (a plateau, a slope, a roof). Double-click a label to write its text right on the drawing.
+- **Arrows, people, labels, dimension lines and trees** — people at their real height, to give the scale; people and trees stand on whatever is under them (a plateau, a slope, a roof). Double-click a label to write its text — and the smaller note under it — right on the drawing.
 
 **Shape the site**
 - **Terrain**: platforms, slopes, pits, reference planes with level lines in the elevation; a site of any outline. **Join terrain** (a switch in the toolbar of the drawing) draws platforms and slopes that touch as one piece, without the lines between them.
@@ -186,7 +186,7 @@ The app opens on a start screen with six examples — from the five-step parti t
 | `Ctrl+C` · `Ctrl+X` · `Ctrl+V` | Copy · cut · paste (also to another step or diagram) |
 | `0`–`9` with a shape selected | Type its size: width × depth × height |
 | `Tab` · `Shift+Tab` | The next · previous object under the same spot (the others fade) |
-| Double-click a label · `Enter` with it selected | Write its text on the drawing (`Enter` applies, `Shift+Enter` new line, `Esc` gives up) |
+| Double-click a label · `Enter` with it selected | Write its text and its note on the drawing (`Enter` applies, `Shift+Enter` new line, `Tab` the other text, `Esc` gives up) |
 | `F2` · `Ctrl+L` · `Ctrl+H` | Rename · lock · hide the selection |
 | Right button | The menu of the object (or of the paper) |
 | `R` · `Space` · `Shift` | Turn the selection 90° (`Shift`: 15°); `Space` also while moving; hold `Space` and drag to pan |
@@ -311,7 +311,7 @@ Code, comments, identifiers and documentation are in English. The interface is t
 
 ## Roadmap
 
-- **0.17** ✓ — export the steps you write (3-7, 1, 4, 6), as files or one sheet; the sheet preview zoomed and dragged like the drawing, page by page; captions beside the drawings when that makes them larger; a label's text box resized by its side; the import from IFC taken out until it reads real models.
+- **0.17** ✓ — export the steps you write (3-7, 1, 4, 6), as files or one sheet; the sheet preview zoomed and dragged like the drawing, page by page; captions beside the drawings when that makes them larger; a label's text box resized by its side, and its small text written on the drawing; the import from IFC taken out until it reads real models.
 - **0.16** ✓ — every step exported as its own image (PNG, SVG, PDF); the terrain as a grid on the sheet; labels with a width, broken into lines by themselves.
 - **0.15** ✓ — join terrain (platforms and slopes that touch drawn as one); people and trees stand on what is under them.
 - **0.14** ✓ — a first import of building models (IFC); taken out in 0.17, it did not yet read real models.
@@ -329,7 +329,7 @@ Code, comments, identifiers and documentation are in English. The interface is t
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) — current version: **0.17.0**.
+See [CHANGELOG.md](CHANGELOG.md) — current version: **0.17.1**.
 
 ## Credits
 

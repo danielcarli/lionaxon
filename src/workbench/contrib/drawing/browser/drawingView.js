@@ -817,7 +817,7 @@ export class DrawingView {
       }
       const { id } = this.#hit({ target });
       const o = id && this.doc.byId(id);
-      if (o?.type === 'label') this.editLabel(o.id);
+      if (o?.type === 'label') this.editLabel(o.id, target.closest?.('.label-note') ? 'note' : 'text');
       else if (o) this.s.properties?.focus('name');
     });
     // Space: held while dragging, it pans; tapped, it turns the selection 90° (Shift: 15°) — also while an
@@ -937,57 +937,98 @@ export class DrawingView {
    * metres (one, two or three numbers) and applies it on Enter.
    */
   /**
-   * The text of a label, written where it is drawn: a double click on the label (or Enter with it selected)
-   * opens a box over it. Enter applies, Shift+Enter starts another line, Esc gives up.
+   * The texts of a label, written where they are drawn: a double click on the label (or Enter with it
+   * selected) opens a box over it with its two parts — the text, and the smaller note under it — each in
+   * the size, font and width it has on the drawing. The part clicked takes the focus (`part`: 'text' or
+   * 'note'). Enter applies, Shift+Enter starts another line, Tab goes to the other part, Esc gives up.
    */
-  editLabel(id = this.doc.selected()[0]?.id) {
+  editLabel(id = this.doc.selected()[0]?.id, part = 'text') {
     const o = id && this.doc.byId(id);
     if (!o || o.type !== 'label' || o.locked || this.labelBox || !this.visible) return false;
-    const texts = [...this.content.querySelectorAll(`[data-id="${CSS.escape(id)}"] text, text[data-id="${CSS.escape(id)}"]`)];
+    const group = this.content.querySelector(`[data-id="${CSS.escape(id)}"]`);
+    const texts = group ? [...group.querySelectorAll(':scope > text')].filter((x) => x.getAttribute('text-anchor') !== 'middle') : [];
     if (!texts.length) return false;
     if (!this.doc.selection.has(id) || this.doc.selection.size !== 1) this.doc.select([id]);
-    // where the text is drawn, in the coordinates of the drawing area
+    const titleEl = texts.find((x) => !x.classList.contains('label-note'));
+    const noteEl = texts.find((x) => x.classList.contains('label-note'));
+    // where the texts are drawn, in the coordinates of the drawing area
     const wrap = this.wrap.getBoundingClientRect();
     const rects = texts.map((x) => x.getBoundingClientRect());
     const left = Math.min(...rects.map((r) => r.left)), right = Math.max(...rects.map((r) => r.right));
-    const top = Math.min(...rects.map((r) => r.top)), bottom = Math.max(...rects.map((r) => r.bottom));
-    // the lines as drawn (a text with a width breaks into more lines than were typed)
-    const lines = Math.max(1, texts[0].querySelectorAll('tspan').length || String(o.text || '').split('\n').length);
-    const fontPx = Math.max(11, Math.min(40, ((bottom - top) / lines) * 0.78));
+    const top = Math.min(...rects.map((r) => r.top));
+    const k = this.svg.getScreenCTM()?.a || this.cam.scale; // screen px per drawing unit
+    const right2left = o.dx < 0;
+    const family = titleEl?.getAttribute('font-family') || 'inherit';
+    const sizePx = o.size * k, notePx = o.size * 0.72 * k;
+    // a width set on the label: the boxes break their lines at the width the text has on the drawing
+    const width = o.wrap ? Math.max(80, right - left + 14) : null;
     let done = false;
     const close = (apply) => {
       if (done) return;
       done = true;
-      const value = area.value.replace(/\s+$/, '');
+      const text = area.value.replace(/\s+$/, ''), note = noteArea.value.replace(/\s+$/, '');
       this.labelBox?.remove();
       this.labelBox = null;
       this.closeLabel = null;
-      if (apply && value && value !== o.text && this.doc.byId(id)) {
+      if (!apply || !this.doc.byId(id)) return;
+      const props = {};
+      if (text && text !== o.text) props.text = text;
+      if (note !== (o.note || '')) props.note = note || null;
+      if (Object.keys(props).length) {
         if (!this.doc.selection.has(id) || this.doc.selection.size !== 1) this.doc.select([id]);
-        this.s.commands.setProps({ text: value });
+        this.s.commands.setProps(props);
       }
     };
-    const area = h('textarea', {
-      'data-key': 'text', spellcheck: false, rows: lines, 'aria-label': t('label.text'), title: t('label.editTip'),
-      style: { fontSize: `${r3(fontPx)}px`, textTransform: o.caps === false ? 'none' : 'uppercase' },
-      onkeydown: (e) => {
-        e.stopPropagation();
-        if (e.key === 'Escape') { e.preventDefault(); close(false); }
-        else if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); close(true); }
+    const fit = (el) => {
+      el.style.height = 'auto';
+      el.style.height = `${el.scrollHeight + 2}px`;
+      // an empty note takes the width of the text above it (its hint does not widen the box)
+      if (!width) { el.style.width = 'auto'; el.style.width = `${Math.max(el.value || el === area ? el.scrollWidth + 4 : area.offsetWidth - 8, 60)}px`; }
+    };
+    const field = (key, value, px, lh, extra) => {
+      const el = h('textarea', {
+        'data-key': key, spellcheck: false, rows: 1, 'aria-label': t(key === 'text' ? 'label.text' : 'label.notePlaceholder'), title: t('label.editTip'),
+        wrap: width ? 'soft' : 'off',
+        placeholder: key === 'note' ? t('label.noteHint') : '',
+        style: { fontSize: `${r3(px)}px`, lineHeight: `${r3(px * lh)}px`, fontFamily: family, textAlign: right2left ? 'right' : 'left', ...(width ? { width: `${Math.round(width)}px`, whiteSpace: 'pre-wrap' } : {}), ...extra },
+        onkeydown: (e) => {
+          e.stopPropagation();
+          if (e.key === 'Escape') { e.preventDefault(); close(false); }
+          else if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); close(true); }
+        },
+        oninput: () => fit(el),
+        // a field left with a change: applied unless the focus went to the other part of the box (change
+        // comes even when the window itself is not the active one, focusout does not)
+        onchange: () => setTimeout(() => { if (!box.contains(document.activeElement)) close(true); }, 0),
+        onpointerdown: (e) => e.stopPropagation(),
+      });
+      el.value = value || '';
+      return el;
+    };
+    const area = field('text', o.text, sizePx, 1.25, { textTransform: o.caps === false ? 'none' : 'uppercase', fontWeight: titleEl?.getAttribute('font-weight') || '600' });
+    const noteArea = field('note', o.note, notePx, 1.3, { fontWeight: '400', opacity: '0.8' });
+    // leaving the box applies (going from one part to the other does not)
+    const box = h('div.label-box', {
+      class: right2left ? 'label-box rtl' : 'label-box',
+      style: right2left
+        ? { right: `${Math.round(wrap.right - right - 7)}px`, top: `${Math.round(top - wrap.top - 5)}px` }
+        : { left: `${Math.round(left - wrap.left - 7)}px`, top: `${Math.round(top - wrap.top - 5)}px` },
+      onfocusout: (e) => {
+        if (box.contains(e.relatedTarget)) return;
+        // just opened and nothing typed: the click that opened it took the focus, take it back
+        const untouched = area.value === (o.text || '') && noteArea.value === (o.note || '');
+        if (untouched && performance.now() - opened < 250) { setTimeout(take, 0); return; }
+        close(true);
       },
-      oninput: () => { area.rows = Math.max(1, area.value.split('\n').length); },
-      // leaving the box applies (change comes even when the window itself is not the active one)
-      onblur: () => { if (performance.now() - opened < 250) { setTimeout(take, 0); return; } close(true); },
-      onchange: () => close(true),
-      onpointerdown: (e) => e.stopPropagation(),
-    });
-    area.value = o.text || '';
-    this.labelBox = h('div.label-box', { style: { left: `${Math.round(left - wrap.left - 7)}px`, top: `${Math.round(top - wrap.top - 5)}px`, minWidth: `${Math.round(right - left + 30)}px`, ...(o.wrap ? { width: `${Math.round(right - left + 30)}px` } : {}) } }, area);
+    }, area, noteArea);
+    this.labelBox = box;
     this.closeLabel = close;
-    this.wrap.append(this.labelBox);
+    this.wrap.append(box);
+    fit(area); fit(noteArea);
     // the double click that opened the box may still take the focus away: take it back once
     const opened = performance.now();
-    const take = () => { if (!done && document.activeElement !== area) { area.focus(); area.select(); } };
+    const first = part === 'note' && noteEl ? noteArea : area;
+    const take = () => { if (!done && !box.contains(document.activeElement)) { first.focus(); first.select(); } };
     take();
     setTimeout(take, 60);
     return true;

@@ -1,0 +1,14 @@
+# Files and folders that newer versions of LionAxon no longer have. Unpacking a new version over the
+# folder adds and replaces files but cannot take old ones away: the publish scripts (git-publish.sh,
+# git-publish.ps1) delete these paths, when they are still here, before they commit.
+# One path per line, relative to this folder.
+
+# 0.17: the import from IFC was taken out
+src/platform/import
+src/workbench/services/import
+src/vendor/web-ifc
+tools/fixtures
+docs/screenshots/ifc-import.png
+docs/screenshots/ifc-diagram.png
+docs/screenshots/pt-BR/ifc-import.png
+docs/screenshots/pt-BR/ifc-diagram.png

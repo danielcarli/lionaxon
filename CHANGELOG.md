@@ -2,6 +2,14 @@
 
 All notable changes to LionAxon are documented here. The project follows [Semantic Versioning](https://semver.org).
 
+## [0.17.1] — 2026-11-23
+
+### Added
+- **The small text of a label is written on the drawing too**: the box that opens on a label (double click, or Enter with it selected) has its two parts — the text and the quieter note under it — each in the size, font and width it has on the drawing; a double click on the note opens it with the note in focus, Tab goes from one to the other, and an empty note field is there to add one. The title in the box breaks its lines like on the drawing (it was one long line, cut, and too big).
+
+### Fixed
+- The installers of 0.17.0 were not built: unpacking a version over the folder adds and replaces files but does not take old ones away, so the files of the removed IFC import were still in the repository, and the check of the translations stopped the build on the texts they use. The publish scripts now delete what a version no longer has (listed in `tools/removed-paths.txt`) before they commit.
+
 ## [0.17.0] — 2026-11-23
 
 ### Added

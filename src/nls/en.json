@@ -138,7 +138,7 @@
  "person.pose2": "Pointing",
  "person.hint": "People are drawn at their real height (1.75 m), to give the scale.",
  "label.text": "Text",
- "label.editTip": "Enter applies · Shift+Enter starts another line · Esc gives up",
+ "label.editTip": "Enter applies · Shift+Enter starts another line · Tab goes to the other text · Esc gives up",
  "label.default": "Label",
  "label.textHint": "Shown in capitals. A new line starts a second line.",
  "label.anchor": "Points to",
@@ -732,5 +732,6 @@
  "sheet.pagePrev": "Previous page",
  "sheet.pageNext": "Next page",
  "sheet.fitPage": "Frame the page",
- "label.wrapHandleTip": "Drag to make the text box narrower or wider; the text breaks into lines on its own. Double-click: back to one line per line typed."
+ "label.wrapHandleTip": "Drag to make the text box narrower or wider; the text breaks into lines on its own. Double-click: back to one line per line typed.",
+ "label.noteHint": "Smaller text (optional)"
 }

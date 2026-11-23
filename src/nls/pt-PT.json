@@ -138,7 +138,7 @@
  "person.pose2": "A apontar",
  "person.hint": "As pessoas são desenhadas na altura real (1,75 m), para dar a escala.",
  "label.text": "Texto",
- "label.editTip": "Enter aplica · Shift+Enter começa outra linha · Esc desiste",
+ "label.editTip": "Enter aplica · Shift+Enter começa outra linha · Tab passa para o outro texto · Esc desiste",
  "label.default": "Rótulo",
  "label.textHint": "Aparece em caixa alta. Uma quebra de linha começa uma segunda linha.",
  "label.anchor": "Aponta para",
@@ -732,5 +732,6 @@
  "sheet.pagePrev": "Página anterior",
  "sheet.pageNext": "Página seguinte",
  "sheet.fitPage": "Enquadrar a página",
- "label.wrapHandleTip": "Arraste para estreitar ou alargar a caixa de texto; as linhas quebram sozinhas. Duplo clique: volta a uma linha por linha escrita."
+ "label.wrapHandleTip": "Arraste para estreitar ou alargar a caixa de texto; as linhas quebram sozinhas. Duplo clique: volta a uma linha por linha escrita.",
+ "label.noteHint": "Texto menor (opcional)"
 }

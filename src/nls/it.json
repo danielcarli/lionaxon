@@ -138,7 +138,7 @@
  "person.pose2": "Che indica",
  "person.hint": "Le persone sono disegnate alla loro altezza reale (1,75 m), per dare la scala.",
  "label.text": "Testo",
- "label.editTip": "Invio applica · Maiusc+Invio inizia un’altra riga · Esc annulla",
+ "label.editTip": "Invio applica · Maiusc+Invio inizia un’altra riga · Tab passa all’altro testo · Esc annulla",
  "label.default": "Etichetta",
  "label.textHint": "Mostrato in maiuscolo. Un a capo inizia una seconda riga.",
  "label.anchor": "Indica",
@@ -732,5 +732,6 @@
  "sheet.pagePrev": "Pagina precedente",
  "sheet.pageNext": "Pagina successiva",
  "sheet.fitPage": "Inquadra la pagina",
- "label.wrapHandleTip": "Trascina per restringere o allargare il riquadro del testo; le righe vanno a capo da sole. Doppio clic: torna a una riga per ogni riga scritta."
+ "label.wrapHandleTip": "Trascina per restringere o allargare il riquadro del testo; le righe vanno a capo da sole. Doppio clic: torna a una riga per ogni riga scritta.",
+ "label.noteHint": "Testo più piccolo (facoltativo)"
 }

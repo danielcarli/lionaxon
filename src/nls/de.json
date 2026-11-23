@@ -138,7 +138,7 @@
  "person.pose2": "Zeigend",
  "person.hint": "Personen werden in ihrer wirklichen Größe (1,75 m) gezeichnet, um den Maßstab zu zeigen.",
  "label.text": "Text",
- "label.editTip": "Eingabe übernimmt · Umschalt+Eingabe beginnt eine neue Zeile · Esc bricht ab",
+ "label.editTip": "Enter übernimmt · Umschalt+Enter beginnt eine neue Zeile · Tab wechselt zum anderen Text · Esc bricht ab",
  "label.default": "Beschriftung",
  "label.textHint": "Wird in Großbuchstaben gezeigt. Ein Zeilenumbruch beginnt eine zweite Zeile.",
  "label.anchor": "Zeigt auf",
@@ -732,5 +732,6 @@
  "sheet.pagePrev": "Vorherige Seite",
  "sheet.pageNext": "Nächste Seite",
  "sheet.fitPage": "Seite einpassen",
- "label.wrapHandleTip": "Ziehen, um den Textrahmen schmaler oder breiter zu machen; der Text bricht von selbst um. Doppelklick: wieder eine Zeile je getippter Zeile."
+ "label.wrapHandleTip": "Ziehen, um den Textrahmen schmaler oder breiter zu machen; der Text bricht von selbst um. Doppelklick: wieder eine Zeile je getippter Zeile.",
+ "label.noteHint": "Kleinerer Text (optional)"
 }
