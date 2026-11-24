@@ -6,6 +6,9 @@
 // Geometry of the solids, as plane faces in 3D (metres):
 //   box and cylinder  footprints extruded between two heights, cut in height bands by the subtractions
 //   cone and pyramid  a footprint and an apex
+//   trapezoids        standing ('trapezoid'): the long side down, the sides leaning in to a narrower top;
+//                     lying ('trapezoidLying'): the trapezoid lies on the ground, as the footprint, and its
+//                     walls go straight up (an extruded footprint, like a box: subtractions cut it)
 //   sphere            kept as a centre and a radius (drawn as a disc by the renderer)
 //   ground            the site's slab (when it has a thickness), raised or sunk platforms, slopes
 // A face: { role: 'top' | 'wall' | 'slant', rings: [outer, ...holes] (3D), n (outward unit normal), lines (floor
@@ -33,6 +36,13 @@ export function footprintOf(o) {
     const a = ((o.rot || 0) * Math.PI) / 180, c = Math.cos(a), s = Math.sin(a);
     const ring = o.pts.map(([x, y]) => [o.x + x * c - y * s, o.y + x * s + y * c]);
     return signedArea(ring) < 0 ? ring.reverse() : ring; // counter-clockwise, like the other outlines
+  }
+  if (o.shape === 'trapezoidLying') {
+    // the long side (w) at the front, the short one (`top`) at the back, centred
+    const a = ((o.rot || 0) * Math.PI) / 180, c = Math.cos(a), s = Math.sin(a);
+    const W = o.w / 2, D = o.d / 2, T = Math.max(0, Math.min(o.w, o.top ?? o.w / 2)) / 2;
+    const local = T > 1e-6 ? [[-W, -D], [W, -D], [T, D], [-T, D]] : [[-W, -D], [W, -D], [0, D]];
+    return local.map(([x, y]) => [o.x + x * c - y * s, o.y + x * s + y * c]);
   }
   return o.shape === 'cylinder' || o.shape === 'cone' ? ellipseRing(o.x, o.y, o.w, o.d, o.rot) : rectRing(o.x, o.y, o.w, o.d, o.rot);
 }
@@ -70,6 +80,8 @@ export function expandCut(c) {
   if (shape === 'box') return [c];
   if (shape === 'poly') return [{ ...c, ring: footprintOf(c) }];
   if (shape === 'cylinder') return [{ ...c, ring: ellipseRing(c.x, c.y, c.w, c.d, c.rot), curve: { x: c.x, y: c.y, w: c.w, d: c.d, rot: c.rot } }];
+  if (shape === 'trapezoidLying') return [{ ...c, ring: footprintOf(c) }];
+  if (shape === 'trapezoid') return trapezoidSlices(c);
   const h = shape === 'sphere' ? c.w : c.h;
   const n = Math.max(6, Math.min(16, Math.round(h / 0.5)));
   const out = [];
@@ -81,6 +93,83 @@ export function expandCut(c) {
     const w = c.w * f, d = c.d * f;
     const ring = shape === 'pyramid' ? rectRing(c.x, c.y, w, d, c.rot) : ellipseRing(c.x, c.y, w, d, c.rot);
     out.push({ ...c, z: c.z + a, h: b - a, w, d, ring, curve: shape === 'pyramid' ? null : { x: c.x, y: c.y, w, d, rot: c.rot } });
+  }
+  return out;
+}
+
+/** A standing trapezoid: its own faces (its sides lean). A lying one is an extruded footprint, like a box. */
+export const isTrapezoid = (o) => o?.shape === 'trapezoid';
+
+/**
+ * The corners of a standing trapezoid, in its own axes (x along the width, y along the depth, z up from its
+ * base): four at the bottom and, above each of them, four at the top, `top` wide and centred.
+ */
+export function trapezoidCorners(o) {
+  const W = o.w / 2, D = o.d / 2, H = o.h;
+  const T = Math.max(0, Math.min(o.w, o.top ?? o.w / 2)) / 2;
+  return { bottom: [[-W, -D, 0], [W, -D, 0], [W, D, 0], [-W, D, 0]], top: [[-T, -D, H], [T, -D, H], [T, D, H], [-T, D, H]] };
+}
+
+/** The height of the top of a standing trapezoid at a point of its own axes (x across the width), or null off its top. */
+export function trapezoidTopAt(o, lx) {
+  return Math.abs(lx) <= Math.max(0, Math.min(o.w, o.top ?? o.w / 2)) / 2 + 1e-9 ? o.h : null;
+}
+
+/**
+ * The faces of a standing trapezoid on `base`: the bottom, the top, the two ends (the trapezoids, upright)
+ * and the two leaning sides; an edge of no length is dropped, a face of no area too. Floor lines go across
+ * the ends and the sides.
+ */
+export function trapezoidFaces(o, base) {
+  const a = ((o.rot || 0) * Math.PI) / 180, c = Math.cos(a), sn = Math.sin(a);
+  const W = ([lx, ly, lz]) => [o.x + lx * c - ly * sn, o.y + lx * sn + ly * c, base + lz];
+  const { bottom, top } = trapezoidCorners(o);
+  const B = bottom.map(W), T = top.map(W);
+  const inside = [o.x, o.y, base + o.h / 3];
+  const clean = (pts) => pts.filter((q, i, list) => { const r = list[(i + 1) % list.length]; return Math.hypot(q[0] - r[0], q[1] - r[1], q[2] - r[2]) > 1e-6; });
+  const area = (pts) => {
+    let x = 0, y = 0, z = 0;
+    for (let i = 0; i < pts.length; i++) {
+      const p = pts[i], q = pts[(i + 1) % pts.length];
+      x += p[1] * q[2] - p[2] * q[1]; y += p[2] * q[0] - p[0] * q[2]; z += p[0] * q[1] - p[1] * q[0];
+    }
+    return Math.hypot(x, y, z) / 2;
+  };
+  const floorZ = [];
+  for (let i = 1; i < (o.floors || 1); i++) floorZ.push(base + (i * o.h) / o.floors);
+  // where a floor crosses a face: the two points where the plane z cuts its edges
+  const across = (pts, z) => {
+    const hit = [];
+    for (let i = 0; i < pts.length; i++) {
+      const p = pts[i], q = pts[(i + 1) % pts.length];
+      if ((p[2] - z) * (q[2] - z) < 0) { const t = (z - p[2]) / (q[2] - p[2]); hit.push([p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t, z]); }
+    }
+    return hit.length === 2 ? [hit] : [];
+  };
+  const out = [];
+  const add = (pts, role, lines = false) => {
+    const ring = clean(pts);
+    if (ring.length < 3 || area(ring) < 1e-6) return;
+    const n = normalOf(ring, inside);
+    const r = role ?? (Math.abs(n[2]) < 1e-6 ? 'wall' : n[2] > 0.999999 ? 'top' : 'slant');
+    out.push({ role: r, rings: [ring], n, lines: lines ? floorZ.flatMap((z) => across(ring, z)) : [] });
+  };
+  add([T[0], T[1], T[2], T[3]]);
+  for (let i = 0; i < 4; i++) { const j = (i + 1) % 4; add([B[i], B[j], T[j], T[i]], null, true); }
+  add([B[3], B[2], B[1], B[0]], 'bottom');
+  return out;
+}
+
+/** A standing trapezoid as a subtraction: thin slices that narrow the way its sides lean, as for a pyramid. */
+function trapezoidSlices(c) {
+  const n = Math.max(6, Math.min(24, Math.round(c.h / 0.4)));
+  const top = Math.max(0, Math.min(c.w, c.top ?? c.w / 2));
+  const out = [];
+  for (let k = 0; k < n; k++) {
+    const a = (k / n) * c.h, b = ((k + 1) / n) * c.h, mid = (a + b) / 2;
+    const w = c.w - (c.w - top) * (mid / c.h); // the width that reaches the middle of the slice
+    if (w < 0.02) continue;
+    out.push({ ...c, shape: 'box', z: c.z + a, h: b - a, w, ring: rectRing(c.x, c.y, w, c.d, c.rot), curve: null });
   }
   return out;
 }
@@ -229,6 +318,7 @@ export function apexFaces(o, base) {
 export function volumeFaces(v, base, cuts) {
   if (v.shape === 'sphere') return [{ role: 'sphere', centre: [v.x, v.y, base + v.w / 2], r: v.w / 2 }];
   if (v.shape === 'cone' || v.shape === 'pyramid') return apexFaces(v, base);
+  if (v.shape === 'trapezoid') return trapezoidFaces(v, base);
   const curve = v.shape === 'cylinder' ? ellipseInfo(v) : null;
   const faces = extrusionFaces(footprintOf(v), base, v.h, cuts, { id: v.id, floors: v.floors, curve });
   if (v.shape !== 'box' || !v.roof || v.roof === 'flat') return faces;
@@ -280,12 +370,13 @@ export function shadowOf(v, base, cuts, k) {
   }
   const ring = footprintOf(v);
   if (v.shape === 'cone' || v.shape === 'pyramid') return [[convexHull([...ring.map((q) => at(q, base)), at([v.x, v.y], base + v.h)])]];
+  if (v.shape === 'trapezoid') return [[convexHull(trapezoidFaces(v, base).flatMap((f) => f.rings[0]).map((q) => at(q, q[2])))]];
   const reach = Math.max(...ring.map(([x, y]) => Math.hypot(x - ring[0][0], y - ring[0][1])));
   const parts = [];
   for (const band of extrusionBands(ring, base, v.h + (v.roof && v.roof !== 'flat' ? (v.roofH || 0) / 2 : 0), cuts, v.id, reach)) {
     for (const poly of band.poly) {
       // a whole convex outline: the hull of its two ends; otherwise each wall casts its own strip
-      if (poly.length === 1 && (v.shape === 'box' || v.shape === 'cylinder') && poly[0].length === ring.length) {
+      if (poly.length === 1 && (v.shape === 'box' || v.shape === 'cylinder' || v.shape === 'trapezoidLying') && poly[0].length === ring.length) {
         parts.push([[convexHull([...poly[0].map((q) => at(q, band.a)), ...poly[0].map((q) => at(q, band.b))])]]);
         continue;
       }
@@ -392,10 +483,18 @@ export function restingHeight(objects, levels, x, y, z, baseOfVolume, elevationO
     } else if (o.type === 'volume') {
       if (o.state === 'ghost' || o.shape === 'sphere' || o.shape === 'cone' || o.shape === 'pyramid') continue;
       const base = baseOfVolume(o);
-      const e = base + o.h;
+      let e = base + o.h;
+      if (o.shape === 'trapezoid') {
+        // on its top, not on a leaning side
+        const a = ((o.rot || 0) * Math.PI) / 180;
+        const lx = (x - o.x) * Math.cos(a) + (y - o.y) * Math.sin(a);
+        const at = trapezoidTopAt(o, lx);
+        if (at == null) continue;
+        e = base + at;
+      }
       if (base > z + FEET || e <= top || !inside(footprintOf(o))) continue;
       // a cut through the top there (a courtyard, a notch): not a place to stand on
-      const holed = objects.some((c) => c.type === 'cut' && (!c.target || c.target === o.id) && !c.hidden
+      const holed = !o.fill && objects.some((c) => c.type === 'cut' && (!c.target || c.target === o.id) && !c.hidden
         && (elevationOf(levels, c.level) + (c.z || 0)) + c.h >= e - 0.01 && inside(footprintOf(c)));
       if (!holed) top = e;
     }

@@ -53,8 +53,8 @@ export function numField(o) {
     o.label ? h('span.nf-label', o.label) : null, input, o.unit ? h('span.nf-unit', o.unit) : null);
 }
 
-export function segmented(options, value, onPick, { title } = {}) {
-  return h('div.segmented', { role: 'radiogroup', 'aria-label': title || null },
+export function segmented(options, value, onPick, { title, ...attrs } = {}) {
+  return h('div.segmented', { role: 'radiogroup', 'aria-label': title || null, ...attrs },
     options.map(([v, label, tip]) => h('button', {
       type: 'button', role: 'radio', 'aria-checked': String(v === value), class: v === value ? 'active' : null, title: tip || null,
       'data-value': String(v),

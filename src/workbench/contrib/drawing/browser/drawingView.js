@@ -16,14 +16,14 @@ import { h, setChildren } from '../../../../base/browser/dom.js';
 import { icon } from '../../../../base/browser/icons.js';
 import { t, formatNumber } from '../../../../base/common/nls.js';
 import { makeView, planView, project, unproject, verticalScale } from '../../../../base/common/geometry/projection.js';
-import { rectRing } from '../../../../base/common/geometry/polygon.js';
+import { rectRing, pointInRing } from '../../../../base/common/geometry/polygon.js';
 import { renderStep, padBox, arrowPoints, labelTextBox } from '../../../services/render/common/renderer.js';
 import { footprintOf } from '../../../services/render/common/solids.js';
 import { getStyle } from '../../../services/render/common/styles.js';
 import {
   createVolume, createCut, createPlatform, createSlope, createArrow, createPerson, createLabel,
   baseOf, indexById, elevationOf, slopeEnds, heightOf, formatElevation, SHAPES, GROUND_LEVEL as GROUND, explodeOffsets, splitsFloors,
-  createArea, createTree, createDim, isLine, polyFromWorld, polyWorld,
+  createArea, createTree, createDim, isLine, polyFromWorld, polyWorld, TERRAIN_TARGET,
 } from '../../../services/model/common/model.js';
 import { meters } from '../../../services/export/browser/exportService.js';
 import { showContextMenu } from '../../../browser/contextMenu.js';
@@ -40,10 +40,16 @@ const FONT_UI = "'Plus Jakarta Sans', system-ui, sans-serif";
 const TOOLS = ['select', 'align', 'box', 'cut', 'terrain', 'arrow', 'dim', 'person', 'tree', 'label'];
 const TOOL_ICONS = { select: 'select', box: 'box', cut: 'cut', terrain: 'terrain', arrow: 'arrow', person: 'person', label: 'text', tree: 'tree', dim: 'dim', align: 'alignFaces' };
 export const TOOL_KEYS = { select: 'V', box: 'B', cut: 'S', terrain: 'G', arrow: 'A', person: 'P', label: 'T', tree: 'E', dim: 'D' };
-const SHAPE_ICONS = { box: 'box', cylinder: 'cylinder', sphere: 'sphere', cone: 'cone', pyramid: 'pyramid', poly: 'poly' };
+const SHAPE_ICONS = { box: 'box', cylinder: 'cylinder', sphere: 'sphere', cone: 'cone', pyramid: 'pyramid', trapezoid: 'trapezoid', trapezoidLying: 'trapezoidLying', poly: 'poly' };
 const TERRAIN_ICONS = { platform: 'platform', slope: 'slope', area: 'area' };
 const RECT_TYPES = new Set(['volume', 'cut', 'platform', 'slope', 'area']);
 const isPoly = (o) => (o.type === 'volume' || o.type === 'cut') && o.shape === 'poly' && !!o.pts;
+/**
+ * A shape whose walls can be taken by their edges: an outline, a box or a lying trapezoid (a box with a roof
+ * or openings keeps its shape: a corner of it moves only by its size).
+ */
+const edgeShape = (o, objects) => (o.type === 'volume' || o.type === 'cut') && (isPoly(o) || o.shape === 'trapezoidLying'
+  || (o.shape === 'box' && !(o.roof && o.roof !== 'flat') && !objects.some((x) => x.type === 'opening' && x.on === o.id)));
 const CLOSE_PX = 10; // a click this near the first point closes the outline being drawn
 const fmtZ = (z) => formatElevation(z, (n) => formatNumber(n, 2));
 /** Elevations: the camera azimuth for each side of the site (the front is the bottom side of the plan). */
@@ -415,13 +421,24 @@ export class DrawingView {
       // the plane the size handles sit on: the top (the middle of a sphere, the slant of a slope)
       const top = o.type === 'platform' ? e.top : o.type === 'slope' ? null : sphere ? (e.z0 + e.z1) / 2 : e.z1;
       const zAt = (m) => (top != null ? top : e.zA + ((m + o.d / 2) / o.d) * (e.zB - e.zA));
-      if (isPoly(o)) {
-        // an outline: a handle on each corner, and a smaller one in the middle of each side (drag it out for a new corner)
-        const world = polyWorld(o);
+      if (edgeShape(o, this.doc.objects)) {
+        // the edges of the walls, at the top: each one taken and moved (the wall goes with it); a handle on
+        // each corner; on an outline, a smaller one in the middle of each side (drag it out for a new corner)
+        const world = isPoly(o) ? polyWorld(o) : footprintOf(o);
         world.forEach((q, i) => {
           const r = world[(i + 1) % world.length];
-          out.push({ id: 'p' + i, p: project(view, [q[0], q[1], e.z1]) }, { id: 'm' + i, p: project(view, [(q[0] + r[0]) / 2, (q[1] + r[1]) / 2, e.z1]) });
+          out.unshift({ id: 'e' + i, p: project(view, [(q[0] + r[0]) / 2, (q[1] + r[1]) / 2, e.z1]), a: project(view, [q[0], q[1], e.z1]), b: project(view, [r[0], r[1], e.z1]) });
         });
+        world.forEach((q, i) => {
+          const r = world[(i + 1) % world.length];
+          out.push({ id: 'p' + i, p: project(view, [q[0], q[1], e.z1]) });
+          if (isPoly(o)) out.push({ id: 'm' + i, p: project(view, [(q[0] + r[0]) / 2, (q[1] + r[1]) / 2, e.z1]) });
+        });
+        // a box keeps its size handles too
+        if (o.shape === 'box') {
+          out.push({ id: 'w+', p: at(o.w / 2, 0, zAt(0)) }, { id: 'w-', p: at(-o.w / 2, 0, zAt(0)) });
+          out.push({ id: 'd+', p: at(0, o.d / 2, zAt(o.d / 2)) }, { id: 'd-', p: at(0, -o.d / 2, zAt(-o.d / 2)) });
+        }
       } else {
         out.push({ id: 'w+', p: at(o.w / 2, 0, zAt(0)) }, { id: 'w-', p: at(-o.w / 2, 0, zAt(0)) });
         if (!sphere) out.push({ id: 'd+', p: at(0, o.d / 2, zAt(o.d / 2)) }, { id: 'd-', p: at(0, -o.d / 2, zAt(-o.d / 2)) });
@@ -486,7 +503,11 @@ export class DrawingView {
 
   #handlesMarkup(o, byId, px) {
     const list = this.handles(o, byId).filter((x) => !this.elev || ['h', 'h0', 'z', 'lt', 'lw', 'lw1', 'lw2'].includes(x.id));
-    return list.map(({ id, p, from }) => {
+    return list.map(({ id, p, from, a, b }) => {
+      if (id[0] === 'e' && a) {
+        // an edge: a wide line to take, shown when the mouse is on it
+        return `<path class="handle handle-edge" data-handle="${id}" d="M${r3(a[0])} ${r3(a[1])}L${r3(b[0])} ${r3(b[1])}" stroke="${SEL}" stroke-width="${r3(px * 9)}" stroke-linecap="round"><title>${t('edge.tip')}</title></path>`;
+      }
       if (id === 'h' || id === 'h0' || id === 'z') {
         const r = 5.5;
         const fill = id === 'z' ? '#fff' : SEL, stroke = id === 'z' ? SEL : '#fff';
@@ -565,7 +586,14 @@ export class DrawingView {
           class: L[key] === sh ? 'tool active' : 'tool', 'data-shape': sh, role: 'radio', 'aria-checked': String(L[key] === sh),
           title: t('shape.' + sh), 'aria-label': t('shape.' + sh), html: icon(SHAPE_ICONS[sh], 17),
           onclick: () => L.setToolOption(key, sh),
-        })));
+        })),
+        // the subtraction can dig into the terrain instead of the volumes
+        L.tool === 'cut' ? h('span.sep') : null,
+        L.tool === 'cut' ? h('button.tool', {
+          class: L.cutTerrain ? 'tool active' : 'tool', 'data-cut-terrain': '', 'aria-pressed': String(!!L.cutTerrain),
+          title: t('cut.terrainTool'), 'aria-label': t('cut.terrainTool'), html: icon('terrain', 17),
+          onclick: () => L.setToolOption('cutTerrain', !L.cutTerrain),
+        }) : null);
     } else if (L.tool === 'terrain') {
       options = h('div.tool-group.tool-options', { role: 'radiogroup', 'aria-label': t('tool.terrain') },
         ['platform', 'slope', 'area'].map((k) => h('button.tool', {
@@ -693,13 +721,38 @@ export class DrawingView {
       return true;
     }
     const geo = polyFromWorld(d.pts, 0);
-    if (d.tool === 'box') this.#create(createVolume({ ...geo, shape: 'poly', h: 3, z: d.on ? 0 : zr, level: d.level, on: d.on }), {});
+    if (d.tool === 'box') this.#create(createVolume({ ...geo, shape: 'poly', h: 3, z: d.on ? 0 : zr, level: d.level, on: d.on, ...(d.fill ? { fill: true } : {}) }), {});
     else {
       this.#create(createCut({ ...geo, shape: 'poly', ...this.#cutHeight(d, zr), level: d.level, target: d.target }), {});
       this.showCuts = true;
       this.#renderToolbar();
     }
     return true;
+  }
+
+  /**
+   * A new shape started in the void of a cut — on the floor a notch left in a volume, or on the ground or
+   * a roof under a cut that goes through everything — fills it: it stands at that height (not on top of the
+   * volume that was cut) and no cut takes anything out of it. Returns { on, fill, z? } (z: where it stands,
+   * when not where it was clicked).
+   */
+  #fillAt(target, z, p) {
+    const byId = indexById(this.doc.objects);
+    // on the subtraction itself (its outline shown over the drawing): its void, from its floor
+    if (target?.type === 'cut') {
+      const e = this.extentOf(target, byId), v = target.target && byId.get(target.target);
+      const floor = Math.max(e.z0, v ? this.extentOf(v, byId).z0 : this.levelZ(this.doc.activeLevel));
+      return { on: null, fill: true, z: floor };
+    }
+    // the floor of a notch: a top of the volume lower than the volume's own top
+    if (target?.type === 'volume') {
+      const { z1 } = this.extentOf(target, byId);
+      if (z < z1 - 0.01) return { on: null, fill: true };
+    }
+    // under a cut that would take the new shape away (one that cuts every volume it touches)
+    const inCut = this.doc.objects.some((c) => c.type === 'cut' && !c.hidden && (!c.target || c.target === target?.id)
+      && pointInRing(p, footprintOf(c)) && (() => { const e = this.extentOf(c, byId); return e.z0 <= z + 0.01 && e.z1 > z + 0.01; })());
+    return { on: inCut ? null : target?.type === 'volume' ? target.id : null, fill: inCut };
   }
 
   /** A click while an outline is being drawn: one more point, or the end when it lands on the first. */
@@ -709,10 +762,10 @@ export class DrawingView {
       const level = doc.activeLevel, lz = this.levelZ(level);
       const target = hit.surface ? doc.byId(hit.surface) : null;
       const z = tool === 'site' ? 0 : hit.top != null ? hit.top : lz;
+      const fill = tool === 'box' ? this.#fillAt(hit.top != null || target?.type === 'cut' ? target : null, z, this.#ground(e, z)) : { on: null, fill: false };
       this.poly = {
-        tool, pts: [], z, level, lz,
-        on: tool === 'box' && hit.top != null && target?.type === 'volume' ? target.id : null,
-        target: tool === 'cut' && target?.type === 'volume' ? target.id : null,
+        tool, pts: [], z: fill.z ?? z, level, lz, on: fill.on, fill: fill.fill,
+        target: tool === 'cut' ? this.#cutTarget(target) : null,
       };
     }
     const d = this.poly;
@@ -902,6 +955,7 @@ export class DrawingView {
       { label: t('props.delete'), key: 'Delete', run: () => cmd.deleteSelection() },
       { sep: true },
       { label: t('menu.rotate90'), key: 'R', run: () => cmd.rotateSelection(90), disabled: !sel.some((o) => RECT_TYPES.has(o.type)) },
+      n === 1 && sel[0].type === 'cut' ? { label: t('fill.action'), run: () => cmd.fillCut(sel[0].id) } : null,
       n === 1 ? { label: t('edit.rename') + '…', key: 'F2', run: () => this.s.properties?.focus('name') } : null,
       { label: t('edit.lock'), key: 'Ctrl+L', run: () => cmd.setLocked(true) },
       { label: t('edit.hide'), key: 'Ctrl+H', run: () => cmd.setHidden(true) },
@@ -1104,13 +1158,14 @@ export class DrawingView {
     const level = doc.activeLevel;
     const lz = this.levelZ(level);
     const target = hit.surface ? doc.byId(hit.surface) : null;
-    const z = hit.top != null ? hit.top : lz;
-    const p = this.#ground(e, z).map((v) => this.#snap(v, e));
+    let z = hit.top != null ? hit.top : lz;
+    let p = this.#ground(e, z).map((v) => this.#snap(v, e));
     if (tool === 'box' || tool === 'cut' || tool === 'terrain') {
+      const fill = tool === 'box' ? this.#fillAt(hit.top != null || target?.type === 'cut' ? target : null, z, p) : { on: null, fill: false };
+      if (fill.z != null && fill.z !== z) { z = fill.z; p = this.#ground(e, z).map((v) => this.#snap(v, e)); }
       this.drag = {
-        kind: 'draw', tool, z, level, lz,
-        on: tool === 'box' && hit.top != null && target?.type === 'volume' ? target.id : null,
-        target: tool === 'cut' && target?.type === 'volume' ? target.id : null,
+        kind: 'draw', tool, z, level, lz, on: fill.on, fill: fill.fill,
+        target: tool === 'cut' ? this.#cutTarget(target) : null,
         a: p,
       };
       this.preview = { kind: tool, a: p, b: p, z };
@@ -1134,7 +1189,9 @@ export class DrawingView {
 
   #create(obj, e) {
     this.doc.run('object.add', (_p, step) => { step.objects.push(obj); return [obj.id]; });
-    if (!e.shiftKey) this.layout.setTool('select');
+    // people and trees come in numbers: their tools stay on, one more at each click (Esc or V to stop);
+    // the other tools go back to selecting (Shift keeps them)
+    if (!e.shiftKey && obj.type !== 'person' && obj.type !== 'tree') this.layout.setTool('select');
   }
 
   /** The selected objects and the volumes stacked on them, with their state before the drag. */
@@ -1161,6 +1218,12 @@ export class DrawingView {
   #startHandle(e, handle) {
     let o = this.doc.selected()[0];
     if (!o) return;
+    // a corner of a box or a trapezoid, or an edge of a trapezoid: the shape becomes an outline (the edge of
+    // a box moves its wall and keeps it a box)
+    if ((handle[0] === 'p' || handle[0] === 'e') && !isPoly(o) && edgeShape(o, this.doc.objects) && !(handle[0] === 'e' && o.shape === 'box')) {
+      o = { ...structuredClone(o), shape: 'poly', ...polyFromWorld(footprintOf(o), o.rot) };
+      delete o.top;
+    }
     if (handle[0] === 'm' && isPoly(o)) {
       // the middle of a side: dragging it out makes a new corner there
       const world = polyWorld(o), i = Number(handle.slice(1)), q = world[i], r = world[(i + 1) % world.length];
@@ -1333,8 +1396,25 @@ export class DrawingView {
         // a corner of an outline goes where the pointer is (on the grid; Alt: free)
         const world = polyWorld(s0);
         world[Number(H.slice(1))] = this.#ground(e, d.zp).map((v) => this.#snap(v, e));
+        if (o.shape !== 'poly') { o.shape = 'poly'; delete o.top; }
         Object.assign(o, polyFromWorld(world, s0.rot));
         this.badge.textContent = `${formatNumber(o.w)} × ${formatNumber(o.d)} m`;
+      } else if (H[0] === 'e') {
+        // an edge: its wall moves straight out or in (on the grid; Alt: free; Shift: anywhere, the walls
+        // beside it lean to follow)
+        const world = s0.pts ? polyWorld(s0) : footprintOf(s0);
+        const i = Number(H.slice(1)), j = (i + 1) % world.length;
+        const q = world[i], r = world[j], len = Math.hypot(r[0] - q[0], r[1] - q[1]) || 1;
+        const n = [(r[1] - q[1]) / len, -(r[0] - q[0]) / len];
+        let mx, my, dist;
+        if (e.shiftKey) { mx = this.#snap(gx, e); my = this.#snap(gy, e); dist = Math.hypot(mx, my); }
+        else { dist = this.#snap(gx * n[0] + gy * n[1], e); mx = n[0] * dist; my = n[1] * dist; }
+        world[i] = [q[0] + mx, q[1] + my];
+        world[j] = [r[0] + mx, r[1] + my];
+        const next = polyFromWorld(world, s0.rot);
+        if (s0.shape === 'box' && !e.shiftKey) Object.assign(o, { x: next.x, y: next.y, w: next.w, d: next.d }); // still a box
+        else { if (o.shape !== 'poly') { o.shape = 'poly'; delete o.top; } Object.assign(o, next); }
+        this.badge.textContent = `${t('edge.badge')} ${formatNumber(Math.abs(dist))} m`;
       } else if (H === 'h') {
         if (o.type === 'platform') { o.z = r3(half(s0.z + dh)); this.badge.textContent = fmtZ(this.levelZ(o.level) + o.z); }
         else if (o.type === 'slope') { o.zTo = r3(half(s0.zTo + dh)); this.badge.textContent = fmtZ(slopeEnds(o, this.levels)[1]); }
@@ -1418,8 +1498,8 @@ export class DrawingView {
       const box = small ? { x: a[0], y: a[1], w: size, d: size } : { x: (a[0] + b[0]) / 2, y: (a[1] + b[1]) / 2, w, d: dd };
       if (d.tool === 'box') {
         const shape = this.layout.shape;
-        const extra = shape === 'sphere' ? { w: Math.min(box.w, box.d), d: Math.min(box.w, box.d) } : shape === 'cone' || shape === 'pyramid' ? { h: 6 } : {};
-        this.#create(createVolume({ ...box, h: 3, ...extra, shape, z: d.on ? 0 : zr, level: d.level, on: d.on }), e);
+        const extra = shape === 'sphere' ? { w: Math.min(box.w, box.d), d: Math.min(box.w, box.d) } : shape === 'cone' || shape === 'pyramid' || shape === 'trapezoid' ? { h: 6 } : {};
+        this.#create(createVolume({ ...box, h: 3, ...extra, shape, z: d.on ? 0 : zr, level: d.level, on: d.on, ...(d.fill ? { fill: true } : {}) }), e);
       } else if (d.tool === 'cut') {
         const shape = this.layout.cutShape;
         const round = shape === 'sphere' ? { w: Math.min(box.w, box.d), d: Math.min(box.w, box.d) } : {};
@@ -1439,7 +1519,18 @@ export class DrawingView {
    * Where a new cut starts and how tall it is: from the active plane up to the top of the volume it cuts
    * (all of the volume when that volume is below the plane); 6 m when it cuts what it crosses.
    */
+  /**
+   * What a new subtraction takes from: the terrain (with the terrain option on, or when it starts on a
+   * platform or a slope), the volume it starts on, or every volume it touches.
+   */
+  #cutTarget(target) {
+    if (this.layout.cutTerrain || target?.type === 'platform' || target?.type === 'slope') return TERRAIN_TARGET;
+    return target?.type === 'volume' ? target.id : null;
+  }
+
   #cutHeight(d, zr) {
+    // into the terrain: 3 m down from where it starts (the ground, or the top of a platform)
+    if (d.target === TERRAIN_TARGET) return { z: r3(zr - 3), h: 3 };
     if (!d.target) return { z: zr, h: 6 };
     const byId = indexById(this.doc.objects);
     const v = byId.get(d.target);

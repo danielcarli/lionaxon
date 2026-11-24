@@ -104,7 +104,7 @@ export class ExportService {
    * together), each with its number and title underneath.
    */
   gifFrames(width = 900, fontCss = '') {
-    return this.stepFrames(width, { fontCss, caption: true });
+    return this.stepFrames(width, { fontCss, caption: this.doc.project.sheet.heads !== false });
   }
 
   /**

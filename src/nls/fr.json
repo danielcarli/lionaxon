@@ -733,5 +733,22 @@
  "sheet.pageNext": "Page suivante",
  "sheet.fitPage": "Cadrer la page",
  "label.wrapHandleTip": "Faites glisser pour rétrécir ou élargir le cadre du texte ; les lignes se coupent seules. Double-clic : une ligne par ligne tapée.",
- "label.noteHint": "Texte plus petit (facultatif)"
+ "label.noteHint": "Texte plus petit (facultatif)",
+ "fill.title": "Remplir le vide",
+ "fill.action": "Remplir le vide",
+ "fill.hint": "Place une forme à l’endroit de la soustraction, de même hauteur, qu’aucune soustraction n’entame. Réduisez-la pour ne remplir qu’une partie du vide ; donnez-lui une autre catégorie ou couleur pour la distinguer. Une forme dessinée dans le vide le remplit aussi.",
+ "fill.volume": "Remplit une soustraction (aucune ne l’entame)",
+ "fill.volumeHint": "Cette forme occupe le vide d’une soustraction : les soustractions qui la touchent la laissent entière.",
+ "cut.terrain": "Le terrain",
+ "cut.terrainTool": "Soustraire du terrain : creuser le sol et les plateformes au lieu des volumes (une soustraction commencée sur une plateforme ou un talus le fait déjà)",
+ "cut.terrainHint": "Creuse le terrain : une fosse dans le sol, une entaille dans les plateformes. Les volumes restent entiers ; le terrain prend l’épaisseur nécessaire.",
+ "sheet.showHeads": "Numéro et titre de chaque étape",
+ "shape.trapezoid": "Trapèze debout",
+ "shape.trapezoidLying": "Trapèze couché",
+ "trap.top": "Largeur du haut",
+ "trap.topTip": "La largeur du dessus : les deux côtés s’inclinent de la base jusqu’à lui (0 : une arête, comme un prisme).",
+ "trap.back": "Côté arrière",
+ "trap.backTip": "La longueur du petit côté, à l’arrière : le plan est un trapèze, le grand côté devant, de la largeur du volume (0 : un triangle).",
+ "edge.tip": "Faites glisser pour déplacer ce mur vers l’extérieur ou l’intérieur (Maj : dans tous les sens ; Alt : hors de la grille)",
+ "edge.badge": "Mur déplacé"
 }

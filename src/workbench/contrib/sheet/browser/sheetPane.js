@@ -95,6 +95,7 @@ export class SheetPane {
         h('label.form-label', t('sheet.subtitle')), textField(sh.subtitle, (v) => set((s) => { s.subtitle = v; }), { placeholder: t('sheet.subtitlePlaceholder'), key: 'sheetSubtitle' }),
         checkbox(t('sheet.showLegend'), sh.legend, (v) => set((s) => { s.legend = v; })),
         sh.legend ? row(t('sheet.legendPlace'), segmented([['top', t('sheet.legendTop')], ['bottom', t('sheet.legendBottom')]], sh.legendPlace || 'top', (v) => set((s) => { s.legendPlace = v; }), { title: t('sheet.legendPlace') })) : null,
+        checkbox(t('sheet.showHeads'), sh.heads !== false, (v) => set((s) => { s.heads = v; }), { 'data-key': 'heads' }),
         checkbox(t('sheet.showTexts'), sh.texts, (v) => set((s) => { s.texts = v; })),
         toggleSwitch(t('sheet.terrainGrid'), sh.terrainGrid, (v) => set((s) => { s.terrainGrid = v; }), { 'data-key': 'terrainGrid', title: t('sheet.terrainGridTip') }))),
       // free blocks of text in a column on the right of the sheet

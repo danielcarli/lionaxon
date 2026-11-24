@@ -733,5 +733,22 @@
  "sheet.pageNext": "Pagina successiva",
  "sheet.fitPage": "Inquadra la pagina",
  "label.wrapHandleTip": "Trascina per restringere o allargare il riquadro del testo; le righe vanno a capo da sole. Doppio clic: torna a una riga per ogni riga scritta.",
- "label.noteHint": "Testo più piccolo (facoltativo)"
+ "label.noteHint": "Testo più piccolo (facoltativo)",
+ "fill.title": "Riempi il vuoto",
+ "fill.action": "Riempi il vuoto",
+ "fill.hint": "Mette una forma al posto della sottrazione, alta uguale, che nessuna sottrazione intacca. Rimpiccioliscila per riempire solo una parte del vuoto; dalle un’altra categoria o colore per distinguerla. Anche una forma disegnata dentro il vuoto lo riempie.",
+ "fill.volume": "Riempie una sottrazione (nessuna la intacca)",
+ "fill.volumeHint": "Questa forma occupa il vuoto di una sottrazione: le sottrazioni che la toccano la lasciano intera.",
+ "cut.terrain": "Il terreno",
+ "cut.terrainTool": "Sottrai dal terreno: scava il suolo e le piattaforme invece dei volumi (una sottrazione iniziata su una piattaforma o una scarpata lo fa già)",
+ "cut.terrainHint": "Scava il terreno: una fossa nel suolo, un incavo nelle piattaforme. I volumi restano interi; il terreno prende lo spessore necessario.",
+ "sheet.showHeads": "Numero e titolo di ogni fase",
+ "shape.trapezoid": "Trapezio in piedi",
+ "shape.trapezoidLying": "Trapezio sdraiato",
+ "trap.top": "Larghezza in alto",
+ "trap.topTip": "La larghezza della faccia superiore: i due lati si inclinano dalla base fino a lei (0: uno spigolo, come un prisma).",
+ "trap.back": "Lato posteriore",
+ "trap.backTip": "La lunghezza del lato corto, dietro: la pianta è un trapezio, con il lato lungo davanti, largo come il volume (0: un triangolo).",
+ "edge.tip": "Trascina per spostare questo muro in fuori o in dentro (Maiusc: in ogni direzione; Alt: fuori griglia)",
+ "edge.badge": "Muro spostato"
 }

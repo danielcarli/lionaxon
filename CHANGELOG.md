@@ -2,6 +2,34 @@
 
 All notable changes to LionAxon are documented here. The project follows [Semantic Versioning](https://semver.org).
 
+## [0.19.1] — 2026-11-23
+
+### Added
+- **The edges of the walls can be taken and moved.** On a selected box, outline or lying trapezoid (volume or subtraction), in the axonometric and the plan, the top edge of each wall lights up under the mouse: drag it and the wall moves straight out or in (on the grid; Alt: free; Shift: in any direction, the walls beside it leaning to follow). The corners have handles too. A box stays a box when one of its walls moves straight; moving a corner (or a wall with Shift) makes it an outline, as editing a lying trapezoid does. A box with a roof or openings keeps its shape and its size handles. One undo puts it back.
+
+### Changed
+- **The lying trapezoid is now a trapezoid in plan** — seen from above, the long side at the front, the short one at the back — with its walls straight up and its top level, the same as the bottom. *Back side* in the properties sets the short side (half the width to start with; 0 makes a triangle). Being an upright extrusion, it takes **subtractions**, floors, cast shadows and *Align faces* on all its walls, like a box. (In 0.19.0 it was a block with a sloping top.) As a subtraction, it hollows out a trapezoid in plan in one piece.
+
+## [0.19.0] — 2026-11-23
+
+### Added
+- **Trapezoids, standing and lying**, two new shapes for volumes and for subtractions, beside the box, the cylinder, the sphere, the cone and the pyramid (in the toolbar of the volume and subtraction tools, and in *Shape* in the properties):
+  - **Standing trapezoid**: the long side down, the two sides leaning in to a narrower top — *Top width* in the properties (half the base to start with; 0 makes a ridge, like a prism).
+  - **Lying trapezoid**: the parallel sides upright — one side as tall as the volume, the other lower, the top sloping between them — *Low side* in the properties (half the height to start with; 0 makes a wedge).
+  - They are drawn in every view (axonometric, plan, elevations, 3D viewer, sheet and exports) with their floors, cast shadows, take part in *Align faces* by their upright faces and level top, and people and trees stand on their top (on the slope of a lying one). As subtractions they hollow out the way the shape goes, in thin slices, as a pyramid does; *Fill the void* on one makes a trapezoid of the same measures.
+  - A new trapezoid is 6 m tall. Like cones and pyramids, a trapezoid volume is not cut by subtractions yet.
+
+### Changed
+- The shape choice in the properties shows its eight shapes on one line.
+
+## [0.18.0] — 2026-11-23
+
+### Added
+- **Fill the void of a subtraction**, all of it or a part. A selected subtraction has **Fill the void** (in its properties and in the right-button menu): a shape in its place, of the same shape and as high, comes selected — make it smaller to fill only a part, give it a category or a colour of its own. A volume can also be drawn straight into the void: started on the floor a notch left in a volume, it stands there (not on the roof of the volume); started under a subtraction that goes through everything (a courtyard) or on the subtraction itself, it fills it. Such a volume is marked *Fills a subtraction* in its properties: no subtraction takes anything from it.
+- **Subtracting from the terrain**: the subtraction tool has a *terrain* option; with it, a subtraction digs into the ground (a pit, 3 m deep by default) and into platforms (a notch) instead of the volumes, which are left whole. A subtraction started on a platform or a slope does it without the option. The site gets the thickness the pit needs. In the properties, *Subtracts from* has *The terrain*. (Slopes are not cut yet.)
+- **People and trees one after another**: their tools stay on after each click, so a row of trees or a group of people takes a click each; Esc or V goes back to selecting.
+- **The sheet without the number and title of each step**: a checkbox in the *Sheet* pane (*Number and title of each step*); with the text of the steps off too, the drawings take the room the captions had. It holds for the exported sheet and the GIF as well.
+
 ## [0.17.1] — 2026-11-23
 
 ### Added

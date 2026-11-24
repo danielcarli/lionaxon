@@ -168,6 +168,8 @@ const at = (js, p, view = 'axon') => js(`window.lionaxon.views.${view}.clientOf(
 async function phase1(win, js) {
   console.log('LionAxon end-to-end test — data in', tmp);
   check('opens the example on first start', await js(`${S}.document.project.steps.length === 5 && ${S}.document.objects.length > 0`));
+  // while working on one part: E2E_ONLY=<function name> runs only that one
+  if (process.env.E2E_ONLY) { await eval(process.env.E2E_ONLY)(win, js); console.log(`\n${passed} passed, ${failures.length} failed (only ${process.env.E2E_ONLY})`); app.exit(failures.length ? 1 : 0); return; }
   check('the example draws faces on screen', await js(`document.querySelectorAll('[data-view=axon] .ax-model path').length > 10`));
 
   // a new diagram opens in a new tab; the example stays open in its own
@@ -345,6 +347,9 @@ async function phase1(win, js) {
   await steps15(win, js);
   await labelWrap15(win, js);
   await sheet17(win, js);
+  await fill18(win, js);
+  await trapezoid19(win, js);
+  await edges19(win, js);
 
   // ---- leave unsaved work behind for phase 2
   await js(`${S}.document.switchTo(${S}.document.tabs.findIndex((t) => t.project.name === 'E2E test')); true`);
@@ -933,7 +938,7 @@ async function features02(win, js) {
 
   // shapes from the box tool's options
   await key(win, 'B');
-  check('the volume tool shows the shapes', await js(`document.querySelectorAll('[data-view=axon] .tool-options [data-shape]').length === 6`));
+  check('the volume tool shows the shapes', await js(`document.querySelectorAll('[data-view=axon] .tool-options [data-shape]').length === 8`));
   await js(`document.querySelector('[data-view=axon] .tool-options [data-shape=cylinder]').click(); true`);
   await drag(win, await at(js, [24, 40, 0]), await at(js, [32, 48, 0]));
   let o = await last();
@@ -1033,7 +1038,7 @@ async function features02(win, js) {
   // subtractions have the same shapes as volumes
   await js(`${S}.document.clearSelection(); true`);
   await key(win, 'S');
-  check('the subtract tool shows the shapes too', await js(`document.querySelectorAll('[data-view=axon] .tool-options [data-shape]').length === 6`));
+  check('the subtract tool shows the shapes too', await js(`document.querySelectorAll('[data-view=axon] .tool-options [data-shape]').length === 8`));
   await js(`document.querySelector('[data-view=axon] .tool-options [data-shape=cylinder]').click(); true`);
   const cylVol = JSON.parse(await js(`JSON.stringify(${S}.document.objects.find((o) => o.type === 'volume' && o.shape === 'box' && o.state === 'normal' && !o.on))`));
   const vb = await js(`${V}.extentOf(${S}.document.byId(${JSON.stringify(cylVol.id)})).z1`);
@@ -1455,6 +1460,197 @@ async function alignFaces11(win, js) {
 
 // ---------------------------------------------------------------------------------------------
 // 0.16: the width of a label's text, and its lines broken by themselves
+
+// ---------------------------------------------------------------------------------------------
+// 0.18: a shape that fills the void of a subtraction, all of it or a part
+
+async function fill18(win, js) {
+  const D = `${S}.document`, C = `${S}.commands`;
+  await js(`${C}.newProject(); true`);
+  await sleep(300);
+  await js(`(async () => { const m = await import('../services/model/common/model.js');
+    ${D}.run('object.add', (_p, step) => { step.objects.push(
+      m.createVolume({ id: 'f-block', x: 20, y: 30, w: 20, d: 20, h: 9 }),
+      m.createCut({ id: 'f-notch', x: 20, y: 30, w: 8, d: 8, z: 5, h: 4, target: 'f-block' })); });
+    ${D}.select(['f-notch']); return true; })()`);
+  await js(`${S}.layout.setTab('axon'); ${S}.layout.setTool('select'); window.lionaxon.views.axon.fit(); true`);
+  await sleep(400);
+  check('a selected subtraction offers "Fill the void"', await js(`!!document.querySelector('.properties [data-action=fill-cut]')`));
+  await js(`document.querySelector('.properties [data-action=fill-cut]').click(); true`);
+  await sleep(300);
+  const f = await js(`JSON.stringify(${D}.selected()[0])`).then(JSON.parse);
+  check('…it makes a shape in its place, as high, not cut, and selects it', f.type === 'volume' && f.fill === true && f.w === 8 && f.d === 8 && f.h === 4 && f.z === 5 && !f.on, JSON.stringify(f));
+  check('…drawn whole (its top at 9 m), inside the notch', await js(`!!document.querySelector('[data-view=axon] .canvas [data-id="${f.id}"][data-top="9"]')`));
+  check('…the volume shows that it fills a subtraction', await js(`!!document.querySelector('.properties [data-key=fill]')?.checked`));
+  await js(`${C}.setProps({ w: 4 }); true`);
+  await sleep(200);
+  check('…made narrower, it fills only part of the void', await js(`${D}.byId('${f.id}').w === 4 && !!document.querySelector('[data-view=axon] .canvas [data-id="f-block"]')`));
+  await js(`${C}.undo(); ${C}.undo(); true`);
+  await sleep(200);
+  check('one undo takes the filling away', await js(`${D}.objects.length === 2`));
+  // drawn with the volume tool on the floor of the notch: it stands there, not on top of the block
+  await js(`${D}.clearSelection(); ${S}.layout.setTab('plan'); true`);
+  await sleep(300);
+  await js(`window.lionaxon.views.plan.fit(); ${S}.layout.shape = 'box'; ${S}.layout.setTool('box'); true`);
+  await sleep(300);
+  await drag(win, await at(js, [18, 28, 5], 'plan'), await at(js, [22, 32, 5], 'plan'), 6);
+  await sleep(300);
+  const d1 = await js(`JSON.stringify(${D}.objects.at(-1))`).then(JSON.parse);
+  check('a volume drawn on the floor of a notch stands in it (not on the roof) and is not cut', d1.type === 'volume' && !d1.on && Math.abs(d1.z - 5) < 1e-6 && d1.fill === true, JSON.stringify(d1));
+  // a courtyard that goes through everything: a volume drawn on the ground inside it fills it
+  await js(`(async () => { const m = await import('../services/model/common/model.js');
+    ${D}.run('object.add', (_p, step) => { step.objects.push(
+      m.createVolume({ id: 'f-ring', x: 60, y: 30, w: 20, d: 20, h: 6 }),
+      m.createCut({ id: 'f-court', x: 60, y: 30, w: 8, d: 8, z: 0, h: 6 })); });
+    return true; })()`);
+  await js(`window.lionaxon.views.plan.fit(); ${S}.layout.setTool('box'); true`);
+  await sleep(300);
+  await drag(win, await at(js, [58, 28, 0], 'plan'), await at(js, [62, 32, 0], 'plan'), 6);
+  await sleep(300);
+  const d2 = await js(`JSON.stringify(${D}.objects.at(-1))`).then(JSON.parse);
+  check('a volume drawn on the ground in a courtyard cut through everything fills it (not cut away)', d2.type === 'volume' && d2.fill === true && !d2.on && Math.abs(d2.z) < 1e-6
+    && await js(`!!document.querySelector('[data-view=plan] .canvas [data-id="${d2.id}"]')`), JSON.stringify(d2));
+  await js(`${S}.layout.setTool('select'); true`);
+
+  // subtracting from the terrain: with the option of the tool, or starting on a platform
+  await js(`${C}.newProject(); ${S}.layout.setTab('plan'); true`);
+  await sleep(300);
+  await js(`window.lionaxon.views.plan.fit(); ${S}.layout.setToolOption('cutShape', 'box'); true`);
+  await sleep(200);
+  check('the subtraction tool has a "terrain" option', await js(`!!document.querySelector('[data-view=plan] [data-cut-terrain]')`));
+  await js(`document.querySelector('[data-view=plan] [data-cut-terrain]').click(); true`);
+  await sleep(150);
+  await drag(win, await at(js, [10, 10, 0], 'plan'), await at(js, [14, 14, 0], 'plan'), 6);
+  await sleep(300);
+  const pit = await js(`JSON.stringify(${D}.objects.at(-1) || null)`).then(JSON.parse) || {};
+  check('…on the ground it digs a pit 3 m deep', pit.type === 'cut' && pit.target === '~terrain' && Math.abs(pit.z + 3) < 1e-6 && Math.abs(pit.h - 3) < 1e-6, JSON.stringify(pit));
+  await js(`${S}.layout.setToolOption('cutTerrain', false); (async () => { const m = await import('../services/model/common/model.js');
+    ${D}.run('object.add', (_p, step) => { step.objects.push(m.createPlatform({ id: 't-plat', x: 30, y: 30, w: 12, d: 12, z: 2 })); }); return true; })()`);
+  await sleep(300);
+  await js(`window.lionaxon.views.plan.fit(); ${S}.layout.setTool('cut'); true`);
+  await sleep(200);
+  await drag(win, await at(js, [28, 28, 2], 'plan'), await at(js, [32, 32, 2], 'plan'), 6);
+  await sleep(300);
+  const notch = await js(`JSON.stringify(${D}.objects.at(-1))`).then(JSON.parse);
+  check('…started on a platform, without the option, it digs into the terrain too', notch.type === 'cut' && notch.target === '~terrain' && Math.abs(notch.z + 1) < 1e-6, JSON.stringify(notch));
+  check('…its properties say so', await js(`document.querySelector('.properties select[data-key=target]')?.value === '~terrain'`));
+
+  // people and trees: the tool stays on, one more at each click
+  await js(`${S}.layout.setTool('person'); true`);
+  await sleep(150);
+  const n0 = await js(`${D}.objects.length`);
+  await click(win, await at(js, [5, 40, 0], 'plan'));
+  await click(win, await at(js, [8, 40, 0], 'plan'));
+  await click(win, await at(js, [11, 40, 0], 'plan'));
+  await sleep(200);
+  check('the person tool stays on: three clicks, three people', (await js(`${D}.objects.length`)) === n0 + 3 && await js(`${S}.layout.tool === 'person' && ${D}.objects.slice(-3).every((o) => o.type === 'person')`));
+  await key(win, 'E');
+  await click(win, await at(js, [5, 45, 0], 'plan'));
+  await click(win, await at(js, [9, 45, 0], 'plan'));
+  await sleep(200);
+  check('…and so does the tree tool', await js(`${S}.layout.tool === 'tree' && ${D}.objects.slice(-2).every((o) => o.type === 'tree')`));
+  await key(win, 'Escape');
+  await sleep(100);
+  check('…Esc goes back to selecting', await js(`${S}.layout.tool === 'select'`));
+
+  // the sheet without the number and title of each step
+  await js(`${C}.example('parti').then(() => true)`);
+  await sleep(500);
+  await js(`${S}.layout.setTab('sheet'); true`);
+  await sleep(500);
+  const num = () => js(`[...document.querySelectorAll('.sheet-paper #step-01 > text')].some((x) => x.textContent === '01')`);
+  check('the sheet shows the number of each step', await num());
+  await js(`document.querySelector('[data-pane=sheet] input[data-key=heads]').click(); true`);
+  await sleep(500);
+  check('…a checkbox leaves out the number and title of each step', (await js(`${D}.project.sheet.heads === false`)) && !(await num()));
+  const svg = JSON.parse(await js(`${C}.exportSheet('svg').then((r) => JSON.stringify(r))`));
+  check('…and so does the exported sheet', svg?.ok && !/<g id="step-01"[^>]*><text[^>]*>01</.test(fs.readFileSync(svg.path, 'utf8')));
+  await js(`${S}.layout.setTab('axon'); true`);
+}
+
+// ---------------------------------------------------------------------------------------------
+// 0.19: trapezoids, standing and lying, as volumes and as subtractions
+
+async function trapezoid19(win, js) {
+  const D = `${S}.document`, C = `${S}.commands`;
+  await js(`${C}.newProject(); ${S}.layout.setTab('plan'); true`);
+  await sleep(300);
+  await js(`window.lionaxon.views.plan.fit(); ${S}.layout.setTool('box'); true`);
+  await sleep(200);
+  check('the volume tool offers the standing and the lying trapezoid', await js(`!!document.querySelector('[data-view=plan] .tool[data-shape=trapezoid]') && !!document.querySelector('[data-view=plan] .tool[data-shape=trapezoidLying]')`));
+  await js(`document.querySelector('[data-view=plan] .tool[data-shape=trapezoid]').click(); true`);
+  await sleep(150);
+  await drag(win, await at(js, [6, 10, 0], 'plan'), await at(js, [16, 18, 0], 'plan'), 6);
+  await sleep(300);
+  const a = await js(`JSON.stringify(${D}.objects.at(-1))`).then(JSON.parse);
+  check('…a standing trapezoid is drawn like a box, 6 m high, its top half as wide', a.shape === 'trapezoid' && a.w === 10 && a.h === 6 && a.top === 5, JSON.stringify(a));
+  await js(`${D}.select(['${a.id}']); true`);
+  await sleep(300);
+  await js(`(() => { const f = document.querySelector('.properties input[data-key=top]'); f.value = '3'; f.dispatchEvent(new Event('change')); return true; })()`);
+  await sleep(250);
+  check('…the width of its top is set in the properties', await js(`${D}.byId('${a.id}').top === 3`));
+  await js(`document.querySelector('.properties .segmented [data-value=trapezoidLying]').click(); true`);
+  await sleep(250);
+  const b = await js(`JSON.stringify(${D}.byId('${a.id}'))`).then(JSON.parse);
+  check('…turned into a lying one, it keeps its short side, now at the back of a trapezoid in plan', b.shape === 'trapezoidLying' && b.top === 3, JSON.stringify(b));
+  check('…and the properties call it the back side', await js(`!!document.querySelector('.properties input[data-key=top]')`));
+  check('…drawn in plan as a trapezoid (four corners, the back narrower)', await js(`(() => {
+    const el = document.querySelector('[data-view=plan] .canvas [data-id="${a.id}"][data-top]');
+    return !!el && /^M[^Z]*Z$/.test(el.getAttribute('d')) && el.getAttribute('d').split('L').length === 4;
+  })()`));
+  // as a subtraction: a standing trapezoid cut into a box
+  await js(`(async () => { const m = await import('../services/model/common/model.js');
+    ${D}.run('object.add', (_p, step) => { step.objects.push(m.createVolume({ id: 'tz-box', x: 30, y: 14, w: 12, d: 10, h: 6 })); }); return true; })()`);
+  await js(`window.lionaxon.views.plan.fit(); ${S}.layout.setTool('cut'); ${S}.layout.setToolOption('cutTerrain', false); true`);
+  await sleep(200);
+  await js(`document.querySelector('[data-view=plan] .tool[data-shape=trapezoid]').click(); true`);
+  await sleep(150);
+  await drag(win, await at(js, [27, 12, 6], 'plan'), await at(js, [33, 16, 6], 'plan'), 6);
+  await sleep(300);
+  const c = await js(`JSON.stringify(${D}.objects.at(-1))`).then(JSON.parse);
+  check('the subtraction tool makes trapezoids too, into the volume it starts on', c.type === 'cut' && c.shape === 'trapezoid' && c.target === 'tz-box' && c.top > 0, JSON.stringify(c));
+  await js(`${S}.layout.setToolOption('cutShape', 'box'); ${S}.layout.shape = 'box'; ${S}.layout.setTool('select'); ${S}.layout.setTab('axon'); true`);
+}
+
+// ---------------------------------------------------------------------------------------------
+// 0.19: the edges of the walls taken and moved
+
+async function edges19(win, js) {
+  const D = `${S}.document`, C = `${S}.commands`;
+  await js(`${C}.newProject(); (async () => { const m = await import('../services/model/common/model.js');
+    ${D}.run('object.add', (_p, step) => { step.objects.push(
+      m.createVolume({ id: 'eg-box', x: 12, y: 20, w: 10, d: 6, h: 3 }),
+      m.createVolume({ id: 'eg-trap', x: 30, y: 20, w: 10, d: 6, h: 3, shape: 'trapezoidLying', top: 4 })); }); return true; })()`);
+  await sleep(300);
+  await js(`${S}.layout.setTab('plan'); true`);
+  await sleep(300);
+  await js(`window.lionaxon.views.plan.fit(); ${S}.layout.setTool('select'); ${D}.select(['eg-box']); true`);
+  await sleep(300);
+  check('a selected box shows its edges to take, and its corners', await js(`document.querySelectorAll('[data-view=plan] .handle-edge').length === 4 && document.querySelectorAll('[data-view=plan] [data-handle^=p]').length === 4`));
+  // the right wall (x = 17), taken off its middle (the size handle is there), pulled 2 m out
+  await drag(win, await at(js, [17, 21.5, 3], 'plan'), await at(js, [19, 22.5, 3], 'plan'), 8);
+  await sleep(300);
+  const b = await js(`JSON.stringify(${D}.byId('eg-box'))`).then(JSON.parse);
+  check('…pulling an edge moves its wall straight out: still a box, 2 m wider, the other wall in place', b.shape === 'box' && b.w === 12 && b.x === 13 && b.d === 6, JSON.stringify(b));
+  // a corner: the box becomes an outline
+  const c = await js(`(() => { const r = document.querySelector('[data-view=plan] [data-handle=p2]').getBoundingClientRect(); return JSON.stringify([r.left + r.width / 2, r.top + r.height / 2]); })()`).then(JSON.parse);
+  const c2 = await at(js, [21, 25, 3], 'plan');
+  await drag(win, c, c2, 8);
+  await sleep(300);
+  const b2 = await js(`JSON.stringify(${D}.byId('eg-box'))`).then(JSON.parse);
+  check('…moving a corner makes it an outline with that corner moved', b2.shape === 'poly' && b2.pts?.length === 4, JSON.stringify(b2));
+  await js(`${C}.undo(); true`);
+  await sleep(200);
+  check('…one undo gives the box back', await js(`${D}.byId('eg-box').shape === 'box'`));
+  // a lying trapezoid: its back edge pushed in
+  await js(`${D}.select(['eg-trap']); true`);
+  await sleep(300);
+  await drag(win, await at(js, [30.5, 23, 3], 'plan'), await at(js, [30.5, 21, 3], 'plan'), 8);
+  await sleep(300);
+  const t2 = await js(`JSON.stringify(${D}.byId('eg-trap'))`).then(JSON.parse);
+  check('…an edge of a lying trapezoid moves too (it becomes an outline, 2 m less deep)', t2.shape === 'poly' && t2.d === 4 && t2.top === undefined, JSON.stringify(t2));
+  await js(`${S}.layout.setTab('axon'); true`);
+}
 
 async function labelWrap15(win, js) {
   const D = `${S}.document`, C = `${S}.commands`;

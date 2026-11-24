@@ -13,7 +13,7 @@ Simple to learn in an afternoon. The same app on Windows, macOS and Linux. Free.
 
 **English** · [Português (Brasil)](docs/README.pt-BR.md)
 
-![Version 0.17.1](https://img.shields.io/badge/version-0.17.1-23272b)
+![Version 0.19.1](https://img.shields.io/badge/version-0.19.1-23272b)
 ![Experimental](https://img.shields.io/badge/status-experimental-b5532d)
 ![Platforms: Windows, macOS, Linux](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-23272b)
 ![10 languages](https://img.shields.io/badge/languages-10-d0673f)
@@ -69,7 +69,7 @@ Free software (GPL-3.0). No account, no subscription, no telemetry, and it works
 
 | | |
 |---|---|
-| **1 · Draw volumes on the site.** Drag a rectangle, pull its height. Boxes, cylinders, spheres, cones, pyramids, or any outline point by point. Type the numbers if you prefer. | <img src="docs/screenshots/plan.png" width="420" alt="The plan view with three bars on the site"> |
+| **1 · Draw volumes on the site.** Drag a rectangle, pull its height. Boxes, cylinders, spheres, cones, pyramids, trapezoids standing or lying, or any outline point by point. Type the numbers if you prefer. | <img src="docs/screenshots/plan.png" width="420" alt="The plan view with three bars on the site"> |
 | **2 · Subtract and stack.** Open a notch or a passage; start on a roof to stack. The subtraction stays an object: move it later. | <img src="docs/screenshots/properties.png" width="420" alt="A volume selected, with its properties"> |
 | **3 · Add a step.** It starts as a copy. What you change shows in the accent colour; the previous step can stay as a dashed ghost. | <img src="docs/screenshots/elements.png" width="420" alt="The steps of the diagram and the list of elements"> |
 | **4 · Open the sheet.** Every step at the same scale, with title, texts, legend, north and scale bar. Export and print. | <img src="docs/screenshots/sheet.png" width="420" alt="The sheet with the five steps side by side"> |
@@ -80,13 +80,15 @@ Free software (GPL-3.0). No account, no subscription, no telemetry, and it works
 - **Steps** with title and text, reordered by dragging; changes applied to the following steps with one click; signs between steps (+ − = →).
 - **Categories** with colour *and* hatch (circulation, stair core, theatre…), so the legend reads in grey print and for people who do not tell colours apart.
 - **Align faces** (`L`): click the face to align to, then the face of another shape, and it moves until the two lie in the same plane — sides with sides, tops with tops.
-- **Arrows, people, labels, dimension lines and trees** — people at their real height, to give the scale; people and trees stand on whatever is under them (a plateau, a slope, a roof). Double-click a label to write its text — and the smaller note under it — right on the drawing.
+- **Arrows, people, labels, dimension lines and trees** — people at their real height, to give the scale (the person and tree tools stay on: one more at each click); people and trees stand on whatever is under them (a plateau, a slope, a roof). Double-click a label to write its text — and the smaller note under it — right on the drawing.
 
 **Shape the site**
 - **Terrain**: platforms, slopes, pits, reference planes with level lines in the elevation; a site of any outline. **Join terrain** (a switch in the toolbar of the drawing) draws platforms and slopes that touch as one piece, without the lines between them.
 - **Surroundings**: neighbours in neutral grey, streets, lawns, water, and a site plan or aerial photo underneath to draw over.
 - **Sun and shadows** by latitude, day and hour. **Roofs**: gable, shed and hip, with the ridge the way you want and a colour of their own.
 - **Doors, windows, arches and round openings** drawn on the walls: they go with their volume, without cutting it.
+- **Move a wall by its edge**: on a selected box, outline or lying trapezoid, take the top edge of a wall and pull it out or in; drag a corner to change the outline.
+- **Fill a void**: a subtraction leaves a void that another shape can fill, all of it or a part — *Fill the void* on the subtraction, or draw a shape inside it. **Subtract from the terrain** too: a pit in the ground, a notch in a platform.
 - **Paved floors with joints**, and arrows that climb from one level to another.
 
 **See it from anywhere**
@@ -100,6 +102,7 @@ Free software (GPL-3.0). No account, no subscription, no telemetry, and it works
 - **PDF and SVG in vectors** (one layer per step in Illustrator and Inkscape), **PNG** up to 300 dpi, the steps as an **animated GIF**, and **every step as its own image** (PNG, SVG or PDF, all in the same frame and scale) in one go.
 - **Text blocks** beside the drawings (strategy, pros and cons with + and −), the **legend** under the title or along the foot; labels with a quieter second line and marks (! × + −), broken into lines at the width you pull the side of their text box to. The terrain can be drawn on the sheet **as a grid**, as in the editor.
 - Sheets in row, grid, column or vertical layouts, A4 to A0, to scale, on as many pages as needed; when the drawings are held by the height, the captions go beside them and the drawings grow. The preview is zoomed with the wheel and dragged like the drawing, page by page.
+- Sheets with or without the **number and title** of each step.
 - **Export the steps you write** — `7`, `3-7`, `1, 4, 6-8` — each in a file of its own, or as one sheet with just those steps.
 - **Eight drawing styles**, light and dark interface, and two coloured themes.
 
@@ -151,7 +154,7 @@ Download the installer for your system. The links always bring the **latest vers
 
 > The installers are not signed with a paid certificate yet. On first launch, Windows may show "Windows protected your PC" (**More info › Run anyway**) and macOS asks you to allow the app in **System Settings › Privacy & Security › Open Anyway**. The checksums of every file are in [`SHA256SUMS.txt`](https://github.com/danielcarli/lionaxon/releases/latest/download/SHA256SUMS.txt).
 
-LionAxon is **experimental** (version 0.17): it already makes a whole parti diagram and exports it, but the file format and the behaviour may still change before 1.0. **Updating from the app.** Click the version number in the bottom-right corner, then *Check now*: if there is a newer version, *Update now* downloads the installer of your copy (the setup wizard, the `.dmg`, the AppImage, the `.deb` or the `.rpm`), checks its SHA-256 against the release and opens it. Both steps happen only when you click.
+LionAxon is **experimental** (version 0.19): it already makes a whole parti diagram and exports it, but the file format and the behaviour may still change before 1.0. **Updating from the app.** Click the version number in the bottom-right corner, then *Check now*: if there is a newer version, *Update now* downloads the installer of your copy (the setup wizard, the `.dmg`, the AppImage, the `.deb` or the `.rpm`), checks its SHA-256 against the release and opens it. Both steps happen only when you click.
 
 The installers are built by GitHub Actions for each version tag (`.github/workflows/release.yml`), on Windows, macOS and Linux machines, from the code of this repository.
 
@@ -186,6 +189,7 @@ The app opens on a start screen with six examples — from the five-step parti t
 | `Ctrl+C` · `Ctrl+X` · `Ctrl+V` | Copy · cut · paste (also to another step or diagram) |
 | `0`–`9` with a shape selected | Type its size: width × depth × height |
 | `Tab` · `Shift+Tab` | The next · previous object under the same spot (the others fade) |
+| Drag the edge of a wall · a corner (shape selected) | Move the wall straight out or in (`Shift`: any direction) · move the corner |
 | Double-click a label · `Enter` with it selected | Write its text and its note on the drawing (`Enter` applies, `Shift+Enter` new line, `Tab` the other text, `Esc` gives up) |
 | `F2` · `Ctrl+L` · `Ctrl+H` | Rename · lock · hide the selection |
 | Right button | The menu of the object (or of the paper) |
@@ -212,7 +216,7 @@ The app opens on a start screen with six examples — from the five-step parti t
 
 ## How it works
 
-**A 2.5D model.** A volume is a footprint (a rectangle or an ellipse, turned at any angle) extruded between a base height and a top, with a number of floors; cones and pyramids end in a point, spheres are drawn as spheres. A subtraction is a box with its own heights; the volume is cut in height bands and each band's footprint loses the cuts that cover it (boolean operations on polygons, rounded to 1 mm). Heights are counted from the object's reference plane. This covers boxes, notches, passages, stacks, courtyards, floors and terrain, and keeps editing simple.
+**A 2.5D model.** A volume is a footprint (a rectangle or an ellipse, turned at any angle) extruded between a base height and a top, with a number of floors; cones and pyramids end in a point, a standing trapezoid leans its sides (a lying one is a trapezoid in plan), spheres are drawn as spheres. A subtraction is a box with its own heights; the volume is cut in height bands and each band's footprint loses the cuts that cover it (boolean operations on polygons, rounded to 1 mm). Heights are counted from the object's reference plane. This covers boxes, notches, passages, stacks, courtyards, floors and terrain, and keeps editing simple.
 
 **A vector renderer of its own.** Faces are projected in parallel (isometric by default), ordered back to front with plane tests between the faces that overlap on screen (Newell) — a face that crosses another is cut by its plane, and only the line where they meet is drawn — and written as SVG; curved surfaces are drawn without the seams between their facets. The same SVG is the screen, the thumbnails, the sheet and the exported files: what you see is what you export. Walls get two tones from the same colour and tops stay lighter, as in hand-made diagrams. 200 volumes are drawn in a few tens of milliseconds.
 
@@ -241,7 +245,7 @@ A project is one `.lionaxon` file: indented JSON with a `schemaVersion`, readabl
 }
 ```
 
-Other objects: `area` (a flat street, lawn, water or paving, with `joints`), `opening` (a door, window, arch or oculus on a wall of the box `on`), `tree`, `dim` (a dimension line), and volumes or cuts with `"shape": "poly"` and their `pts`; a box may have `roof`, `roofH`, `roofDir` and `roofColor`; a volume a `color` of its own; an arrow `z2` (where it ends); a label `note` and `mark`; the sheet `legendPlace` and `blocks`; a step may have `ghostPrev` and `op`.
+Other objects: `area` (a flat street, lawn, water or paving, with `joints`), `opening` (a door, window, arch or oculus on a wall of the box `on`), `tree`, `dim` (a dimension line), and volumes or cuts with `"shape": "poly"` and their `pts`; a box may have `roof`, `roofH`, `roofDir` and `roofColor`; a trapezoid the length `top` of its short side: the top of a standing one (`"shape": "trapezoid"`), the back of a lying one (`"trapezoidLying"`, a trapezoid in plan); a volume a `color` of its own and `fill` (it fills the void of a subtraction: none cuts it); a cut the `target` `"~terrain"` (it digs into the terrain); an arrow `z2` (where it ends); a label `note` and `mark`; the sheet `legendPlace`, `blocks` and `heads` (the number and title of each step); a step may have `ghostPrev` and `op`.
 
 Measures are in metres, angles in degrees; `x`, `y` is the centre of a volume; `z` is the height over its plane (`level`); `on` is the volume it sits on. Files of 0.1 (`schemaVersion` 1) open as they are, with everything on the ground plane.
 
@@ -311,6 +315,8 @@ Code, comments, identifiers and documentation are in English. The interface is t
 
 ## Roadmap
 
+- **0.19** ✓ — trapezoids, standing (the sides leaning in to a narrower top) and lying (a trapezoid in plan, its walls straight up), as volumes and as subtractions; walls moved by their edges, corners by their handles.
+- **0.18** ✓ — a shape that fills the void of a subtraction, all of it or part; subtractions of the terrain (pits, notches in platforms); people and trees placed one after another; sheets without the number and title of the steps.
 - **0.17** ✓ — export the steps you write (3-7, 1, 4, 6), as files or one sheet; the sheet preview zoomed and dragged like the drawing, page by page; captions beside the drawings when that makes them larger; a label's text box resized by its side, and its small text written on the drawing; the import from IFC taken out until it reads real models.
 - **0.16** ✓ — every step exported as its own image (PNG, SVG, PDF); the terrain as a grid on the sheet; labels with a width, broken into lines by themselves.
 - **0.15** ✓ — join terrain (platforms and slopes that touch drawn as one); people and trees stand on what is under them.
@@ -329,7 +335,7 @@ Code, comments, identifiers and documentation are in English. The interface is t
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) — current version: **0.17.1**.
+See [CHANGELOG.md](CHANGELOG.md) — current version: **0.19.1**.
 
 ## Credits
 

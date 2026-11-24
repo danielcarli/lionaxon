@@ -33,6 +33,8 @@ export class LayoutService {
   /** options of the drawing tools: the shape the box tool draws, what the terrain tool draws */
   shape = 'box';
   cutShape = 'box';
+  /** the subtraction tool digs into the terrain (the site's slab and the platforms) instead of the volumes */
+  cutTerrain = false;
   /** the terrain drawn see-through in the editor, with the grid on its surfaces */
   terrainMesh = true;
   terrainKind = 'platform';
@@ -86,9 +88,10 @@ export class LayoutService {
   setToolOption(key, value) {
     if (key === 'shape') this.shape = value;
     else if (key === 'cutShape') this.cutShape = value;
+    else if (key === 'cutTerrain') this.cutTerrain = !!value;
     else if (key === 'terrainKind' && TERRAIN_KINDS.includes(value)) this.terrainKind = value;
     else return;
-    this.tool = key === 'shape' ? 'box' : key === 'cutShape' ? 'cut' : 'terrain';
+    this.tool = key === 'shape' ? 'box' : key === 'cutShape' || key === 'cutTerrain' ? 'cut' : 'terrain';
     this.#onDidChange.fire('tool');
   }
 

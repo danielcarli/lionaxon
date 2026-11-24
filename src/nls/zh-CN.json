@@ -733,5 +733,22 @@
  "sheet.pageNext": "下一页",
  "sheet.fitPage": "适合页面",
  "label.wrapHandleTip": "拖动可使文本框变窄或变宽，文字会自动换行。双击：恢复按输入的行显示。",
- "label.noteHint": "较小的文字（可选）"
+ "label.noteHint": "较小的文字（可选）",
+ "fill.title": "填充空缺",
+ "fill.action": "填充空缺",
+ "fill.hint": "在减去的位置放入一个同样高度的形体，任何减去都不会切到它。缩小它可只填充空缺的一部分；换一个类别或颜色以示区别。在空缺内画出的形体也会填充它。",
+ "fill.volume": "填充减去的空缺（不被任何减去切到）",
+ "fill.volumeHint": "此形体位于减去留下的空缺中：接触到它的减去不会切到它。",
+ "cut.terrain": "地形",
+ "cut.terrainTool": "从地形中减去：挖地面和平台，而不是体量（从平台或坡道上开始的减去本来就会这样）",
+ "cut.terrainHint": "挖掘地形：在地面上挖坑，在平台上开槽。体量保持完整；地形会自动加厚。",
+ "sheet.showHeads": "每个步骤的编号和标题",
+ "shape.trapezoid": "直立梯形",
+ "shape.trapezoidLying": "卧倒梯形",
+ "trap.top": "顶面宽度",
+ "trap.topTip": "顶面的宽度：两侧从底面向它倾斜（0：一条棱，像三棱柱）。",
+ "trap.back": "后边",
+ "trap.backTip": "后侧短边的长度：平面是梯形，前面的长边与体量同宽（0：三角形）。",
+ "edge.tip": "拖动可将此墙向外或向内移动（Shift：任意方向；Alt：不吸附网格）",
+ "edge.badge": "墙已移动"
 }

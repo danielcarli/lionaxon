@@ -733,5 +733,22 @@
  "sheet.pageNext": "Next page",
  "sheet.fitPage": "Frame the page",
  "label.wrapHandleTip": "Drag to make the text box narrower or wider; the text breaks into lines on its own. Double-click: back to one line per line typed.",
- "label.noteHint": "Smaller text (optional)"
+ "label.noteHint": "Smaller text (optional)",
+ "fill.title": "Fill the void",
+ "fill.action": "Fill the void",
+ "fill.hint": "Puts a shape in the place of the subtraction, as high as it, that no subtraction takes anything from. Make it smaller to fill only part of the void; give it another category or colour to tell it apart. A shape drawn inside the void fills it too.",
+ "fill.volume": "Fills a subtraction (none takes anything from it)",
+ "fill.volumeHint": "This shape stands in the void of a subtraction: the subtractions that touch it leave it whole.",
+ "cut.terrain": "The terrain",
+ "cut.terrainTool": "Subtract from the terrain: dig into the ground and into platforms instead of volumes (a subtraction started on a platform or a slope already does)",
+ "cut.terrainHint": "It digs into the terrain: a pit in the ground, a notch in the platforms. Volumes are left whole; the site gets the thickness it needs.",
+ "sheet.showHeads": "Number and title of each step",
+ "shape.trapezoid": "Standing trapezoid",
+ "shape.trapezoidLying": "Lying trapezoid",
+ "trap.top": "Top width",
+ "trap.topTip": "The width of the top: the two long sides lean in from the base to it (0: a ridge, like a prism).",
+ "trap.back": "Back side",
+ "trap.backTip": "The length of the short side, at the back: the footprint is a trapezoid, the long side at the front as wide as the volume (0: a triangle).",
+ "edge.tip": "Drag to move this wall straight out or in (Shift: anywhere; Alt: off the grid)",
+ "edge.badge": "Wall moved"
 }

@@ -11,7 +11,7 @@ import { h, setChildren } from '../../../../base/browser/dom.js';
 import { icon } from '../../../../base/browser/icons.js';
 import { t, tn } from '../../../../base/common/nls.js';
 import { numField, segmented, selectField, checkbox, textField, row, section } from '../../../browser/widgets.js';
-import { indexById, baseOf, elevationOf, slopeEnds, heightOf, formatElevation, SHAPES, LABEL_FONT_IDS, GROUND_LEVEL, ROOFS, AREA_KINDS, TREE_KINDS, STEP_OPS, OPENING_KINDS, OPENING_SIDES, LABEL_MARKS } from '../../../services/model/common/model.js';
+import { indexById, baseOf, elevationOf, slopeEnds, heightOf, formatElevation, SHAPES, LABEL_FONT_IDS, GROUND_LEVEL, ROOFS, AREA_KINDS, TREE_KINDS, STEP_OPS, OPENING_KINDS, OPENING_SIDES, LABEL_MARKS, TERRAIN_TARGET } from '../../../services/model/common/model.js';
 import { getStyle } from '../../../services/render/common/styles.js';
 import { LABEL_FONTS } from '../../../services/render/common/fonts.js';
 import { levelName } from '../../drawing/browser/drawingView.js';
@@ -166,7 +166,7 @@ export class PropertiesPanel {
     let series = { count: 2, gap: 2, axis: 'w' };
     return [
       section(t('prop.shape'), segmented(SHAPES.map((sh) => [sh, h('span', { html: icon(sh, 16) }), t('shape.' + sh)]), o.shape,
-        (v) => this.set(v === 'sphere' ? { shape: v, d: o.w } : { shape: v }), { title: t('prop.shape') })),
+        (v) => this.set(v === 'sphere' ? { shape: v, d: o.w } : { shape: v }), { title: t('prop.shape'), 'data-shapes': '' })),
       section(t('props.position'), h('div.form-grid',
         this.#num('X', 'x', o), this.#num('Y', 'y', o),
         sphere ? null : this.#num('↻', 'rot', o, { unit: '°', step: 15, title: t('prop.rotation') }),
@@ -179,8 +179,9 @@ export class PropertiesPanel {
         ? h('div.form-grid', numField({ label: 'Ø', value: o.w, unit: 'm', step: this.doc.project.grid, min: 0.1, key: 'w', title: t('prop.diameter'), onCommit: (v) => this.set({ w: v, d: v }) }))
         : o.shape === 'poly'
           ? [h('div.form-grid', this.#num(t('prop.heightShort'), 'h', o, { min: 0.1, step: 0.5, title: t('prop.height') })), h('p.pane-hint', t('poly.hint', { n: o.pts.length, w: fmtZ(o.w), d: fmtZ(o.d) }))]
-          : h('div.form-grid.three',
+          : [h('div.form-grid.three',
             this.#num(t('prop.widthShort'), 'w', o, { min: 0.1, title: t('prop.width') }), this.#num(t('prop.depthShort'), 'd', o, { min: 0.1, title: t('prop.depth') }), this.#num(t('prop.heightShort'), 'h', o, { min: 0.1, step: 0.5, title: t('prop.height') })),
+            this.#trapezoidRow(o)],
       sphere || pointed ? null : h('div.form', { style: { marginTop: '8px' } }, row(t('prop.floors'), numField({ value: o.floors, unit: '', step: 1, min: 1, max: 200, digits: 0, key: 'floors', onCommit: (v) => this.set({ floors: Math.round(v) }) })),
         h('p.pane-hint', t('prop.floorHeight', { h: fmtZ(o.h / o.floors) })))),
       o.shape === 'box' ? section(t('roof.title'), h('div.form',
@@ -195,7 +196,9 @@ export class PropertiesPanel {
       section(t('props.look'), h('div.form', row(t('prop.category'), this.#categorySelect(o.cat)), this.#stateField(o.state),
         this.#colorRow(t('prop.ownColor'), 'color', o, '#cfc3ad'),
         o.state === 'ghost' ? h('p.pane-hint', t('state.ghostHint')) : null,
-        o.state === 'context' ? h('p.pane-hint', t('state.contextHint')) : null)),
+        o.state === 'context' ? h('p.pane-hint', t('state.contextHint')) : null,
+        checkbox(t('fill.volume'), !!o.fill, (v) => this.set({ fill: v || null }), { 'data-key': 'fill' }),
+        o.fill ? h('p.pane-hint', t('fill.volumeHint')) : null)),
       section(t('props.series'), h('div.form',
         h('div.form-grid.three', { style: { gridTemplateColumns: '1fr 1fr 1.25fr' } },
           numField({ label: '×', value: series.count, unit: '', step: 1, min: 1, max: 50, digits: 0, title: t('series.count'), onCommit: (v) => { series.count = Math.round(v); } }),
@@ -239,6 +242,16 @@ export class PropertiesPanel {
     ];
   }
 
+  /** The short parallel side of a trapezoid: the width of its top (standing) or of its back (lying, in plan). */
+  #trapezoidRow(o) {
+    if (o.shape !== 'trapezoid' && o.shape !== 'trapezoidLying') return null;
+    const lying = o.shape === 'trapezoidLying';
+    return h('div.form', { style: { marginTop: '6px' } }, row(t(lying ? 'trap.back' : 'trap.top'), numField({
+      value: o.top, unit: 'm', step: 0.5, min: 0, max: o.w, key: 'top', title: t(lying ? 'trap.backTip' : 'trap.topTip'),
+      onCommit: (v) => this.set({ top: Math.min(v, o.w) }),
+    })));
+  }
+
   #cutForm(o) {
     const vols = this.doc.objects.filter((v) => v.type === 'volume');
     const lz = elevationOf(this.doc.project.levels, o.level);
@@ -246,17 +259,22 @@ export class PropertiesPanel {
     return [
       h('p.pane-hint', { style: { margin: '2px 0 8px' } }, t('cut.explain')),
       section(t('prop.shape'), segmented(SHAPES.map((sh) => [sh, h('span', { html: icon(sh, 16) }), t('shape.' + sh)]), o.shape,
-        (v) => this.set(v === 'sphere' ? { shape: v, d: o.w, h: o.w } : { shape: v }), { title: t('prop.shape') }),
-        o.shape === 'cone' || o.shape === 'pyramid' || sphere ? h('p.pane-hint', t('cut.shapeHint')) : null),
+        (v) => this.set(v === 'sphere' ? { shape: v, d: o.w, h: o.w } : { shape: v }), { title: t('prop.shape'), 'data-shapes': '' }),
+        o.shape === 'cone' || o.shape === 'pyramid' || o.shape === 'trapezoid' || sphere ? h('p.pane-hint', t('cut.shapeHint')) : null),
       section(t('props.position'), h('div.form-grid', this.#num('X', 'x', o), this.#num('Y', 'y', o), sphere ? null : this.#num('↻', 'rot', o, { unit: '°', step: 15, title: t('prop.rotation') }))),
       section(t('props.size'), sphere
         ? h('div.form-grid', numField({ label: 'Ø', value: o.w, unit: 'm', step: this.doc.project.grid, min: 0.1, key: 'w', title: t('prop.diameter'), onCommit: (v) => this.set({ w: v, d: v, h: v }) }))
         : o.shape === 'poly' ? h('p.pane-hint', t('poly.hint', { n: o.pts.length, w: fmtZ(o.w), d: fmtZ(o.d) }))
           : h('div.form-grid', this.#num(t('prop.widthShort'), 'w', o, { min: 0.1, title: t('prop.width') }), this.#num(t('prop.depthShort'), 'd', o, { min: 0.1, title: t('prop.depth') }))),
       section(t('cut.heights'), h('div.form-grid', this.#num(t('cut.fromShort'), 'z', o, { step: 0.5, title: t('cut.from') }), sphere ? null : this.#num(t('cut.heightShort'), 'h', o, { min: 0.1, step: 0.5, title: t('cut.height') })),
+        this.#trapezoidRow(o),
         h('div.form', { style: { marginTop: '6px' } }, this.#levelRow(o)),
         h('p.pane-hint', t('cut.range', { from: fmtElev(lz + o.z), to: fmtElev(lz + o.z + o.h) }))),
-      section(t('cut.target'), selectField([['', t('cut.allTouched')], ...vols.map((v) => [v.id, volumeName(v, this.doc)])], o.target || '', (v) => this.set({ target: v || null }))),
+      section(t('cut.target'), selectField([['', t('cut.allTouched')], [TERRAIN_TARGET, t('cut.terrain')], ...vols.map((v) => [v.id, volumeName(v, this.doc)])], o.target || '', (v) => this.set({ target: v || null }), { 'data-key': 'target' }),
+        o.target === TERRAIN_TARGET ? h('p.pane-hint', t('cut.terrainHint')) : null),
+      section(t('fill.title'), h('div.form',
+        h('button.btn.btn-secondary.btn-sm', { 'data-action': 'fill-cut', onclick: () => this.cmd.fillCut(o.id) }, h('span', { html: icon('box', 14) }), t('fill.action')),
+        h('p.pane-hint', t('fill.hint')))),
     ];
   }
 
@@ -476,7 +494,7 @@ export function elementName(o, doc, generic = false) {
     }
     case 'cut': {
       const v = o.target && doc.byId(o.target);
-      return `${t('object.cut')} ${i}${o.shape !== 'box' ? ' (' + t('shape.' + o.shape).toLowerCase() + ')' : ''} · ${v ? volumeName(v, doc).split(' (')[0] : t('cut.allTouched')}`;
+      return `${t('object.cut')} ${i}${o.shape !== 'box' ? ' (' + t('shape.' + o.shape).toLowerCase() + ')' : ''} · ${v ? volumeName(v, doc).split(' (')[0] : o.target === TERRAIN_TARGET ? t('cut.terrain') : t('cut.allTouched')}`;
     }
     case 'platform': return `${t('object.platform')} ${i} · ${fmtElev(elevationOf(levels, o.level) + o.z)}`;
     case 'slope': { const [a, b] = slopeEnds(o, levels); return `${t('object.slope')} ${i} · ${fmtElev(a)} → ${fmtElev(b)}`; }

@@ -9,7 +9,7 @@
 // same commands can serve the interface, scripts and agents. The open tabs are kept in a session copy
 // while the person works, so closing the app never loses work.
 import { Emitter } from '../../../../base/common/event.js';
-import { newId, createProject, normalizeProject, copyStep, clone, stepHasContent, GROUND_LEVEL } from '../../model/common/model.js';
+import { newId, createProject, normalizeProject, copyStep, clone, stepHasContent, GROUND_LEVEL, TERRAIN_TARGET } from '../../model/common/model.js';
 
 /** The examples that come with the app, in the order the menu lists them. */
 export const EXAMPLES = ['parti', 'plateaus', 'tower', 'slope', 'school', 'corner'];
@@ -177,7 +177,7 @@ export class DocumentService {
       const here = new Set(s.objects.map((o) => o.id));
       for (const o of s.objects) {
         if (o.type === 'volume' && o.on && !here.has(o.on)) o.on = null;
-        if (o.type === 'cut' && o.target && !here.has(o.target)) o.target = null;
+        if (o.type === 'cut' && o.target && o.target !== TERRAIN_TARGET && !here.has(o.target)) o.target = null;
         if (o.level && !levels.has(o.level)) o.level = null;
         if (o.type === 'slope') { if (o.from && !levels.has(o.from)) o.from = null; if (o.to && !levels.has(o.to)) o.to = null; }
       }

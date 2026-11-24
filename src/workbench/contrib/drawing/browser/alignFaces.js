@@ -9,7 +9,7 @@
 // This file is the geometry: the faces of an object, which one is under the mouse, how far to move.
 import { project } from '../../../../base/common/geometry/projection.js';
 import { rectRing, pointInRing } from '../../../../base/common/geometry/polygon.js';
-import { footprintOf } from '../../../services/render/common/solids.js';
+import { footprintOf, isTrapezoid, trapezoidFaces } from '../../../services/render/common/solids.js';
 
 const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 
@@ -23,6 +23,11 @@ export const ALIGNABLE = ['volume', 'cut', 'platform', 'slope', 'area'];
  */
 export function facesOf(o, ext) {
   if (!ALIGNABLE.includes(o.type) || o.shape === 'sphere' || o.shape === 'cone' || o.shape === 'pyramid') return [];
+  // a trapezoid: its upright faces and its level top (a leaning side or a sloping top lies in no level plane)
+  if (isTrapezoid(o)) {
+    return trapezoidFaces({ ...o, floors: 1 }, ext.z0).filter((f) => f.role === 'wall' || f.role === 'top')
+      .map((f) => ({ pts: f.rings[0], n: f.n, d: dot(f.n, f.rings[0][0]), side: f.role === 'wall' }));
+  }
   const ring = o.type === 'volume' || o.type === 'cut' ? footprintOf(o) : rectRing(o.x, o.y, o.w, o.d, o.rot || 0);
   const z0 = ext.z0, z1 = o.type === 'platform' ? ext.top ?? ext.z1 : ext.z1;
   const faces = [];

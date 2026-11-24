@@ -258,6 +258,9 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 4px; }
 /* longer words in other languages go to a second row instead of widening the pane */
 .segmented button { white-space: nowrap; flex: 1 0 auto; }
 .statusbar .segmented { flex-wrap: nowrap; }
+/* the shapes of a volume or a subtraction: icons only, all on one line */
+.segmented[data-shapes] { flex-wrap: nowrap; }
+.segmented[data-shapes] > button { flex: 1 1 0; min-width: 0; padding: 0; }
 .swatches { display: flex; flex-wrap: wrap; gap: 5px; }
 .swatch-btn { width: 22px; height: 22px; border-radius: 6px; border: 1px solid rgba(0, 0, 0, 0.15); position: relative; }
 .swatch-btn.active { box-shadow: 0 0 0 2px var(--bg-sidebar), 0 0 0 3.5px var(--select); }
@@ -643,4 +646,7 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 4px; }
 /* a narrow toolbar: the switches without their words (the tooltip says them) */
 .toolbar.compact .toolbar-switch .switch-label { display: none; }
 .canvas .handle-lw { cursor: ew-resize; }
+/* the edge of a wall: invisible until the mouse is on it */
+.canvas .handle-edge { stroke-opacity: 0; cursor: move; }
+.canvas .handle-edge:hover { stroke-opacity: 0.35; }
 .canvas .handle-lw:hover { filter: brightness(1.15); }

@@ -9,7 +9,7 @@
 import { parseStepRange } from '../../export/common/stepRange.js';
 import { t } from '../../../../base/common/nls.js';
 import { newId, clone, createCategory } from './commandHelpers.js';
-import { normalizeProject, GROUND_LEVEL, stepAngles, normalizeAngle, MAX_VIEWS, EXTRA_KEYS, baseOf, indexById, elevationOf, normalizeObject, createOpening, isLine, polyFromWorld, polyWorld } from '../../model/common/model.js';
+import { normalizeProject, GROUND_LEVEL, stepAngles, normalizeAngle, MAX_VIEWS, EXTRA_KEYS, baseOf, indexById, elevationOf, normalizeObject, createOpening, isLine, polyFromWorld, polyWorld, TERRAIN_TARGET, fitTrapezoid } from '../../model/common/model.js';
 import { rectRing } from '../../../../base/common/geometry/polygon.js';
 
 const CATEGORY_COLORS = ['#e59aa6', '#8fa9cc', '#8aa346', '#e8b464', '#a68bc9', '#6fb3a8', '#d98a6c', '#9a948c'];
@@ -62,6 +62,24 @@ export class CommandService {
       step.objects.push(...copies);
       return copies.map((c) => c.id);
     });
+  }
+
+  /**
+   * A volume in the void of a cut: the same shape, in the same place and as high, and not cut itself (by
+   * this cut or any other). It comes selected, to be made smaller when it fills only a part of the void.
+   * Returns its id.
+   */
+  fillCut(id = this.doc.selected()[0]?.id) {
+    const c = id && this.doc.byId(id);
+    if (!c || c.type !== 'cut') return null;
+    const v = normalizeObject({
+      type: 'volume', id: newId('v'), shape: c.shape, x: c.x, y: c.y, w: c.w, d: c.d, h: c.h, rot: c.rot,
+      level: c.level, z: c.z, on: null, floors: 1, fill: true, ...(c.pts ? { pts: clone(c.pts) } : {}),
+      ...(c.top != null ? { top: c.top } : {}),
+    });
+    this.doc.run('cut.fill', (_p, step) => { step.objects.push(v); return [v.id]; });
+    this.doc.select([v.id]);
+    return v.id;
   }
 
   // ---- clipboard (kept by the app: it works from one step to another and between open diagrams)
@@ -118,7 +136,7 @@ export class CommandService {
           if (c.on && map.has(c.on)) c.on = map.get(c.on);
           else if (c.on && !step.objects.some((o) => o.id === c.on)) { c.on = null; c.z = round(absZ - elevationOf(p.levels, c.level)); }
         }
-        if (c.type === 'cut' && c.target) c.target = map.get(c.target) || (step.objects.some((o) => o.id === c.target) ? c.target : null);
+        if (c.type === 'cut' && c.target && c.target !== TERRAIN_TARGET) c.target = map.get(c.target) || (step.objects.some((o) => o.id === c.target) ? c.target : null);
         if (c.type === 'slope') {
           const [zA, zB] = clip.slopes.get(src.id);
           if (c.from && !levels.has(c.from)) { c.from = GROUND_LEVEL; c.zFrom = round(zA - ground); }
@@ -338,8 +356,10 @@ export class CommandService {
             continue;
           }
           if (EXTRA_KEYS.includes(k)) { if (v) o[k] = k === 'name' ? String(v).trim().slice(0, 80) : true; else delete o[k]; }
-          else if (k in o && k !== 'id' && k !== 'type') o[k] = v;
+          else if ((k in o || k === 'top') && k !== 'id' && k !== 'type') o[k] = v;
         }
+        // a trapezoid gets (or keeps within its width) the length of its short side
+        if (o.type === 'volume' || o.type === 'cut') fitTrapezoid(o);
       }
     });
   }
@@ -651,7 +671,7 @@ async function shrinkImage(dataUrl, max = 2200) {
   return { src: canvas.toDataURL('image/jpeg', 0.86), ratio: img.naturalHeight / img.naturalWidth };
 }
 /** Fields kept only when set, and the kinds of object that may have them. */
-const OPTIONAL = { color: ['volume'], roofColor: ['volume'], roofDir: ['volume'], z2: ['arrow'], note: ['label'], mark: ['label'], wrap: ['label'], joints: ['area'] };
+const OPTIONAL = { color: ['volume'], fill: ['volume'], roofColor: ['volume'], roofDir: ['volume'], z2: ['arrow'], note: ['label'], mark: ['label'], wrap: ['label'], joints: ['area'] };
 
 /** What was copied (shared by every open diagram). */
 let clipboard = null;

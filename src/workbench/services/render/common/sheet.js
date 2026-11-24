@@ -191,17 +191,26 @@ export function renderSheet(prj, opts) {
 
   // ---- captions: number, rule, title, text
   const fs = 3 * s;
+  // the number and title of each step (they can be left out: the drawings alone, or with their text only)
+  const heads = sheet.heads !== false;
   const captionLines = (step, width) => (sheet.texts && step.text ? wrap(step.text, Math.max(12, Math.floor((width * 0.98) / (fs * 0.5)))) : []);
-  const captionHeight = (step, width) => 11.6 * s + (step.title ? 6.2 * s : 0) + (captionLines(step, width).length ? 6 * s + (captionLines(step, width).length - 1) * fs * 1.4 + 2 * s : 0);
+  const captionHeight = (step, width) => {
+    const n = captionLines(step, width).length;
+    const head = heads ? 11.6 * s + (step.title ? 6.2 * s : 0) : 0;
+    return head + (n ? (heads ? 6 * s : 3 * s) + (n - 1) * fs * 1.4 + 2 * s : 0);
+  };
+  const noCaptions = !heads && !(sheet.texts && indexes.some((i) => prj.steps[i].text));
   const caption = (step, num, x, y, width, room, rule = Math.min(width, 60 * s)) => {
     let g = '';
-    let cy = y + 9 * s;
-    g += `<text x="${r2(x)}" y="${r2(cy)}" font-size="${r2(5.5 * s)}" font-weight="500" fill="${style.caption}">${num}</text>`;
-    cy += 2.6 * s;
-    g += `<path d="M${r2(x)} ${r2(cy)}h${r2(rule)}" stroke="${style.caption}" stroke-width="${r2(0.3 * s)}"/>`;
-    if (step.title) {
-      cy += 6.2 * s;
-      g += `<text x="${r2(x)}" y="${r2(cy)}" font-size="${r2(3.3 * s)}" font-weight="600" letter-spacing="${r2(0.25 * s)}" fill="${style.text}">${esc(step.title.toUpperCase())}</text>`;
+    let cy = y + (heads ? 9 * s : -3 * s);
+    if (heads) {
+      g += `<text x="${r2(x)}" y="${r2(cy)}" font-size="${r2(5.5 * s)}" font-weight="500" fill="${style.caption}">${num}</text>`;
+      cy += 2.6 * s;
+      g += `<path d="M${r2(x)} ${r2(cy)}h${r2(rule)}" stroke="${style.caption}" stroke-width="${r2(0.3 * s)}"/>`;
+      if (step.title) {
+        cy += 6.2 * s;
+        g += `<text x="${r2(x)}" y="${r2(cy)}" font-size="${r2(3.3 * s)}" font-weight="600" letter-spacing="${r2(0.25 * s)}" fill="${style.text}">${esc(step.title.toUpperCase())}</text>`;
+      }
     }
     const lines = captionLines(step, width);
     const fit = Math.max(1, Math.floor((y + room - cy - 2 * s) / (fs * 1.4)));
@@ -252,8 +261,9 @@ export function renderSheet(prj, opts) {
 
   if (vertical) {
     // ---- vertical: one step under the other, the drawing on the left, its caption on the right
-    const capW = Math.max(46 * s, (Wc - 2 * m) * 0.3);
-    const gap = 8 * s, rowGap = 7 * s, gapIn = 6 * s;
+    // no captions at all: the drawings take the whole width
+    const capW = noCaptions ? 0 : Math.max(46 * s, (Wc - 2 * m) * 0.3);
+    const gap = noCaptions ? 0 : 8 * s, rowGap = 7 * s, gapIn = 6 * s;
     const drawW = Wc - 2 * m - capW - gap;
     fitWidth = drawW;
     const capH = indexes.map((i) => captionHeight(prj.steps[i], capW));
@@ -297,7 +307,7 @@ export function renderSheet(prj, opts) {
       if (j < indexes.length - 1 && y + rowH + rowGap + Math.max(dh, capH[j + 1]) <= Hc - m - footerH + 1e-6) {
         const ry = y + rowH + rowGap / 2;
         g += `<path d="M${r2(m)} ${r2(ry)}H${r2(m + drawW)}" stroke="${style.grid}" stroke-width="${r2(0.25 * s)}"/>`;
-        const ax = m + drawW + gap + 2.5 * s;
+        const ax = noCaptions ? m / 2 : m + drawW + gap + 2.5 * s; // no caption column: in the margin
         const nextOp = opSign(indexes[j + 1], ax, ry, 6 * s);
         if (nextOp) g += nextOp;
         else g += `<path d="M${r2(ax - 1.6 * s)} ${r2(ry - 1 * s)}L${r2(ax)} ${r2(ry + 0.8 * s)}L${r2(ax + 1.6 * s)} ${r2(ry - 1 * s)}" fill="none" stroke="${style.caption}" stroke-width="${r2(0.35 * s)}" stroke-linecap="round" stroke-linejoin="round"/>`;
@@ -345,14 +355,14 @@ export function renderSheet(prj, opts) {
     // text is cut), not a fixed height
     const slotW0 = (Wc - 2 * m - (slots - 1) * gapX) / slots;
     const capWidth = Math.max(30 * s, Math.min(slotW0, 70 * s));
-    const captionH = Math.max(12 * s, Math.min(sheet.texts ? 30 * s : 18 * s, Math.max(...indexes.map((i) => captionHeight(prj.steps[i], capWidth)))));
+    const captionH = noCaptions ? 0 : Math.max(heads ? 12 * s : 0, Math.min(sheet.texts ? 30 * s : 18 * s, Math.max(...indexes.map((i) => captionHeight(prj.steps[i], capWidth)))));
     if (!fixed) {
       const maxCellH = (Hc - m - firstTop - (rowsAll.length - 1) * gapY) / rowsAll.length;
       scale = Math.min(slotW0 / bw, Math.max(10 * s, maxCellH - captionH) / bh);
     }
     // ---- captions beside the drawings: when the drawings are held by the height (a column, a grid of wide
     // cells, an upright paper) the caption goes on the left of its drawing and the drawing grows
-    const beside = !fixed && besideLayout();
+    const beside = !fixed && !noCaptions && besideLayout();
     function besideLayout() {
       const capW = Math.min(60 * s, Math.max(40 * s, (Wc - 2 * m) * 0.2)), gapC = 6 * s;
       const per = sheet.layout === 'row' ? indexes.length : column ? 1 : gridOf(sheet, indexes.length).cols;

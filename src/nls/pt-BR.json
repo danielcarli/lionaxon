@@ -733,5 +733,22 @@
  "sheet.pageNext": "Próxima página",
  "sheet.fitPage": "Enquadrar a página",
  "label.wrapHandleTip": "Arraste para estreitar ou alargar a caixa de texto; as linhas quebram sozinhas. Duplo clique: volta a uma linha por linha digitada.",
- "label.noteHint": "Texto menor (opcional)"
+ "label.noteHint": "Texto menor (opcional)",
+ "fill.title": "Preencher o vazio",
+ "fill.action": "Preencher o vazio",
+ "fill.hint": "Coloca uma forma no lugar da subtração, da mesma altura, que nenhuma subtração recorta. Diminua-a para preencher só uma parte do vazio; dê outra categoria ou cor para diferenciá-la. Uma forma desenhada dentro do vazio também o preenche.",
+ "fill.volume": "Preenche uma subtração (nenhuma subtração a recorta)",
+ "fill.volumeHint": "Esta forma ocupa o vazio de uma subtração: as subtrações que a tocam a deixam inteira.",
+ "cut.terrain": "O terreno",
+ "cut.terrainTool": "Subtrair do terreno: escava o chão e as plataformas em vez dos volumes (uma subtração começada numa plataforma ou num talude já faz isso)",
+ "cut.terrainHint": "Escava o terreno: um fosso no chão, um recorte nas plataformas. Os volumes ficam inteiros; o terreno ganha a espessura que precisar.",
+ "sheet.showHeads": "Número e título de cada etapa",
+ "shape.trapezoid": "Trapézio em pé",
+ "shape.trapezoidLying": "Trapézio deitado",
+ "trap.top": "Largura do topo",
+ "trap.topTip": "A largura do topo: os dois lados inclinam da base até ele (0: uma aresta, como um prisma).",
+ "trap.back": "Lado de trás",
+ "trap.backTip": "O comprimento do lado menor, nos fundos: a planta é um trapézio, com o lado maior na frente, da largura do volume (0: um triângulo).",
+ "edge.tip": "Arraste para mover esta parede para fora ou para dentro (Shift: em qualquer direção; Alt: fora da grade)",
+ "edge.badge": "Parede movida"
 }

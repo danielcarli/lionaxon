@@ -17,6 +17,8 @@ const paths = {
   sphere: '<circle cx="12" cy="12" r="7.5"/><path d="M4.5 12c0 1.6 3.4 2.9 7.5 2.9s7.5-1.3 7.5-2.9"/>',
   cone: '<path d="M12 3.5L5.5 17.5M12 3.5l6.5 14"/><ellipse cx="12" cy="17.5" rx="6.5" ry="2.6"/>',
   pyramid: '<path d="M12 3.5L4 16l8 4.5 8-4.5z"/><path d="M12 3.5v17"/>',
+  trapezoid: '<path d="M3.5 19.5h12l-3-10h-6z"/><path d="M6.5 9.5l4-4h6l-4 4M16.5 5.5l3 10-4 4"/>',
+  trapezoidLying: '<path d="M8.5 4.5h7l4 5h-15z"/><path d="M4.5 9.5v9h15v-9"/>',
   terrain: '<path d="M3 17l5-2.8 4 2.2 9-5"/><path d="M3 17v2.5l5-2.8 4 2.2 9-5V11.4"/><path d="M8 14.2V8.5l8-4.4 5 2.8v4.5"/><path d="M8 8.5l5 2.8 8-4.4M13 11.3v2.6"/>',
   platform: '<path d="M12 6l8.5 4.6L12 15.2 3.5 10.6z"/><path d="M3.5 10.6v3.2L12 18.4l8.5-4.6v-3.2M12 15.2v3.2"/>',
   slope: '<path d="M3.5 17.5l11-6 6 3.3-11 6z"/><path d="M14.5 11.5V6.5l6 3.3v5"/><path d="M3.5 17.5v-0"/>',

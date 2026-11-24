@@ -20,10 +20,10 @@ import { footprintOf, expandCut } from '../src/workbench/services/render/common/
 import { familiesUsed, fontFaceCss } from '../src/workbench/services/render/common/fonts.js';
 import { STYLE_IDS, getStyle } from '../src/workbench/services/render/common/styles.js';
 import { DocumentService } from '../src/workbench/services/document/browser/documentService.js';
-import { volumeBands, volumeFaces, renderStep, sortFaces, stepSvg } from '../src/workbench/services/render/common/renderer.js';
+import { volumeBands, volumeFaces, renderStep, sortFaces, stepSvg, groundSolids } from '../src/workbench/services/render/common/renderer.js';
 import { renderSheet, wrap, gridOf } from '../src/workbench/services/render/common/sheet.js';
 import { shade } from '../src/workbench/services/render/common/styles.js';
-import { restingHeight } from '../src/workbench/services/render/common/solids.js';
+import { restingHeight, trapezoidFaces } from '../src/workbench/services/render/common/solids.js';
 import { joinTerrain } from '../src/workbench/services/render/common/joinTerrain.js';
 import { parseStepRange, formatStepRange } from '../src/workbench/services/export/common/stepRange.js';
 
@@ -737,6 +737,95 @@ test('sheet: a column on upright paper puts the captions beside the drawings, wh
   assert.ok(numX < drawX, 'the caption is on the left of the drawing');
   const some = renderSheet(prj, { t: (k) => k, steps: [0, 2] });
   assert.ok(some.svg.includes('id="step-01"') && some.svg.includes('id="step-03"') && !some.svg.includes('id="step-02"'));
+});
+
+test('fill: a shape in the void of a subtraction is not cut by it, kept in the file; it counts as new, the volume cut does not', () => {
+  const prj = createProject();
+  const block = createVolume({ id: 'block', x: 20, y: 20, w: 20, d: 20, h: 9 });
+  const court = createCut({ id: 'court', x: 20, y: 20, w: 8, d: 8, z: 0, h: 9 }); // every volume it touches
+  const plain = createVolume({ id: 'plain', x: 20, y: 20, w: 8, d: 8, h: 4 });
+  const filler = createVolume({ id: 'filler', x: 20, y: 20, w: 8, d: 8, h: 4, fill: true });
+  prj.steps[0].objects = [block, court, plain];
+  const v = makeView(-45);
+  assert.ok(!renderStep(prj, 0, { view: v, ids: true }).markup.includes('data-id="plain"'), 'a plain volume in the courtyard is cut away');
+  prj.steps[0].objects = [block, court, filler];
+  const m = renderStep(prj, 0, { view: v, ids: true }).markup;
+  assert.ok(m.includes('data-id="filler" data-top="4"'), 'the filler keeps its top');
+  assert.ok(m.includes('data-id="block" data-top="9"'), 'the block keeps its courtyard');
+  const again = normalizeProject(JSON.parse(JSON.stringify(prj)));
+  assert.equal(again.steps[0].objects.find((o) => o.id === 'filler').fill, true);
+  assert.equal(again.steps[0].objects.find((o) => o.id === 'block').fill, undefined);
+  const next = copyStep(prj.steps[0]);
+  next.objects.push(createVolume({ id: 'filler2', x: 20, y: 20, w: 4, d: 4, h: 2, fill: true }));
+  const ch = changedVolumes(prj.steps[0], next);
+  assert.ok(ch.has('filler2') && !ch.has('block'));
+});
+
+test('terrain subtraction: a pit in the ground, a notch in a platform, the volumes left whole', () => {
+  const prj = createProject();
+  const T = '~terrain';
+  prj.steps[0].objects = [
+    createCut({ id: 'pit', x: 10, y: 10, w: 4, d: 4, z: -3, h: 3, target: T }),
+    createPlatform({ id: 'p', x: 30, y: 30, w: 10, d: 10, z: 3 }),
+    createCut({ id: 'notch', x: 30, y: 30, w: 4, d: 4, z: 1, h: 2, target: T }),
+    createVolume({ id: 'v', x: 10, y: 10, w: 6, d: 6, h: 3 }),
+  ];
+  const cuts = prj.steps[0].objects.filter((o) => o.type === 'cut').flatMap(expandCut);
+  const g = groundSolids(prj, prj.steps[0], cuts);
+  const tops = [...new Set(g.faces.filter((f) => f.n[2] > 0.999).map((f) => f.rings[0][0][2]))].sort((a, b) => a - b);
+  assert.ok(g.slab && g.bottom <= -3, 'the site gets the thickness of the pit');
+  assert.deepEqual(tops, [-3, 0, 1, 3], 'the floor of the pit, the ground, the floor of the notch, the platform');
+  assert.ok(renderStep(prj, 0, { view: makeView(-45), ids: true }).markup.includes('data-id="v" data-top="3"'), 'the volume over the pit is whole');
+});
+
+test('sheet: the number and title of the steps can be left out; with no caption at all the drawings grow', () => {
+  const prj = normalizeProject(JSON.parse(fs.readFileSync(new URL('../examples/plateaus-en.lionaxon', import.meta.url), 'utf8')));
+  const width = (r) => Number(/<svg x="[\d.]+" y="[\d.]+" width="([\d.]+)"/.exec(r.svg)[1]);
+  prj.sheet = { ...prj.sheet, layout: 'row', orientation: 'landscape', scale: 0 };
+  const full = renderSheet(prj, { t: (k) => k });
+  assert.ok(/>01</.test(full.svg));
+  prj.sheet.heads = false;
+  const noHeads = renderSheet(prj, { t: (k) => k });
+  const step1 = /<g id="step-01"[^>]*>(.*?)<\/g>/s.exec(noHeads.svg)?.[1] || '';
+  assert.ok(!/>01</.test(noHeads.svg) && !step1.includes(`>${prj.steps[0].title.toUpperCase()}<`), 'no number, no title');
+  prj.sheet.texts = false;
+  const bare = renderSheet(prj, { t: (k) => k });
+  assert.ok(width(bare) >= width(full) - 1e-6, `${width(bare)} ≥ ${width(full)}`);
+  assert.equal(normalizeProject({ ...prj, sheet: { ...prj.sheet } }).sheet.heads, false);
+});
+
+test('trapezoids: standing (its sides lean) and lying (a trapezoid in plan, cut by subtractions), as volumes and subtractions', () => {
+  const expand = expandCut, foot = footprintOf;
+  const up = createVolume({ id: 'up', x: 0, y: 0, w: 10, d: 6, h: 8, shape: 'trapezoid', top: 4, floors: 2 });
+  const lying = createVolume({ id: 'ly', x: 20, y: 0, w: 10, d: 6, h: 6, shape: 'trapezoidLying', top: 4, floors: 2 });
+  assert.equal(up.top, 4); assert.equal(lying.top, 4);
+  assert.equal(createVolume({ shape: 'trapezoidLying', w: 10 }).top, 5, 'the short side is half the long one unless told');
+  assert.equal(createVolume({ shape: 'trapezoid', w: 10, top: 30 }).top, 10, 'never longer than the long side');
+  assert.equal(createVolume({ shape: 'box', top: 3 }).top, undefined);
+  // standing: its own faces
+  const f = trapezoidFaces(up, 0);
+  assert.deepEqual(f.map((x) => x.role).sort(), ['bottom', 'slant', 'slant', 'top', 'wall', 'wall']);
+  assert.ok(f.find((x) => x.role === 'top').rings[0].every((q) => Math.abs(q[2] - 8) < 1e-9 && Math.abs(q[0]) <= 2 + 1e-9));
+  assert.ok(f.filter((x) => x.role === 'wall' || x.role === 'slant').every((x) => x.lines.length === 1), 'a floor line across each side');
+  assert.equal(trapezoidFaces({ ...up, top: 0 }, 0).length, 5, 'a prism: no top');
+  assert.equal(restingHeight([up], [], 4.5, 0, 0, () => 0, () => 0), 0, 'not on a leaning side');
+  assert.equal(restingHeight([up], [], 1, 0, 0, () => 0, () => 0), 8, 'on the top');
+  assert.ok(shadowOf(up, 0, [], [0.5, 0])[0][0].length >= 4);
+  const s2 = expand(createCut({ x: 0, y: 0, w: 10, d: 4, z: 0, h: 6, shape: 'trapezoid', top: 2 }));
+  assert.ok(s2.length >= 6 && s2[0].w > s2.at(-1).w && s2.every((c) => c.shape === 'box' && c.ring));
+  // lying: the trapezoid is its footprint (long side at the front), its walls upright, its top level
+  const ring = foot(lying);
+  assert.equal(ring.length, 4);
+  const xsFront = ring.filter((q) => q[1] < 0).map((q) => q[0]), xsBack = ring.filter((q) => q[1] > 0).map((q) => q[0]);
+  assert.ok(Math.abs(Math.max(...xsFront) - Math.min(...xsFront) - 10) < 1e-9 && Math.abs(Math.max(...xsBack) - Math.min(...xsBack) - 4) < 1e-9);
+  assert.equal(foot({ ...lying, top: 0 }).length, 3, 'with no back side: a triangle');
+  assert.equal(restingHeight([lying], [], 20, 0, 0, () => 0, () => 0), 6, 'on its level top');
+  const cutL = expand(createCut({ x: 20, y: 0, w: 4, d: 3, z: 0, h: 6, shape: 'trapezoidLying', top: 2 }));
+  assert.ok(cutL.length === 1 && cutL[0].ring.length === 4, 'a lying subtraction is one prism');
+  const prj = createProject();
+  prj.steps[0].objects = [up, lying, createCut({ id: 'notch', x: 20, y: 0, w: 2, d: 2, z: 3, h: 3, target: 'ly' })];
+  const m = renderStep(prj, 0, { view: makeView(-45), ids: true }).markup;
+  assert.ok(m.includes('data-id="up" data-top="8"') && m.includes('data-id="ly" data-top="6"') && m.includes('data-id="ly" data-top="3"'), 'the lying one is cut by a subtraction');
 });
 
 console.log(`\n${n} passed`);

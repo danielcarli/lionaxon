@@ -11,9 +11,10 @@
 //
 // Objects (all measures in metres, angles in degrees; `z` is measured from the object's level):
 //   volume   { x, y (centre), w, d, h, rot, z, level, on (id of the volume it sits on, or null), floors, cat, state,
-//              shape ('box' | 'cylinder' | 'sphere' | 'cone' | 'pyramid') }
-//   (a cut has the same shapes: a box, a cylinder, a cone or pyramid pointing up, a sphere)
-//   cut      { x, y, w, d, rot, z, h, level, target (volume id or null = every volume it touches) }
+//              shape ('box' | 'cylinder' | 'sphere' | 'cone' | 'pyramid' | 'trapezoid' | 'trapezoidLying' | 'poly');
+//              a trapezoid has `top`: the width of its top (standing) or of its short side at the back (lying) }
+//   (a cut has the same shapes: a box, a cylinder, a cone or pyramid pointing up, a sphere, the trapezoids)
+//   cut      { x, y, w, d, rot, z, h, level, target (volume id, '~terrain' = the terrain, or null = every volume it touches) }
 //   platform { x, y, w, d, rot, z, level }            a piece of ground raised (or sunk) to its level
 //   slope    { x, y, w, d, rot, from, zFrom, to, zTo } a ramp of ground rising along its depth, from one level to another
 //   arrow    { x1, y1, x2, y2, z, level, bend, color, dashed, heads, width, layer ('top' | 'ground') }
@@ -30,7 +31,7 @@ export const FORMAT = 'lionaxon';
 export const SCHEMA_VERSION = 2;
 
 export const VOLUME_STATES = ['normal', 'accent', 'ghost', 'glass', 'context'];
-export const SHAPES = ['box', 'cylinder', 'sphere', 'cone', 'pyramid', 'poly'];
+export const SHAPES = ['box', 'cylinder', 'sphere', 'cone', 'pyramid', 'trapezoid', 'trapezoidLying', 'poly'];
 /** Roofs a box volume may carry on top (its height is `roofH`). */
 export const ROOFS = ['flat', 'gable', 'shed', 'hip'];
 /** Flat pieces of ground that give the surroundings: streets, lawns, water, paving. */
@@ -55,6 +56,8 @@ export const hexColor = (v) => (typeof v === 'string' && /^#([0-9a-f]{3}|[0-9a-f
 export const LABEL_FONT_IDS = ['sans', 'condensed', 'serif', 'mono', 'hand'];
 export const NORTH_PLACES = ['header', 'drawing', 'none'];
 export const GROUND_LEVEL = 'L0';
+/** The target of a subtraction of the terrain (the site's slab and the platforms), instead of a volume id. */
+export const TERRAIN_TARGET = '~terrain';
 export const ARROW_COLORS = ['ink', 'accent', 'green', 'blue', 'red'];
 export const PAPERS = { A4: [297, 210], A3: [420, 297], A2: [594, 420], A1: [841, 594], A0: [1189, 841] };
 export const LAYOUTS = ['row', 'grid', 'column', 'vertical'];
@@ -152,11 +155,11 @@ function normalizeCore(o) {
   const level = str(o.level) || null;
   switch (o.type) {
     case 'volume': {
-      const v = polyFix(sphereFix({
+      const v = trapezoidFix(polyFix(sphereFix({
         type: 'volume', id, x: num(o.x, 0), y: num(o.y, 0), w: num(o.w, 10, 0.1), d: num(o.d, 10, 0.1), h: num(o.h, 3, 0.1),
         rot: num(o.rot, 0) % 360, z: num(o.z, 0), level, on: str(o.on) || null, floors: Math.round(num(o.floors, 1, 1, 200)),
         cat: str(o.cat) || null, state: pick(o.state, VOLUME_STATES, 'normal'), shape: pick(o.shape, SHAPES, 'box'),
-      }), o);
+      }), o), o);
       // a roof, kept only when there is one (boxes only)
       if (v.shape === 'box' && ROOFS.includes(o.roof) && o.roof !== 'flat') {
         v.roof = o.roof; v.roofH = num(o.roofH, 3, 0.1, 200);
@@ -165,12 +168,14 @@ function normalizeCore(o) {
       }
       // a colour of its own (kept out of the legend), instead of the one of the style or of the category
       if (hexColor(o.color)) v.color = hexColor(o.color);
+      // a volume that fills the void of a cut (all of it or part of it): no cut takes anything out of it
+      if (o.fill === true) v.fill = true;
       return v;
     }
-    case 'cut': return polyFix(sphereFix({
+    case 'cut': return trapezoidFix(polyFix(sphereFix({
       type: 'cut', id, x: num(o.x, 0), y: num(o.y, 0), w: num(o.w, 4, 0.1), d: num(o.d, 4, 0.1), h: num(o.h, 6, 0.1, 1000),
       rot: num(o.rot, 0) % 360, z: num(o.z, 0), level, target: str(o.target) || null, shape: pick(o.shape, SHAPES, 'box'),
-    }), o);
+    }), o), o);
     case 'area': {
       const a = {
         type: 'area', id, x: num(o.x, 0), y: num(o.y, 0), w: num(o.w, 10, 0.1), d: num(o.d, 10, 0.1), rot: num(o.rot, 0) % 360, z: num(o.z, 0), level,
@@ -214,6 +219,22 @@ function normalizeCore(o) {
     };
     default: return null;
   }
+}
+
+/**
+ * A trapezoid keeps the length of its short parallel side, `top`, no longer than the long one (its width): the
+ * top of a standing one, the back of a lying one (the trapezoid of its footprint). Other shapes have none.
+ */
+function trapezoidFix(v, raw) {
+  if (v.shape === 'trapezoid' || v.shape === 'trapezoidLying') v.top = r3m(num(raw.top, v.w / 2, 0, v.w));
+  return v;
+}
+
+/** After a change in place (a new shape, a new size): the short side of a trapezoid set and kept within its width. */
+export function fitTrapezoid(o) {
+  if (o.shape !== 'trapezoid' && o.shape !== 'trapezoidLying') delete o.top;
+  delete o.h2;
+  return trapezoidFix(o, o);
 }
 
 /** A sphere is round: its depth is its width (and a spherical cut is as tall as it is wide). */
@@ -262,7 +283,7 @@ export function createProject(p = {}) {
     north: 0, northPlace: 'header', northHalftone: false, grid: 1, style: 'beige', catPatterns: false, view: { az: -45 },
     categories: [],
     steps: [createStep()],
-    sheet: { layout: 'row', cols: 3, paper: 'A3', orientation: 'landscape', scale: 0, title: '', subtitle: '', legend: true, texts: true },
+    sheet: { layout: 'row', cols: 3, paper: 'A3', orientation: 'landscape', scale: 0, title: '', subtitle: '', legend: true, texts: true, heads: true },
     ...p,
   });
 }
@@ -392,7 +413,7 @@ export function normalizeProject(raw) {
       orientation: sheet.orientation === 'portrait' ? 'portrait' : 'landscape',
       scale: SHEET_SCALES.includes(Number(sheet.scale)) ? Number(sheet.scale) : 0,
       title: str(sheet.title), subtitle: str(sheet.subtitle),
-      legend: sheet.legend !== false, texts: sheet.texts !== false,
+      legend: sheet.legend !== false, texts: sheet.texts !== false, heads: sheet.heads !== false,
       legendPlace: pick(sheet.legendPlace, LEGEND_PLACES, 'top'),
       // the terrain drawn as in the editor: see-through, with the grid on its surfaces
       terrainGrid: sheet.terrainGrid === true,
@@ -480,8 +501,8 @@ export function formatElevation(z, fmt = (n) => n.toFixed(2)) {
 export const indexById = (objects) => new Map(objects.map((o) => [o.id, o]));
 
 const GEOMETRY = {
-  volume: ['x', 'y', 'w', 'd', 'h', 'rot', 'z', 'level', 'on', 'floors', 'shape', 'roof', 'roofH', 'pts'],
-  cut: ['x', 'y', 'w', 'd', 'h', 'rot', 'z', 'level', 'target', 'shape', 'pts'],
+  volume: ['x', 'y', 'w', 'd', 'h', 'rot', 'z', 'level', 'on', 'floors', 'shape', 'roof', 'roofH', 'pts', 'fill', 'top'],
+  cut: ['x', 'y', 'w', 'd', 'h', 'rot', 'z', 'level', 'target', 'shape', 'pts', 'top'],
 };
 
 /**
@@ -511,7 +532,7 @@ export function changedVolumes(prev, step) {
   }
   if (newCuts.length) {
     for (const v of step.objects) {
-      if (v.type !== 'volume' || v.state === 'context') continue;
+      if (v.type !== 'volume' || v.state === 'context' || v.fill) continue;
       if (newCuts.some((c) => (c.target ? c.target === v.id : Math.hypot(c.x - v.x, c.y - v.y) < (Math.hypot(c.w, c.d) + Math.hypot(v.w, v.d)) / 2))) out.add(v.id);
     }
   }

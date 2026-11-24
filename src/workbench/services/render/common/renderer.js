@@ -16,9 +16,10 @@ import { rectRing, bboxOf, bboxOverlap, bboxUnion, convexHull, convexOverlap, di
 import {
   baseOf, indexById, changedVolumes, elevationOf, slopeEnds, heightOf, formatElevation, explodeOffsets, splitsFloors, stepAngles,
   siteOutline, shadowVector, sameGeometry,
+  TERRAIN_TARGET,
 } from '../../model/common/model.js';
 import { getStyle, shade, arrowColor } from './styles.js';
-import { volumeFaces, extrusionFaces, slopeFaces, expandCut, footprintOf, shadowOf, openingShape, restingHeight } from './solids.js';
+import { volumeFaces, extrusionFaces, slopeFaces, expandCut, footprintOf, shadowOf, openingShape, restingHeight, isTrapezoid, trapezoidFaces } from './solids.js';
 import { joinTerrain } from './joinTerrain.js';
 import { labelFont } from './fonts.js';
 
@@ -770,17 +771,19 @@ function northBounds(prj, view) {
 // the ground solids: the site's slab, platforms and slopes
 
 /** Ground faces of a step, and whether the site is drawn as a slab. */
-function groundSolids(prj, step) {
+export function groundSolids(prj, step, cuts = []) {
   const levels = prj.levels;
   const { site } = prj;
   const faces = [];
-  const sunk = [];      // pieces taken out of the slab: { x, y, w, d, rot, z, h }
-  let lowest = 0;
+  // subtractions of the terrain: pits in the slab, notches in the platforms (absolute heights)
+  const dug = cuts.filter((c) => c.target === TERRAIN_TARGET);
+  const sunk = [...dug]; // pieces taken out of the slab: { x, y, w, d, rot, z, h }
+  let lowest = Math.min(0, ...dug.map((c) => c.z));
   for (const o of step.objects) {
     if (o.type === 'platform') {
       const e = elevationOf(levels, o.level) + o.z;
       if (e > EPS) {
-        for (const f of extrusionFaces(rectRing(o.x, o.y, o.w, o.d, o.rot), 0, e, [])) faces.push({ ...f, obj: o });
+        for (const f of extrusionFaces(rectRing(o.x, o.y, o.w, o.d, o.rot), 0, e, dug, { id: TERRAIN_TARGET })) faces.push({ ...f, obj: o });
       } else if (e < -EPS) {
         sunk.push({ x: o.x, y: o.y, w: o.w, d: o.d, rot: o.rot, z: e, h: -e, target: null });
         lowest = Math.min(lowest, e);
@@ -798,7 +801,7 @@ function groundSolids(prj, step) {
   const thickness = Math.max(site.thickness, lowest < 0 ? -lowest + 1 : 0);
   const slab = thickness > EPS;
   if (slab) {
-    for (const f of extrusionFaces(siteOutline(site), -thickness, thickness, sunk)) faces.push({ ...f, obj: null, site: true });
+    for (const f of extrusionFaces(siteOutline(site), -thickness, thickness, sunk, { id: TERRAIN_TARGET })) faces.push({ ...f, obj: null, site: true });
   }
   return { faces, slab, bottom: -thickness };
 }
@@ -889,7 +892,7 @@ export function renderStep(prj, index, opts) {
     lines: f.lines?.map((l) => l.map((p) => [p[0], p[1], p[2] + dz])),
     smooth: f.smooth && { rim: f.smooth.rim.map((l) => l.map((p) => [p[0], p[1], p[2] + dz])), seams: f.smooth.seams.map((sm) => ({ ...sm, edge: sm.edge.map((p) => [p[0], p[1], p[2] + dz]) })) },
     centre: f.centre && [f.centre[0], f.centre[1], f.centre[2] + dz] } : f);
-  const ground = groundSolids(prj, step);
+  const ground = groundSolids(prj, step, cuts);
   // the site's switch: platforms and slopes that touch drawn as one terrain
   if (prj.site.joined) ground.faces = joinTerrain(ground.faces);
   // editor, terrain as mesh: the terrain is see-through and the grid follows its surfaces
@@ -957,10 +960,10 @@ export function renderStep(prj, index, opts) {
       for (let k = 0; k < v.floors; k++) {
         const slice = { ...v, floors: 1, h: hf };
         // each floor is built where it really is (so cuts fall right), then raised
-        for (const f of volumeFaces(slice, base + k * hf, v.fromPrev ? [] : cuts)) pieces.push({ f, dz: off + k * ex.gap });
+        for (const f of volumeFaces(slice, base + k * hf, v.fromPrev || v.fill ? [] : cuts)) pieces.push({ f, dz: off + k * ex.gap });
         if (k > 0) for (const c of footCorners(v)) projLines.push([[c[0], c[1], base + k * hf + off + (k - 1) * ex.gap], [c[0], c[1], base + k * hf + off + k * ex.gap]]);
       }
-    } else for (const f of volumeFaces(v, base, v.fromPrev ? [] : cuts)) pieces.push({ f, dz: off });
+    } else for (const f of volumeFaces(v, base, v.fromPrev || v.fill ? [] : cuts)) pieces.push({ f, dz: off });
     if (ex?.on && off > 0) {
       // from its base down one gap, to the top of what is under it
       for (const c of footCorners(v)) projLines.push([[c[0], c[1], base + off - ex.gap], [c[0], c[1], base + off]]);
@@ -1189,7 +1192,10 @@ export function renderStep(prj, index, opts) {
       const ring = footprintOf({ ...c, shape: c.shape === 'sphere' ? 'cylinder' : c.shape });
       const lo = ring.map(([x, y]) => project(view, [x, y, z0]));
       let d = ptsPath(lo);
-      if (c.shape === 'cone' || c.shape === 'pyramid') {
+      if (isTrapezoid(c)) {
+        // the outline of each face of the trapezoid
+        d = trapezoidFaces({ ...c, floors: 1 }, z0).filter((f) => f.role !== 'bottom').map((f) => ptsPath(f.rings[0].map((q) => project(view, q)))).join('') + d;
+      } else if (c.shape === 'cone' || c.shape === 'pyramid') {
         // the outline at the base and the lines up to the point
         const apex = project(view, [c.x, c.y, z1]);
         for (let i = 0; i < lo.length; i += Math.max(1, Math.round(lo.length / 4))) d += `M${r3(lo[i][0])} ${r3(lo[i][1])}L${r3(apex[0])} ${r3(apex[1])}`;
@@ -1240,7 +1246,7 @@ export function renderStep(prj, index, opts) {
       const parts = [];
       for (const v of step.objects) {
         if (v.type !== 'volume' || v.state === 'ghost' || v.state === 'glass') continue;
-        const sh = shadowOf(v, baseOf(v, byId, levels) + (exploded.get(v.id) || 0), cuts, k);
+        const sh = shadowOf(v, baseOf(v, byId, levels) + (exploded.get(v.id) || 0), v.fill ? [] : cuts, k);
         if (sh.length) parts.push(sh);
       }
       // kept near the site: a low sun would otherwise stretch the drawing far beyond it

@@ -733,5 +733,22 @@
  "sheet.pageNext": "Nächste Seite",
  "sheet.fitPage": "Seite einpassen",
  "label.wrapHandleTip": "Ziehen, um den Textrahmen schmaler oder breiter zu machen; der Text bricht von selbst um. Doppelklick: wieder eine Zeile je getippter Zeile.",
- "label.noteHint": "Kleinerer Text (optional)"
+ "label.noteHint": "Kleinerer Text (optional)",
+ "fill.title": "Leere füllen",
+ "fill.action": "Leere füllen",
+ "fill.hint": "Setzt eine Form an die Stelle des Abzugs, gleich hoch, von der kein Abzug etwas wegnimmt. Verkleinern Sie sie, um nur einen Teil der Leere zu füllen; eine andere Kategorie oder Farbe hebt sie ab. Eine in der Leere gezeichnete Form füllt sie ebenfalls.",
+ "fill.volume": "Füllt einen Abzug (kein Abzug nimmt etwas weg)",
+ "fill.volumeHint": "Diese Form steht in der Leere eines Abzugs: Abzüge, die sie berühren, lassen sie ganz.",
+ "cut.terrain": "Das Gelände",
+ "cut.terrainTool": "Vom Gelände abziehen: Boden und Plateaus statt der Volumen ausheben (ein auf einem Plateau oder einer Böschung begonnener Abzug tut das bereits)",
+ "cut.terrainHint": "Hebt das Gelände aus: eine Grube im Boden, eine Kerbe in den Plateaus. Die Volumen bleiben ganz; das Gelände erhält die nötige Dicke.",
+ "sheet.showHeads": "Nummer und Titel jedes Schritts",
+ "shape.trapezoid": "Trapez stehend",
+ "shape.trapezoidLying": "Trapez liegend",
+ "trap.top": "Breite oben",
+ "trap.topTip": "Die Breite der Oberseite: die beiden Seiten neigen sich von der Basis zu ihr (0: ein First, wie ein Prisma).",
+ "trap.back": "Hintere Seite",
+ "trap.backTip": "Die Länge der kurzen Seite hinten: der Grundriss ist ein Trapez, die lange Seite vorne so breit wie das Volumen (0: ein Dreieck).",
+ "edge.tip": "Ziehen, um diese Wand nach außen oder innen zu verschieben (Umschalt: in jede Richtung; Alt: ohne Raster)",
+ "edge.badge": "Wand verschoben"
 }

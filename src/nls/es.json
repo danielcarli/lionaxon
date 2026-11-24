@@ -733,5 +733,22 @@
  "sheet.pageNext": "Página siguiente",
  "sheet.fitPage": "Encuadrar la página",
  "label.wrapHandleTip": "Arrastre para estrechar o ensanchar la caja de texto; las líneas se cortan solas. Doble clic: vuelve a una línea por línea escrita.",
- "label.noteHint": "Texto menor (opcional)"
+ "label.noteHint": "Texto menor (opcional)",
+ "fill.title": "Rellenar el vacío",
+ "fill.action": "Rellenar el vacío",
+ "fill.hint": "Pone una forma en el lugar de la sustracción, de la misma altura, que ninguna sustracción recorta. Hágala más pequeña para rellenar solo una parte del vacío; dele otra categoría o color para distinguirla. Una forma dibujada dentro del vacío también lo rellena.",
+ "fill.volume": "Rellena una sustracción (ninguna la recorta)",
+ "fill.volumeHint": "Esta forma ocupa el vacío de una sustracción: las sustracciones que la tocan la dejan entera.",
+ "cut.terrain": "El terreno",
+ "cut.terrainTool": "Sustraer del terreno: excava el suelo y las plataformas en lugar de los volúmenes (una sustracción empezada en una plataforma o un talud ya lo hace)",
+ "cut.terrainHint": "Excava el terreno: un foso en el suelo, un rebaje en las plataformas. Los volúmenes quedan enteros; el terreno toma el espesor que necesite.",
+ "sheet.showHeads": "Número y título de cada etapa",
+ "shape.trapezoid": "Trapecio de pie",
+ "shape.trapezoidLying": "Trapecio acostado",
+ "trap.top": "Ancho de arriba",
+ "trap.topTip": "El ancho de la cara de arriba: los dos lados se inclinan desde la base hasta ella (0: una arista, como un prisma).",
+ "trap.back": "Lado de atrás",
+ "trap.backTip": "La longitud del lado corto, atrás: la planta es un trapecio, con el lado largo delante, del ancho del volumen (0: un triángulo).",
+ "edge.tip": "Arrastre para mover este muro hacia afuera o hacia adentro (Shift: en cualquier dirección; Alt: fuera de la cuadrícula)",
+ "edge.badge": "Muro movido"
 }

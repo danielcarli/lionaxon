@@ -13,7 +13,7 @@ Simples de aprender em uma tarde. O mesmo programa no Windows, no macOS e no Lin
 
 [English](../README.md) · **Português (Brasil)**
 
-![Versão 0.17.1](https://img.shields.io/badge/vers%C3%A3o-0.17.1-23272b)
+![Versão 0.19.1](https://img.shields.io/badge/vers%C3%A3o-0.19.1-23272b)
 ![Experimental](https://img.shields.io/badge/status-experimental-b5532d)
 ![Plataformas: Windows, macOS, Linux](https://img.shields.io/badge/plataforma-Windows%20%7C%20macOS%20%7C%20Linux-23272b)
 ![10 línguas](https://img.shields.io/badge/l%C3%ADnguas-10-d0673f)
@@ -69,7 +69,7 @@ Software livre (GPL-3.0). Sem conta, sem assinatura, sem telemetria, e funciona 
 
 | | |
 |---|---|
-| **1 · Desenhe volumes no terreno.** Arraste um retângulo, puxe a altura. Caixas, cilindros, esferas, cones, pirâmides, ou qualquer contorno ponto a ponto. Se preferir, digite os números. | <img src="screenshots/pt-BR/plan.png" width="420" alt="A planta com três barras no terreno"> |
+| **1 · Desenhe volumes no terreno.** Arraste um retângulo, puxe a altura. Caixas, cilindros, esferas, cones, pirâmides, trapézios em pé ou deitados, ou qualquer contorno ponto a ponto. Se preferir, digite os números. | <img src="screenshots/pt-BR/plan.png" width="420" alt="A planta com três barras no terreno"> |
 | **2 · Recorte e empilhe.** Abra um entalhe ou uma passagem; comece sobre uma cobertura para empilhar. O recorte continua sendo um objeto: mova depois. | <img src="screenshots/pt-BR/properties.png" width="420" alt="Um volume selecionado, com suas propriedades"> |
 | **3 · Acrescente uma etapa.** Ela começa como cópia. O que você muda aparece na cor de destaque; a etapa anterior pode ficar como fantasma tracejado. | <img src="screenshots/pt-BR/elements.png" width="420" alt="As etapas do diagrama e a lista de elementos"> |
 | **4 · Abra a prancha.** Todas as etapas na mesma escala, com título, textos, legenda, norte e escala gráfica. Exporte e imprima. | <img src="screenshots/pt-BR/sheet.png" width="420" alt="A prancha com as cinco etapas lado a lado"> |
@@ -80,13 +80,15 @@ Software livre (GPL-3.0). Sem conta, sem assinatura, sem telemetria, e funciona 
 - **Etapas** com título e texto, reordenadas arrastando; mudanças aplicadas às etapas seguintes com um clique; sinais entre as etapas (+ − = →).
 - **Categorias** com cor *e* hachura (circulação, núcleo de escada, teatro…): a legenda funciona em impressão cinza e para quem não distingue as cores.
 - **Alinhar faces** (`L`): clique na face de referência e depois na face de outra forma, e ela se move até as duas ficarem no mesmo plano — lado com lado, topo com topo.
-- **Setas, pessoas, rótulos, cotas e árvores** — as pessoas na altura real, para dar a escala; pessoas e árvores ficam em cima do que estiver embaixo delas (um platô, um talude, uma cobertura). Duplo clique em um rótulo para escrever o texto — e o texto menor embaixo dele — direto no desenho.
+- **Setas, pessoas, rótulos, cotas e árvores** — as pessoas na altura real, para dar a escala (as ferramentas de pessoa e árvore continuam ativas: uma a mais a cada clique); pessoas e árvores ficam em cima do que estiver embaixo delas (um platô, um talude, uma cobertura). Duplo clique em um rótulo para escrever o texto — e o texto menor embaixo dele — direto no desenho.
 
 **Moldar o terreno**
 - **Terreno**: platôs, taludes, fossos, planos de referência com linhas de nível na elevação; terreno de qualquer contorno. **Unir terrenos** (uma chave na barra de ferramentas do desenho) desenha platôs e taludes que se tocam como uma peça só, sem as linhas entre eles.
 - **Entorno**: vizinhos em cinza neutro, ruas, gramados, água, e uma planta de situação ou foto aérea por baixo para desenhar por cima.
 - **Sol e sombras** por latitude, dia e hora. **Telhados**: duas águas, uma água e quatro águas, com a cumeeira na direção que você quiser e cor própria.
 - **Portas, janelas, arcos e óculos** desenhados nas paredes: acompanham o volume, sem recortá-lo.
+- **Mover uma parede pela aresta**: numa caixa, contorno ou trapézio deitado selecionado, pegue a aresta de cima de uma parede e puxe para fora ou para dentro; arraste um canto para mudar o contorno.
+- **Preencher um vazio**: uma subtração deixa um vazio que outra forma pode ocupar, inteiro ou em parte — *Preencher o vazio* na subtração, ou desenhar uma forma dentro dele. **Subtrair do terreno** também: um fosso no chão, um recorte numa plataforma.
 - **Pisos com paginação**, e setas que sobem de um nível a outro.
 
 **Ver de qualquer lugar**
@@ -100,6 +102,7 @@ Software livre (GPL-3.0). Sem conta, sem assinatura, sem telemetria, e funciona 
 - **PDF e SVG vetoriais** (uma camada por etapa no Illustrator e no Inkscape), **PNG** até 300 dpi, as etapas em **GIF animado**, e **cada etapa como imagem própria** (PNG, SVG ou PDF, todas no mesmo enquadramento e escala) de uma vez.
 - **Blocos de texto** ao lado dos desenhos (estratégia, prós e contras com + e −), a **legenda** abaixo do título ou no rodapé; rótulos com uma segunda linha mais discreta e marcadores (! × + −), que quebram em linhas na largura até onde você puxa a lateral da caixa de texto. O terreno pode ir para a prancha **em grade**, como na edição.
 - Pranchas em linha, grade, coluna ou vertical, de A4 a A0, em escala, em quantas páginas for preciso; quando os desenhos ficam presos pela altura, as legendas vão para o lado e os desenhos crescem. A prévia tem zoom pela roda e se arrasta como o desenho, página a página.
+- Pranchas com ou sem o **número e o título** de cada etapa.
 - **Exportar as etapas que você escrever** — `7`, `3-7`, `1, 4, 6-8` — cada uma num arquivo próprio, ou numa prancha só com elas.
 - **Oito estilos de desenho**, interface clara e escura e dois temas coloridos.
 
@@ -151,7 +154,7 @@ Baixe o instalador do seu sistema. Os links trazem sempre a **versão mais recen
 
 > Os instaladores ainda não são assinados com um certificado pago. Na primeira execução, o Windows pode mostrar "O Windows protegeu o computador" (**Mais informações › Executar assim mesmo**) e o macOS pede para liberar o programa em **Ajustes do Sistema › Privacidade e Segurança › Abrir Mesmo Assim**. As somas de verificação de cada arquivo estão em [`SHA256SUMS.txt`](https://github.com/danielcarli/lionaxon/releases/latest/download/SHA256SUMS.txt).
 
-O LionAxon é **experimental** (versão 0.17): já faz um diagrama de partido inteiro e exporta, mas o formato do arquivo e o comportamento ainda podem mudar antes da 1.0. **Atualizar pelo programa.** Clique no número da versão, no canto inferior direito, e em *Verificar agora*: se houver versão mais nova, *Atualizar agora* baixa o instalador da sua cópia (o assistente do Windows, o `.dmg`, o AppImage, o `.deb` ou o `.rpm`), confere o SHA-256 com o da release e abre. As duas coisas só acontecem quando você clica.
+O LionAxon é **experimental** (versão 0.19): já faz um diagrama de partido inteiro e exporta, mas o formato do arquivo e o comportamento ainda podem mudar antes da 1.0. **Atualizar pelo programa.** Clique no número da versão, no canto inferior direito, e em *Verificar agora*: se houver versão mais nova, *Atualizar agora* baixa o instalador da sua cópia (o assistente do Windows, o `.dmg`, o AppImage, o `.deb` ou o `.rpm`), confere o SHA-256 com o da release e abre. As duas coisas só acontecem quando você clica.
 
 Os instaladores são gerados pelo GitHub Actions a cada tag de versão (`.github/workflows/release.yml`), em máquinas Windows, macOS e Linux, a partir do código deste repositório.
 
@@ -186,6 +189,7 @@ O programa abre em uma tela inicial com seis exemplos — do partido em cinco et
 | `0`–`9` com uma forma selecionada | Digitar o tamanho: largura × profundidade × altura |
 | `L` | Alinhar faces: a face de referência e depois a face a levar até ela |
 | `Tab` · `Shift+Tab` | O próximo · o anterior objeto no mesmo ponto (os outros ficam transparentes) |
+| Arrastar a aresta de uma parede · um canto (forma selecionada) | Mover a parede para fora ou para dentro (`Shift`: qualquer direção) · mover o canto |
 | Duplo clique em um rótulo · `Enter` com ele selecionado | Escrever o texto e o texto menor direto no desenho (`Enter` aplica, `Shift+Enter` nova linha, `Tab` o outro texto, `Esc` desiste) |
 | `F2` · `Ctrl+L` · `Ctrl+H` | Renomear · travar · ocultar a seleção |
 | Botão direito | Menu do objeto (ou do papel) |
@@ -212,7 +216,7 @@ O programa abre em uma tela inicial com seis exemplos — do partido em cinco et
 
 ## Como funciona
 
-**Um modelo 2,5D.** Um volume é um contorno em planta (um retângulo ou uma elipse, girado em qualquer ângulo) extrudado entre uma altura de base e um topo, com um número de pavimentos; cones e pirâmides terminam em ponta, esferas são desenhadas como esferas. As alturas contam a partir do plano de referência do objeto. Uma subtração é uma caixa com suas próprias alturas; o volume é dividido em faixas de altura e cada faixa perde os recortes que a cobrem (operações booleanas entre polígonos, arredondadas a 1 mm). Isso cobre caixas, entalhes, passagens, pilhas, pátios e pavimentos, e mantém a edição simples.
+**Um modelo 2,5D.** Um volume é um contorno em planta (um retângulo ou uma elipse, girado em qualquer ângulo) extrudado entre uma altura de base e um topo, com um número de pavimentos; cones e pirâmides terminam em ponta, o trapézio em pé inclina os lados (o deitado é um trapézio na planta), esferas são desenhadas como esferas. As alturas contam a partir do plano de referência do objeto. Uma subtração é uma caixa com suas próprias alturas; o volume é dividido em faixas de altura e cada faixa perde os recortes que a cobrem (operações booleanas entre polígonos, arredondadas a 1 mm). Isso cobre caixas, entalhes, passagens, pilhas, pátios e pavimentos, e mantém a edição simples.
 
 **Um renderizador vetorial próprio.** As faces são projetadas em paralelo (isométrica por padrão), ordenadas de trás para a frente com testes de plano entre as faces que se sobrepõem na tela (Newell) e escritas em SVG. O mesmo SVG é a tela, as miniaturas, a prancha e os arquivos exportados: o que você vê é o que exporta. As paredes recebem dois tons da mesma cor e os topos ficam mais claros, como nos diagramas feitos à mão. 200 volumes são desenhados em algumas dezenas de milissegundos.
 
@@ -259,6 +263,8 @@ Código, comentários, identificadores e documentação em inglês. A interface 
 
 ## Próximas versões
 
+- **0.19** ✓ — trapézios em pé (os lados inclinados até um topo mais estreito) e deitados (um trapézio na planta, com as paredes retas), como volumes e como subtrações; paredes movidas pelas arestas, cantos pelas alças.
+- **0.18** ✓ — uma forma que preenche o vazio de uma subtração, inteiro ou em parte; subtrações no terreno (fossos, recortes nas plataformas); pessoas e árvores colocadas uma atrás da outra; pranchas sem o número e o título das etapas.
 - **0.17** ✓ — exportar as etapas que você escrever (3-7, 1, 4, 6), em arquivos separados ou numa prancha; a prévia da prancha com zoom e arrasto como no desenho, página a página; legendas ao lado dos desenhos quando isso os deixa maiores; a caixa de texto do rótulo redimensionada pela lateral, e o texto pequeno escrito direto no desenho; a importação de IFC retirada até ler modelos reais.
 - **0.16** ✓ — cada etapa exportada como imagem própria (PNG, SVG, PDF); terreno em grade na prancha; rótulos com largura, com quebra de linha automática.
 - **0.15** ✓ — unir terrenos (platôs e taludes que se tocam desenhados como um só); pessoas e árvores em cima do que está embaixo delas.
@@ -275,7 +281,7 @@ Código, comentários, identificadores e documentação em inglês. A interface 
 - **Depois** — a importação de modelos de edifício (IFC, depois arquivos Rev), testada em projetos reais; várias pranchas e alternativas no mesmo projeto; terreno livre; escadas; plantas de zoneamento; pátios e união de volumes; lajes soltas e pilotis; sombras sobre volumes e terreno; cortes na prancha; desenhar formas novas no visualizador 3D; paleta de comandos; instaladores assinados.
 - **1.0** — DXF de entrada e saída; manual e tutoriais na ordem de um ateliê de projeto; traduções revisadas.
 
-O histórico completo está no [CHANGELOG](../CHANGELOG.md) — versão atual: **0.17.1**.
+O histórico completo está no [CHANGELOG](../CHANGELOG.md) — versão atual: **0.19.1**.
 
 ## Créditos
 
