@@ -2,6 +2,15 @@
 
 All notable changes to LionAxon are documented here. The project follows [Semantic Versioning](https://semver.org).
 
+## [0.22.4] — 2026-11-24
+
+### Added
+- **The text of the steps exported on their own can go beside the drawing**: with *Number, title and text of the step* on, *Under* and *Beside* choose where — beside, it is a column on the left of the drawing (the number, a rule, the title, the text), centred on it, as on the sheet. Remembered. For PNG, SVG and PDF.
+
+### Fixed
+- **The north beside each drawing sat on a text** when a label was in the top right corner: it now goes above the texts there, its right side on the right side of the texts, and the frame of the drawings makes room for it (on the sheet and on the steps exported on their own). Its size follows the drawings.
+- **Text of each step › Beside did nothing on a sheet to scale** (1:750, 1:500…): to scale the captions always stayed under the drawings. Now they go beside them there too — as many steps a row as fit across the paper, each its caption then its drawing, the rows page after page. *Automatic* keeps them under when the scale is fixed (there is no size to gain).
+
 ## [0.22.3] — 2026-11-24
 
 ### Added

@@ -29,6 +29,7 @@ import { parseStepRange, formatStepRange } from '../src/workbench/services/expor
 import { parseInline, richLines, plainText } from '../src/workbench/services/render/common/richText.js';
 import { alignMoves, distributeMoves, snapBox } from '../src/base/common/geometry/alignBoxes.js';
 import { cutsTaking } from '../src/workbench/services/render/common/solids.js';
+import { northSpot } from '../src/workbench/services/render/common/renderer.js';
 
 let n = 0;
 const test = (name, fn) => { fn(); n++; console.log(`  ✓ ${name}`); };
@@ -921,6 +922,9 @@ test('sheet: drawings as large as they go — automatic columns, the legend in r
   for (const layout of ['row', 'grid', 'column']) {
     assert.equal(capY(sheetOf({ layout, cols: 0, captions: 'below' }).svg), 'below', `${layout}: under`);
     assert.equal(capY(sheetOf({ layout, cols: 0, captions: 'beside' }).svg), 'beside', `${layout}: beside`);
+    // to scale too
+    assert.equal(capY(sheetOf({ layout, cols: 0, captions: 'beside', scale: 1000 }).svg), 'beside', `${layout}: beside, to scale`);
+    assert.equal(capY(sheetOf({ layout, cols: 0, captions: 'below', scale: 1000 }).svg), 'below', `${layout}: under, to scale`);
     const auto2 = sheetOf({ layout, cols: 0, captions: 'auto' }).scale;
     assert.ok(auto2 <= sheetOf({ layout, cols: 0, captions: 'below' }).scale + 1 && auto2 <= sheetOf({ layout, cols: 0, captions: 'beside' }).scale + 1, `${layout}: automatic is the larger`);
   }
@@ -942,6 +946,16 @@ test('sheet: drawings as large as they go — automatic columns, the legend in r
   const hidden = renderStep(prj, 0, { view: v, lw: 0.1 }).bbox;
   const shown = renderStep({ ...prj, site: { ...prj.site, mode: 'dashed' } }, 0, { view: v, lw: 0.1 }).bbox;
   assert.ok(hidden[2] - hidden[0] < (shown[2] - shown[0]) * 0.6, 'the hidden site is left out');
+});
+
+test('the north beside a drawing: in its top right corner, or above the texts that are there, right-aligned with them', () => {
+  assert.deepEqual(northSpot([0, 0, 100, 60], [[0, 40, 30, 50]], 4), [96, 4], 'nothing there: the corner');
+  const [cx, cy] = northSpot([0, 0, 100, 60], [[60, 2, 98, 20]], 4);
+  assert.equal(cx, 94, 'its right side on the right side of the text');
+  assert.ok(cy + 4 <= 2, 'above the text');
+  // two texts one above the other at the corner: above both
+  const [, cy2] = northSpot([0, 0, 100, 60], [[60, 2, 98, 20], [70, -14, 99, 1]], 4);
+  assert.ok(cy2 + 4 <= -14);
 });
 
 console.log(`\n${n} passed`);

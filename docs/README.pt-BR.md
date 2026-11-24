@@ -13,7 +13,7 @@ Simples de aprender em uma tarde. O mesmo programa no Windows, no macOS e no Lin
 
 [English](../README.md) · **Português (Brasil)**
 
-![Versão 0.22.3](https://img.shields.io/badge/vers%C3%A3o-0.22.3-23272b)
+![Versão 0.22.4](https://img.shields.io/badge/vers%C3%A3o-0.22.4-23272b)
 ![Experimental](https://img.shields.io/badge/status-experimental-b5532d)
 ![Plataformas: Windows, macOS, Linux](https://img.shields.io/badge/plataforma-Windows%20%7C%20macOS%20%7C%20Linux-23272b)
 ![10 línguas](https://img.shields.io/badge/l%C3%ADnguas-10-d0673f)
@@ -105,7 +105,7 @@ Software livre (GPL-3.0). Sem conta, sem assinatura, sem telemetria, e funciona 
 - **Desenhos do maior tamanho que o papel permite**: a grade escolhe sozinha o número de colunas; coluna e vertical em papel largo continuam em mais colunas lado a lado; os textos vão para o lado dos desenhos, na largura que os deixa maiores, quando isso ganha; o branco que sobra se divide igualmente entre as linhas; a legenda corre em linhas, e um terreno que não é desenhado não ocupa mais espaço.
 - Pranchas em linha, grade, coluna ou vertical, de A4 a A0, em escala, em quantas páginas for preciso; quando os desenhos ficam presos pela altura, as legendas vão para o lado e os desenhos crescem. A prévia tem zoom pela roda e se arrasta como o desenho, página a página.
 - Pranchas com ou sem o **número e o título** de cada etapa; o texto dela **embaixo ou ao lado** do desenho (ou onde os desenhos saírem maiores).
-- **Exportar as etapas que você escrever** — `7`, `3-7`, `1, 4, 6-8`, `3-` até a última, `-5` desde a primeira — cada uma num arquivo próprio (na largura ou altura em pixels que você der, com número, título e texto embaixo se quiser), ou numa prancha só com elas. Os PNG saem com **fundo transparente**, a não ser que você desligue.
+- **Exportar as etapas que você escrever** — `7`, `3-7`, `1, 4, 6-8`, `3-` até a última, `-5` desde a primeira — cada uma num arquivo próprio (na largura ou altura em pixels que você der, com número, título e texto embaixo ou ao lado se quiser), ou numa prancha só com elas. Os PNG saem com **fundo transparente**, a não ser que você desligue.
 - **Oito estilos de desenho**, interface clara e escura e dois temas coloridos.
 
 <table>
@@ -291,7 +291,7 @@ Código, comentários, identificadores e documentação em inglês. A interface 
 - **Depois** — a importação de modelos de edifício (IFC, depois arquivos Rev), testada em projetos reais; várias pranchas e alternativas no mesmo projeto; terreno livre; escadas; plantas de zoneamento; pátios e união de volumes; lajes soltas e pilotis; sombras sobre volumes e terreno; cortes na prancha; desenhar formas novas no visualizador 3D; paleta de comandos; instaladores assinados.
 - **1.0** — DXF de entrada e saída; manual e tutoriais na ordem de um ateliê de projeto; traduções revisadas.
 
-O histórico completo está no [CHANGELOG](../CHANGELOG.md) — versão atual: **0.22.3**.
+O histórico completo está no [CHANGELOG](../CHANGELOG.md) — versão atual: **0.22.4**.
 
 ## Créditos
 

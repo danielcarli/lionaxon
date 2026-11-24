@@ -7,7 +7,7 @@
 // same SVG the screen shows. PNG embeds the fonts in the SVG before drawing it, so the text keeps the
 // family's typeface; the PDF is printed by the main process with the fonts of the app.
 import { renderSheet, northGlyph, wrap } from '../../render/common/sheet.js';
-import { stepSvg, stepViews, renderStep, padBox, FONT } from '../../render/common/renderer.js';
+import { stepSvg, stepViews, renderStep, padBox, FONT, northSpot } from '../../render/common/renderer.js';
 import { getStyle } from '../../render/common/styles.js';
 import { bboxUnion } from '../../../../base/common/geometry/polygon.js';
 import { encodeGif } from '../../../../base/common/gif.js';
@@ -26,6 +26,7 @@ export const meters = (n) => `${formatNumber(n, 2)} m`;
 const PNG_TRANSPARENT_KEY = 'lionaxon.pngTransparent';
 const STEP_SIZE_KEY = 'lionaxon.stepSize';
 const STEP_CAPTION_KEY = 'lionaxon.stepCaption';
+const STEP_CAPTION_PLACE_KEY = 'lionaxon.stepCaptionPlace';
 
 export class ExportService {
   #fontData = new Map();
@@ -51,6 +52,15 @@ export class ExportService {
 
   set stepCaption(on) {
     try { localStorage.setItem(STEP_CAPTION_KEY, String(!!on)); } catch { /* no storage */ }
+  }
+
+  /** Where that caption goes: 'below' the drawing or 'beside' it (on its left). Remembered. */
+  get stepCaptionPlace() {
+    try { return localStorage.getItem(STEP_CAPTION_PLACE_KEY) === 'beside' ? 'beside' : 'below'; } catch { return 'below'; }
+  }
+
+  set stepCaptionPlace(v) {
+    try { localStorage.setItem(STEP_CAPTION_PLACE_KEY, v === 'beside' ? 'beside' : 'below'); } catch { /* no storage */ }
   }
 
   /** The size of the images of steps exported on their own: `px` pixels of width ('w') or height ('h'). Remembered. */
@@ -146,9 +156,10 @@ export class ExportService {
    * Every step as a drawing of its own, all in the same frame (the bounds of every step together, at the
    * same scale), so that the images line up one after the other in a presentation or a board.
    * `caption`: the number and title of the step underneath (the GIF has them); 'text': its text too, in
-   * lines under the title (the steps exported on their own, when asked).
+   * lines under the title (the steps exported on their own, when asked). `captionPlace`: 'below' the
+   * drawing, or 'beside' it (on its left, in a column).
    */
-  stepFrames(width = 900, { fontCss = '', caption = false, steps = null, transparent = false } = {}) {
+  stepFrames(width = 900, { fontCss = '', caption = false, captionPlace = 'below', steps = null, transparent = false } = {}) {
     const p0 = this.doc.project;
     // a north beside each drawing takes the place of the one lying in it
     const p = p0.sheet.northEach ? { ...p0, northPlace: 'none' } : p0;
@@ -156,31 +167,70 @@ export class ExportService {
     const views = p.steps.map((st) => stepViews(p, st)[0]);
     const only = steps ? new Set(steps) : null; // the frame of the steps exported (the others are not drawn)
     let box = null;
-    p.steps.forEach((_, i) => { if (!only || only.has(i)) box = bboxUnion(box, renderStep(p, i, { view: views[i], lw: 0.1, fmt: meters, terrainGrid: !!p.sheet.terrainGrid }).bbox); });
+    const drawn = new Map();
+    p.steps.forEach((_, i) => {
+      if (only && !only.has(i)) return;
+      const r = renderStep(p, i, { view: views[i], lw: 0.1, fmt: meters, terrainGrid: !!p.sheet.terrainGrid });
+      drawn.set(i, r);
+      box = bboxUnion(box, r.bbox);
+    });
+    // the north beside each drawing: its top right corner, or above its texts (never on a text)
+    const nr = Math.min(box[2] - box[0], box[3] - box[1]) * 0.045;
+    const norths = new Map();
+    if (p.sheet.northEach) {
+      for (const [i, r] of drawn) {
+        const [cx, cy] = northSpot(r.bbox, r.texts || [], nr);
+        norths.set(i, [cx, cy]);
+        box = bboxUnion(box, [cx - nr, cy - nr, cx + nr, cy + nr]);
+      }
+    }
     box = padBox(box, 0.05);
     const bw = box[2] - box[0], bh = box[3] - box[1];
-    // room for the caption: the number and the title, and the lines of the text (as many as the longest has)
-    const u = bh * 0.11, fsT = u * 0.24, lhT = u * 0.36;
-    const textLines = (st) => (caption === 'text' && st.text ? wrap(st.text, Math.max(20, Math.floor((bw * 0.92) / (fsT * 0.52)))) : []);
-    const most = Math.max(0, ...p.steps.filter((_, i) => !only || only.has(i)).map((st) => textLines(st).length));
-    const cap = caption ? u + (most ? most * lhT + u * 0.2 : 0) : 0;
-    const nr = Math.min(bw, bh) * 0.045; // the radius of a north at the corner
-    const height = Math.round((width * (bh + cap)) / bw / 2) * 2;
     const esc = (x) => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const exported = p.steps.filter((_, i) => !only || only.has(i));
+    // the caption: the number and the title, and the lines of the text — under the drawing (as many lines as
+    // the longest has), or `beside` it, on its left, in a column as on the sheet
+    const u = bh * 0.11, fsT = u * 0.24, lhT = u * 0.36;
+    const besideCap = caption && captionPlace === 'beside';
+    const capW = besideCap ? bw * 0.42 : 0, gapC = besideCap ? bw * 0.05 : 0;
+    const textChars = Math.max(besideCap ? 14 : 20, Math.floor(((besideCap ? capW : bw * 0.92)) / (fsT * 0.52)));
+    const textLines = (st) => (caption === 'text' && st.text ? wrap(st.text, textChars) : []);
+    const titleLines = (st) => (besideCap ? wrap((st.title || '').toUpperCase(), Math.max(8, Math.floor(capW / (u * 0.3 * 0.62)))) : [(st.title || '').toUpperCase()]);
+    const sideH = (st) => u * 0.95 + titleLines(st).length * u * 0.42 + (textLines(st).length ? u * 0.15 + textLines(st).length * lhT : 0);
+    const most = Math.max(0, ...exported.map((st) => textLines(st).length));
+    const cap = !caption || besideCap ? 0 : u + (most ? most * lhT + u * 0.2 : 0);
+    const tallSide = besideCap ? Math.max(...exported.map(sideH)) + u * 0.4 : 0;
+    // the frame: the drawings (all in the same place), with the room of the caption under or on the left
+    const vw = capW + gapC + bw, vh = Math.max(bh + cap, tallSide);
+    const vx = box[0] - capW - gapC, vy = box[1] - Math.max(0, vh - bh - cap) / 2;
+    const height = Math.round((width * vh) / vw / 2) * 2;
     const svgs = p.steps.map((st, i) => {
       if (only && !only.has(i)) return null;
-      const { markup, bbox: own } = renderStep(p, i, { view: views[i], lw: (bw / width) * 1.2, fmt: meters, terrainGrid: !!p.sheet.terrainGrid });
+      const { markup } = renderStep(p, i, { view: views[i], lw: (vw / width) * 1.2, fmt: meters, terrainGrid: !!p.sheet.terrainGrid });
       const num = String(i + 1).padStart(2, '0');
-      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${box[0]} ${box[1]} ${bw} ${bh + cap}" width="${width}" height="${height}">`
+      let capSvg = '';
+      if (caption && !besideCap) {
+        capSvg = `<text x="${box[0] + bw * 0.04}" y="${box[3] + u * 0.45}" font-family="${FONT}" font-size="${u * 0.42}" fill="${style.caption}" font-weight="500">${num}</text>`
+          + `<text x="${box[0] + bw * 0.04 + u * 0.8}" y="${box[3] + u * 0.45}" font-family="${FONT}" font-size="${u * 0.3}" fill="${style.text}" font-weight="700" letter-spacing="${u * 0.01}">${esc((st.title || '').toUpperCase())}</text>`
+          + textLines(st).map((line, k) => `<text x="${box[0] + bw * 0.04}" y="${box[3] + u * 0.95 + k * lhT}" font-family="${FONT}" font-size="${fsT}" fill="${style.muted}">${esc(line)}</text>`).join('');
+      } else if (besideCap) {
+        // the number, a rule, the title, the text: a column on the left, centred on the drawing
+        const x = vx + u * 0.2;
+        let y = box[1] + bh / 2 - sideH(st) / 2 + u * 0.42;
+        capSvg = `<text x="${x}" y="${y}" font-family="${FONT}" font-size="${u * 0.5}" fill="${style.caption}" font-weight="500">${num}</text>`;
+        y += u * 0.2;
+        capSvg += `<path d="M${x} ${y}h${Math.min(capW * 0.8, u * 4)}" stroke="${style.caption}" stroke-width="${u * 0.025}"/>`;
+        y += u * 0.1;
+        for (const line of titleLines(st)) { y += u * 0.42; capSvg += `<text x="${x}" y="${y}" font-family="${FONT}" font-size="${u * 0.3}" fill="${style.text}" font-weight="700" letter-spacing="${u * 0.015}">${esc(line)}</text>`; }
+        if (textLines(st).length) y += u * 0.15;
+        for (const line of textLines(st)) { y += lhT; capSvg += `<text x="${x}" y="${y}" font-family="${FONT}" font-size="${fsT}" fill="${style.muted}">${esc(line)}</text>`; }
+      }
+      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vx} ${vy} ${vw} ${vh}" width="${width}" height="${height}">`
         + (fontCss ? `<defs><style>${fontCss}</style></defs>` : '')
-        + (transparent ? '' : `<rect x="${box[0]}" y="${box[1]}" width="${bw}" height="${bh + cap}" fill="${style.paper}"/>`) + markup
+        + (transparent ? '' : `<rect x="${vx}" y="${vy}" width="${vw}" height="${vh}" fill="${style.paper}"/>`) + markup
         // the north at the corner of each drawing, when the sheet asks for it
-        + (p.sheet.northEach ? northGlyph(views[i], p.north, own[2] - nr, own[1] + nr, nr, { ink: p.northHalftone ? style.muted : style.ink, muted: style.muted, halftone: p.northHalftone, s: nr / 5.5 }) : '')
-        + (!caption ? '</svg>' : '')
-        + (!caption ? '' : `<text x="${box[0] + bw * 0.04}" y="${box[3] + u * 0.45}" font-family="${FONT}" font-size="${u * 0.42}" fill="${style.caption}" font-weight="500">${num}</text>`
-        + `<text x="${box[0] + bw * 0.04 + u * 0.8}" y="${box[3] + u * 0.45}" font-family="${FONT}" font-size="${u * 0.3}" fill="${style.text}" font-weight="700" letter-spacing="${u * 0.01}">${esc((st.title || '').toUpperCase())}</text>`
-        + textLines(st).map((line, k) => `<text x="${box[0] + bw * 0.04}" y="${box[3] + u * 0.95 + k * lhT}" font-family="${FONT}" font-size="${fsT}" fill="${style.muted}">${esc(line)}</text>`).join('')
-        + '</svg>');
+        + (norths.has(i) ? northGlyph(views[i], p.north, norths.get(i)[0], norths.get(i)[1], nr, { ink: p.northHalftone ? style.muted : style.ink, muted: style.muted, halftone: p.northHalftone, s: nr / 5.5 }) : '')
+        + capSvg + '</svg>';
     });
     return { svgs, width, height };
   }
@@ -203,12 +253,12 @@ export class ExportService {
     // the size asked (pixels of width or of height); a height gives the width the frame needs for it
     if (width == null && height == null) { const z = this.stepSize; if (z.side === 'h') height = z.px; else width = z.px; }
     // the number, title and text of each step under its drawing, when asked
-    const caption = this.stepCaption ? 'text' : false;
-    if (width == null) { const probe = this.stepFrames(1000, { steps, caption }); width = Math.max(16, Math.round((height * 1000) / probe.height)); }
+    const caption = this.stepCaption ? 'text' : false, captionPlace = this.stepCaptionPlace;
+    if (width == null) { const probe = this.stepFrames(1000, { steps, caption, captionPlace }); width = Math.max(16, Math.round((height * 1000) / probe.height)); }
     const fontCss = kinds.includes('png') ? await this.fontCss() : '';
-    const plain = this.stepFrames(width, { steps, caption });                 // SVG and PDF: the fonts come from the system or the print page
+    const plain = this.stepFrames(width, { steps, caption, captionPlace });                 // SVG and PDF: the fonts come from the system or the print page
     // the PNG may leave out the paper (a transparent background); the SVG and the PDF keep it
-    const withFonts = fontCss ? this.stepFrames(width, { fontCss, steps, transparent, caption }) : plain;
+    const withFonts = fontCss ? this.stepFrames(width, { fontCss, steps, transparent, caption, captionPlace }) : plain;
     const pageH = Math.round((pageWidthMm * plain.height) / plain.width * 10) / 10;
     const files = [];
     for (const i of steps || p.steps.map((_, k) => k)) {
@@ -230,13 +280,14 @@ export class ExportService {
     const views = stepViews(p, step); // every angle of the step, side by side
     // with its number, title and text: the drawing in its frame, the caption under it
     if (this.stepCaption) {
-      if (width == null) { const probe = this.stepFrames(1000, { steps: [index], caption: 'text' }); width = Math.max(16, Math.round((height * 1000) / probe.height)); }
-      if (kind === 'svg') return this.host.exportSvg(name, this.stepFrames(width, { steps: [index], caption: 'text' }).svgs[index]);
+      const captionPlace = this.stepCaptionPlace;
+      if (width == null) { const probe = this.stepFrames(1000, { steps: [index], caption: 'text', captionPlace }); width = Math.max(16, Math.round((height * 1000) / probe.height)); }
+      if (kind === 'svg') return this.host.exportSvg(name, this.stepFrames(width, { steps: [index], caption: 'text', captionPlace }).svgs[index]);
       if (kind === 'pdf') {
-        const f = this.stepFrames(width, { steps: [index], caption: 'text' });
+        const f = this.stepFrames(width, { steps: [index], caption: 'text', captionPlace });
         return this.host.exportPdf(name, f.svgs[index], pageWidthMm, Math.round((pageWidthMm * f.height) / f.width * 10) / 10);
       }
-      const f = this.stepFrames(width, { steps: [index], caption: 'text', transparent, fontCss: await this.fontCss() });
+      const f = this.stepFrames(width, { steps: [index], caption: 'text', captionPlace, transparent, fontCss: await this.fontCss() });
       return this.host.exportPng(name, await this.rasterize(f.svgs[index], width, f.height));
     }
     if (width == null) {

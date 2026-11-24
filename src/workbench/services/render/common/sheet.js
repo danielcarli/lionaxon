@@ -10,7 +10,7 @@
 import { makeView, project } from '../../../../base/common/geometry/projection.js';
 import { bboxUnion } from '../../../../base/common/geometry/polygon.js';
 import { PAPERS, usedCategories, stepAngles } from '../../model/common/model.js';
-import { renderStep, padBox, FONT, hatchPattern, PATTERN_COUNT } from './renderer.js';
+import { renderStep, northSpot, padBox, FONT, hatchPattern, PATTERN_COUNT } from './renderer.js';
 import { getStyle } from './styles.js';
 
 const r2 = (v) => Math.round(v * 100) / 100;
@@ -117,12 +117,26 @@ export function renderSheet(prj, opts) {
   // the same scale for every step: the union of their bounds, per angle; the slots take the largest
   const boxes = new Map();
   const highlighted = [];
+  const drawn = new Map(); // `${step}|${angle}` → the bounds and the text boxes of that drawing
   for (const i of indexes) {
     angles.get(i).forEach(({ key, view: v }, j) => {
       const r = renderStep(drawPrj, i, { view: v, lw: 0.1, fmt: opts.fmt, terrainGrid: !!sheet.terrainGrid });
       boxes.set(key, bboxUnion(boxes.get(key) || null, r.bbox));
+      drawn.set(`${i}|${key}`, r);
       if (j === 0 && r.highlighted.length) highlighted.push(i);
     });
+  }
+  // the north beside each drawing: in its top right corner, or above its texts when they are there (never on
+  // a text); its size follows the drawings, and the frame makes room for it
+  const norths = new Map();
+  if (northEach) {
+    const radius = new Map([...boxes].map(([k, b]) => [k, Math.min(b[2] - b[0], b[3] - b[1]) * 0.045]));
+    for (const [id, r] of drawn) {
+      const key = id.slice(id.indexOf('|') + 1), rad = radius.get(key);
+      const [cx, cy] = northSpot(r.bbox, r.texts || [], rad);
+      norths.set(id, { cx, cy, r: rad });
+      boxes.set(key, bboxUnion(boxes.get(key), [cx - rad, cy - rad, cx + rad, cy + rad]));
+    }
   }
   for (const [k, b] of boxes) boxes.set(k, padBox(b, 0.03));
   const bw = Math.max(...[...boxes.values()].map((b) => b[2] - b[0]));
@@ -247,14 +261,14 @@ export function renderSheet(prj, opts) {
     const box = boxes.get(key);
     const w = box[2] - box[0], hh = box[3] - box[1];
     const sx = x + j * (slotW + gap), dx = sx + (slotW - w * scale) / 2, dy = y + ((bh - hh) * scale) / 2;
-    const { markup, bbox: own } = renderStep(drawPrj, stepIndex, { view: v, lw: EDGE_MM / scale, fmt: opts.fmt, terrainGrid: !!sheet.terrainGrid });
+    const { markup } = renderStep(drawPrj, stepIndex, { view: v, lw: EDGE_MM / scale, fmt: opts.fmt, terrainGrid: !!sheet.terrainGrid });
     let g = `<svg x="${r2(dx)}" y="${r2(dy)}" width="${r2(w * scale)}" height="${r2(hh * scale)}" viewBox="${r2(box[0])} ${r2(box[1])} ${r2(w)} ${r2(hh)}" overflow="visible">${markup}</svg>`;
     // a small north at each drawing (when the drawings are seen from different angles, or asked), as close as it
     // goes to the drawing: in the top right corner of its own bounds, which an axonometric leaves empty
-    if (northEach) {
-      const r = 3.2 * s;
-      const right = dx + (own[2] - box[0]) * scale, top = dy + (own[1] - box[1]) * scale;
-      g += northGlyph(v, prj.north, right - r, top + r, r, { ink, muted: style.muted, halftone: prj.northHalftone, s });
+    const spot = norths.get(`${stepIndex}|${key}`);
+    if (spot) {
+      const r = spot.r * scale;
+      g += northGlyph(v, prj.north, dx + (spot.cx - box[0]) * scale, dy + (spot.cy - box[1]) * scale, r, { ink, muted: style.muted, halftone: prj.northHalftone, s: r / 3.2 });
     }
     return g;
   }).join('');
@@ -510,7 +524,8 @@ export function renderSheet(prj, opts) {
       return best;
     };
     // where the captions go: under the drawings, beside them (on their left), or whichever makes them larger
-    const capPlace = noCaptions || fixed ? 'below' : (sheet.captions || 'auto');
+    // (to scale, automatic keeps them under: the scale is fixed, nothing to gain)
+    const capPlace = noCaptions ? 'below' : fixed ? (sheet.captions === 'beside' ? 'beside' : 'below') : (sheet.captions || 'auto');
     const bestOf = (sl, per) => capPlace === 'below' ? scaleFor(sl)
       : capPlace === 'beside' ? (bestBeside(per)?.sc || scaleFor(sl))
         : Math.max(scaleFor(sl), (bestBeside(per)?.sc || 0) / 1.08);
@@ -549,7 +564,48 @@ export function renderSheet(prj, opts) {
     if (!fixed) scale = scaleFor(slots);
     // ---- captions beside the drawings: when the drawings are held by the height (a column, a grid of wide
     // cells, an upright paper) the caption goes on the left of its drawing and the drawing grows
-    const beside = capPlace !== 'below' && besideLayout();
+    const beside = capPlace !== 'below' && (fixed ? besideFixed() : besideLayout());
+    /**
+     * To scale, with the captions beside: as many steps a row as fit across the paper (each its caption, then
+     * its drawing), the rows page after page.
+     */
+    function besideFixed() {
+      const dw = bw * scale, dh = bh * scale;
+      const groupWj = (j) => ks[j] * dw + (ks[j] - 1) * gapX;
+      const widest = Math.max(...indexes.map((_, j) => groupWj(j)));
+      // the width of the captions: the widest that keeps as many steps a row as the narrowest does
+      let pick = null;
+      for (const w of [36, 44, 52, 60, 75, 90]) {
+        const capW = w * s;
+        const per = column ? 1 : Math.max(1, Math.floor((avail + gapX) / (capW + gapC + widest + gapX)));
+        if (!pick || per >= pick.per) pick = { capW, per };
+      }
+      const { capW, per } = pick;
+      overflow = overflow || capW + gapC + widest > avail + 1e-6;
+      const rows = [];
+      indexes.forEach((stepIndex, j) => { if (j % per === 0) rows.push([]); rows[rows.length - 1].push({ stepIndex, j }); });
+      const capHs = indexes.map((i) => captionHeight(prj.steps[i], capW));
+      const rowH = (row) => Math.max(dh, ...row.map(({ j }) => capHs[j]));
+      const cols = Math.min(per, indexes.length);
+      const share = Math.max(0, avail - cols * (capW + gapC + widest) - (cols - 1) * gapX) / (cols + 1);
+      let page = [], y = firstTop;
+      for (const row of rows) {
+        const rh = rowH(row);
+        if (page.length && y + rh > Hc - m - footerH + 1e-6) { pages.push(page); page = []; y = nextTop; }
+        row.forEach(({ stepIndex, j }, q) => {
+          const x = m + share + q * (capW + gapC + widest + gapX + share);
+          const num = String(stepIndex + 1).padStart(2, '0');
+          const dx = x + capW + gapC + (widest - groupWj(j)) / 2;
+          const g = opSign(stepIndex, q ? x - (share + gapX) / 2 : Math.max(m / 2, x - share / 2), y + rh / 2)
+            + caption(prj.steps[stepIndex], num, x, y + Math.max(0, (rh - capHs[j]) / 2), capW, rh)
+            + drawings(stepIndex, dx, y + (rh - dh) / 2, scale, dw, gapX);
+          page.push(stepGroup(stepIndex, g));
+        });
+        y += rh + gapY;
+      }
+      pages.push(page);
+      return true;
+    }
     function besideLayout() {
       const per = sheet.layout === 'row' ? indexes.length : column ? nc : gridOf(gridSheet, indexes.length).cols;
       const fit = bestBeside(per);

@@ -1903,6 +1903,11 @@ async function pngTransparent21(win, js) {
   if (process.env.FRAME) fs.writeFileSync(process.env.FRAME, framed.svg);
   check('…the image grows to hold them, and the hint says so', framed.on && framed.h > framed.h0 && framed.svg.includes('>02<') && framed.svg.includes('PLATEAU') && framed.svg.includes('upper plateau')
     && await js(`/título|title/i.test(document.querySelector('[data-pane=sheet] [data-steps-hint]').textContent) && !/sem título|no title/i.test(document.querySelector('[data-pane=sheet] [data-steps-hint]').textContent)`));
+  check('…and it can go beside the drawing: a column on its left, the image wider', await js(`(() => { const seg = document.querySelector('[data-pane=sheet] [data-key=stepCaptionPlace]'); return !!seg && !seg.hidden; })()`)
+    && await js(`(() => { const under = ${S2}.stepFrames(1200, { steps: [1], caption: 'text' }), side = ${S2}.stepFrames(1200, { steps: [1], caption: 'text', captionPlace: 'beside' });
+      const svg = side.svgs[1], vb = /viewBox="([-\\d.]+) ([-\\d.]+) ([\\d.]+) ([\\d.]+)"/.exec(svg), numX = Number(/<text x="([-\\d.]+)"[^>]*font-weight="500">02</.exec(svg)[1]);
+      return side.height < under.height && numX < Number(vb[1]) + Number(vb[3]) * 0.3 && svg.includes('upper plateau'); })()`));
+  if (process.env.FRAME2) fs.writeFileSync(process.env.FRAME2, await js(`${S2}.stepFrames(1200, { steps: [1], caption: 'text', captionPlace: 'beside' }).svgs[1]`));
   await js(`${S2}.stepCaption = false; true`);
   await js(`${S2}.stepSize = { px: 2400, side: 'w' }; ${S}.layout.setActivity('steps'); ${S}.layout.setTab('axon'); true`);
 }

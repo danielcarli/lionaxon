@@ -395,13 +395,37 @@ function labelMarkup(view, o, style, attrs) {
   return s + '</g>';
 }
 
-function labelBounds(view, o) {
+/** The box of the text of a label, drawn (no leader). */
+function labelTextBounds(view, o) {
   const [ax, ay] = project(view, [o.x, o.y, o.z]);
   const { w, h } = labelTextBox(o);
   const tx = ax + o.dx, ty = ay + o.dy;
   const y0 = hangsBelow(o) ? ty - o.size * 0.625 : ty - h / 2;
-  const box = textRight(o) ? [tx, y0, tx + w, y0 + h] : [tx - w, y0, tx, y0 + h];
-  return o.line === false ? box : bboxUnion([ax, ay, ax, ay], box);
+  return textRight(o) ? [tx, y0, tx + w, y0 + h] : [tx - w, y0, tx, y0 + h];
+}
+
+function labelBounds(view, o) {
+  const box = labelTextBounds(view, o);
+  if (o.line === false) return box;
+  const [ax, ay] = project(view, [o.x, o.y, o.z]);
+  return bboxUnion([ax, ay, ax, ay], box);
+}
+
+/**
+ * Where a small north of radius `r` goes beside a drawing whose bounds are `own`: in its top right corner
+ * (which an axonometric leaves empty); when texts are there, above them, its right side on the right side of
+ * the texts, so it never sits on a text. Returns its centre.
+ */
+export function northSpot(own, texts, r) {
+  const gap = r * 0.35;
+  let cx = own[2] - r, cy = own[1] + r;
+  for (let n = 0; n < 8; n++) {
+    const hits = texts.filter((b) => cx + r + gap > b[0] && cx - r - gap < b[2] && cy + r + gap > b[1] && cy - r - gap < b[3]);
+    if (!hits.length) break;
+    cx = Math.max(...hits.map((b) => b[2])) - r;
+    cy = Math.min(...hits.map((b) => b[1])) - r - gap;
+  }
+  return [cx, cy];
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -883,6 +907,7 @@ export function renderStep(prj, index, opts) {
   const siteRingScr = () => siteRing(prj.site).map((p) => project(view, p));
   const siteDrawn = opts.editor || opts.grid || opts.terrainGrid || prj.site.mode === 'fill' || prj.site.mode === 'dashed' || isElevation(view);
   let bbox = siteDrawn ? bboxOf(siteRingScr()) : null;
+  const textBoxes = []; // the boxes of the texts of the labels (what a north beside the drawing keeps clear of)
   if (showNorth(prj, view)) bbox = bboxUnion(bbox, northBounds(prj, view));
 
   const faces = [];
@@ -1232,6 +1257,7 @@ export function renderStep(prj, index, opts) {
     const ro = { ...o, z: zShown(o) };
     top += labelMarkup(view, ro, style, idAttr(o));
     bbox = bboxUnion(bbox, labelBounds(view, ro));
+    textBoxes.push(labelTextBounds(view, ro));
   }
 
   let groundMarkupStr = groundMarkup(view, prj, style, { ...o2, grid: o2.grid || mesh, gridSiteOnly: mesh && !opts.grid, meshHoles: mesh ? meshHoles : null }, ground.slab, ground.bottom);
@@ -1271,7 +1297,7 @@ export function renderStep(prj, index, opts) {
   const defs = hatchUsed.size ? `<defs>${[...hatchUsed].map((k) => hatchPattern(`lx-h${k}-${uid}`, k, tile, Math.max(lw * 0.7, tile * 0.05), style.edge)).join('')}</defs>` : '';
   const markup = `${defs}<g class="ax-ground">${groundMarkupStr}</g><g class="ax-model">${model}</g><g class="ax-top">${top}</g>`;
   if (!bbox) bbox = bboxOf(siteRingScr()); // nothing drawn: the site still frames the drawing
-  return { markup, bbox, sectionDepth: sec?.depth ?? null, highlighted: [...changed].filter((id) => byId.get(id)?.state === 'normal' && !byId.get(id)?.cat) };
+  return { markup, bbox, texts: textBoxes, sectionDepth: sec?.depth ?? null, highlighted: [...changed].filter((id) => byId.get(id)?.state === 'normal' && !byId.get(id)?.cat) };
 }
 
 /** Pads a bounding box by a fraction of its size. */

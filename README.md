@@ -13,7 +13,7 @@ Simple to learn in an afternoon. The same app on Windows, macOS and Linux. Free.
 
 **English** · [Português (Brasil)](docs/README.pt-BR.md)
 
-![Version 0.22.3](https://img.shields.io/badge/version-0.22.3-23272b)
+![Version 0.22.4](https://img.shields.io/badge/version-0.22.4-23272b)
 ![Experimental](https://img.shields.io/badge/status-experimental-b5532d)
 ![Platforms: Windows, macOS, Linux](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-23272b)
 ![10 languages](https://img.shields.io/badge/languages-10-d0673f)
@@ -105,7 +105,7 @@ Free software (GPL-3.0). No account, no subscription, no telemetry, and it works
 - **Drawings as large as the paper allows**: a grid can choose its columns by itself; a column or a vertical sheet on wide paper goes on in more columns side by side; the captions go beside the drawings, at the width that makes them largest, when that wins; the white left over is shared evenly between the rows; the legend runs in rows, and a site left undrawn no longer takes room.
 - Sheets in row, grid, column or vertical layouts, A4 to A0, to scale, on as many pages as needed; when the drawings are held by the height, the captions go beside them and the drawings grow. The preview is zoomed with the wheel and dragged like the drawing, page by page.
 - Sheets with or without the **number and title** of each step; its text **under or beside** the drawing (or wherever the drawings come out larger).
-- **Export the steps you write** — `7`, `3-7`, `1, 4, 6-8`, `3-` to the last, `-5` from the first — each in a file of its own (of the width or height in pixels you give, with its number, title and text under it if you want), or as one sheet with just those steps. PNG files come out with a **transparent background** unless you turn it off.
+- **Export the steps you write** — `7`, `3-7`, `1, 4, 6-8`, `3-` to the last, `-5` from the first — each in a file of its own (of the width or height in pixels you give, with its number, title and text under it or beside it if you want), or as one sheet with just those steps. PNG files come out with a **transparent background** unless you turn it off.
 - **Eight drawing styles**, light and dark interface, and two coloured themes.
 
 <table>
@@ -345,7 +345,7 @@ Code, comments, identifiers and documentation are in English. The interface is t
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) — current version: **0.22.3**.
+See [CHANGELOG.md](CHANGELOG.md) — current version: **0.22.4**.
 
 ## Credits
 

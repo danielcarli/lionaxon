@@ -49,6 +49,9 @@ export class SheetPane {
       oninput: () => { this.stepsText = field.value; update(); },
       onkeydown: (e) => { if (e.key === 'Enter') field.blur(); e.stopPropagation(); },
     });
+    // where that text goes: under the drawing or beside it (shown when there is a text to place)
+    const place = segmented([['below', t('sheet.captionsBelow')], ['beside', t('sheet.captionsBeside')]], this.s.export.stepCaptionPlace, (v) => { this.s.export.stepCaptionPlace = v; }, { title: t('sheet.captions'), 'data-key': 'stepCaptionPlace' });
+    place.hidden = !this.s.export.stepCaption;
     const go = (kind) => this.cmd.exportStepRange(field.value, { mode: this.stepsMode || 'files', kind, dpi: this.dpi });
     const btn = (kind, label) => h('button.btn.btn-secondary.btn-sm', { 'data-export-steps': kind, onclick: () => go(kind) }, h('span', { html: icon('download', 14) }), label);
     update();
@@ -58,7 +61,8 @@ export class SheetPane {
       // each step in a file of its own: its size in pixels, of width or of height (a sheet takes the resolution above)
       (this.stepsMode || 'files') === 'files' ? this.#stepSize() : null,
       // each image with the number, title and text of its step under the drawing
-      (this.stepsMode || 'files') === 'files' ? checkbox(t('sheet.stepsCaption'), this.s.export.stepCaption, (v) => { this.s.export.stepCaption = v; update(); }, { 'data-key': 'stepCaption', title: t('sheet.stepsCaptionTip') }) : null,
+      (this.stepsMode || 'files') === 'files' ? checkbox(t('sheet.stepsCaption'), this.s.export.stepCaption, (v) => { this.s.export.stepCaption = v; place.hidden = !v; update(); }, { 'data-key': 'stepCaption', title: t('sheet.stepsCaptionTip') }) : null,
+      (this.stepsMode || 'files') === 'files' ? place : null,
       h('div.btn-row', btn('pdf', 'PDF'), btn('svg', 'SVG'), this.#pngGroup(btn('png', 'PNG'))),
       hint));
   }
