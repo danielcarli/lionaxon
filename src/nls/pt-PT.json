@@ -774,5 +774,15 @@
  "sheet.stepsSize": "Tamanho",
  "sheet.stepsSizeTip": "O tamanho de cada imagem, em píxeis: da largura ou da altura (a outra acompanha o desenho)",
  "sheet.sizeWidth": "Largura",
- "sheet.sizeHeight": "Altura"
+ "sheet.sizeHeight": "Altura",
+ "sheet.captions": "Texto de cada etapa",
+ "sheet.captionsAuto": "Automático",
+ "sheet.captionsAutoTip": "Por baixo ou ao lado do desenho, onde os desenhos saírem maiores",
+ "sheet.captionsBelow": "Por baixo",
+ "sheet.captionsBeside": "Ao lado",
+ "sheet.verticalHint": "Na disposição vertical o texto fica sempre ao lado do desenho.",
+ "sheet.stepsCaption": "Número, título e texto da etapa",
+ "sheet.stepsCaptionTip": "Por baixo de cada desenho: o número, o título e o texto da etapa, como na prancha",
+ "sheet.stepsHintFilesCaption": "Os desenhos das etapas {list}, cada um com número, título e texto por baixo: {n} ficheiros numa pasta, no mesmo enquadramento e na mesma escala.",
+ "sheet.exportStepHintCaption": "O desenho da etapa {n} com número, título e texto por baixo."
 }

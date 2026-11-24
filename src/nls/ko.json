@@ -774,5 +774,15 @@
  "sheet.stepsSize": "크기",
  "sheet.stepsSizeTip": "각 이미지의 크기(픽셀): 너비 또는 높이(다른 쪽은 도면에 맞춤)",
  "sheet.sizeWidth": "너비",
- "sheet.sizeHeight": "높이"
+ "sheet.sizeHeight": "높이",
+ "sheet.captions": "각 단계의 텍스트",
+ "sheet.captionsAuto": "자동",
+ "sheet.captionsAutoTip": "도면 아래 또는 옆, 도면이 더 커지는 쪽",
+ "sheet.captionsBelow": "아래",
+ "sheet.captionsBeside": "옆",
+ "sheet.verticalHint": "세로 배치에서는 텍스트가 항상 도면 옆에 놓입니다.",
+ "sheet.stepsCaption": "단계의 번호, 제목, 텍스트",
+ "sheet.stepsCaptionTip": "각 도면 아래: 시트와 같이 단계의 번호, 제목, 텍스트",
+ "sheet.stepsHintFilesCaption": "단계 {list}의 도면, 각각 아래에 번호·제목·텍스트: 한 폴더에 {n}개 파일, 같은 구도와 같은 축척.",
+ "sheet.exportStepHintCaption": "단계 {n}의 도면, 아래에 번호·제목·텍스트."
 }

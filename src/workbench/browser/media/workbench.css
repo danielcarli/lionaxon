@@ -678,3 +678,5 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 4px; }
 
 /* the legend of the sheet is taken and put anywhere on the paper */
 .sheet-page #legend { cursor: move; }
+.size-group { display: flex; flex-direction: column; gap: 6px; padding: 6px; border: 1px solid var(--border); border-radius: calc(var(--radius-sm) + 3px); background: var(--bg-subtle); }
+.size-group .form-row { grid-template-columns: 80px minmax(0, 1fr); }

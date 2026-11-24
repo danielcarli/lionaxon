@@ -1862,6 +1862,8 @@ async function pngTransparent21(win, js) {
   await js(`${C2}.setProject((p) => { p.sheet.layout = 'grid'; p.sheet.cols = 0; p.sheet.legend = true; p.sheet.legendPlace = 'top'; p.sheet.northEach = false; }, 'sheet.set'); ${S}.layout.setTab('sheet'); ${S}.layout.setActivity('sheet'); true`);
   await sleep(600);
   check('the columns of a grid can be automatic', await js(`document.querySelector('[data-pane=sheet] select[data-key=cols]')?.value === '0'`));
+  check('the text of each step: automatic, under or beside', await js(`document.querySelectorAll('[data-pane=sheet] [data-key=captions] button').length === 3`));
+  check('the size of the steps and what it measures are in one group', await js(`(() => { const g = document.querySelector('[data-pane=sheet] .size-group'); return !!g && !!g.querySelector('input[data-key=stepPx]') && !!g.querySelector('[data-key=stepSide]'); })()`));
   const norths = () => js(`document.querySelectorAll('[data-view=sheet] .sheet-page .north').length`);
   const n0 = await norths();
   await js(`document.querySelector('[data-pane=sheet] input[data-key=northEach]').click(); true`);
@@ -1885,6 +1887,23 @@ async function pngTransparent21(win, js) {
   await js(`(() => { const f = document.querySelector('[data-pane=sheet] input[data-key=stepPx]'); f.focus(); f.value = '800'; f.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); f.blur(); return true; })()`);
   await sleep(300);
   check('…kept for the next time', await js(`(() => { const z = ${S2}.stepSize; return z.px === 800 && z.side === 'h'; })()`), await js(`JSON.stringify(${S2}.stepSize)`));
+  // a size written with a thousands separator is that size (it came back as 100 px), and the field stays where
+  // it is, so the export button clicked right after still takes the click
+  const fieldEl = `document.querySelector('[data-pane=sheet] input[data-key=stepPx]')`;
+  await js(`(() => { const f = ${fieldEl}; f.dataset.mark = '1'; f.focus(); f.value = '2.500'; f.dispatchEvent(new Event('change')); f.blur(); return true; })()`);
+  await sleep(300);
+  check('…2.500 is two thousand five hundred pixels, and the pane is not redrawn under the mouse', await js(`${S2}.stepSize.px === 2500 && ${fieldEl}.value === '2500' && ${fieldEl}.dataset.mark === '1'`), await js(`JSON.stringify(${S2}.stepSize) + ' ' + ${fieldEl}.value`));
+  // the steps exported on their own can carry their number, title and text
+  check('Export steps can put the number, title and text of each step under its drawing', await js(`!!document.querySelector('[data-pane=sheet] input[data-key=stepCaption]')`));
+  await js(`document.querySelector('[data-pane=sheet] input[data-key=stepCaption]').click(); true`);
+  await sleep(200);
+  const framed = await js(`(() => { const d = ${D2}; d.run('step.set', (p) => { p.steps[1].title = 'Plateau'; p.steps[1].text = 'The building sits on the upper plateau and opens to the square below.'; });
+    const f = ${S2}.stepFrames(1200, { steps: [1], caption: 'text' }), bare = ${S2}.stepFrames(1200, { steps: [1] });
+    return JSON.stringify({ svg: f.svgs[1], h: f.height, h0: bare.height, on: ${S2}.stepCaption }); })()`).then(JSON.parse);
+  if (process.env.FRAME) fs.writeFileSync(process.env.FRAME, framed.svg);
+  check('…the image grows to hold them, and the hint says so', framed.on && framed.h > framed.h0 && framed.svg.includes('>02<') && framed.svg.includes('PLATEAU') && framed.svg.includes('upper plateau')
+    && await js(`/título|title/i.test(document.querySelector('[data-pane=sheet] [data-steps-hint]').textContent) && !/sem título|no title/i.test(document.querySelector('[data-pane=sheet] [data-steps-hint]').textContent)`));
+  await js(`${S2}.stepCaption = false; true`);
   await js(`${S2}.stepSize = { px: 2400, side: 'w' }; ${S}.layout.setActivity('steps'); ${S}.layout.setTab('axon'); true`);
 }
 

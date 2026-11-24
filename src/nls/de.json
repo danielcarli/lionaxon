@@ -774,5 +774,15 @@
  "sheet.stepsSize": "Größe",
  "sheet.stepsSizeTip": "Die Größe jedes Bildes in Pixeln: seiner Breite oder seiner Höhe (das andere folgt der Zeichnung)",
  "sheet.sizeWidth": "Breite",
- "sheet.sizeHeight": "Höhe"
+ "sheet.sizeHeight": "Höhe",
+ "sheet.captions": "Text jedes Schritts",
+ "sheet.captionsAuto": "Automatisch",
+ "sheet.captionsAutoTip": "Unter oder neben der Zeichnung, wo die Zeichnungen größer werden",
+ "sheet.captionsBelow": "Darunter",
+ "sheet.captionsBeside": "Daneben",
+ "sheet.verticalHint": "Im vertikalen Layout steht der Text immer neben seiner Zeichnung.",
+ "sheet.stepsCaption": "Nummer, Titel und Text des Schritts",
+ "sheet.stepsCaptionTip": "Unter jeder Zeichnung: Nummer, Titel und Text des Schritts, wie auf dem Blatt",
+ "sheet.stepsHintFilesCaption": "Die Zeichnungen der Schritte {list}, jede mit Nummer, Titel und Text darunter: {n} Dateien in einem Ordner, gleicher Ausschnitt und gleicher Maßstab.",
+ "sheet.exportStepHintCaption": "Die Zeichnung von Schritt {n} mit Nummer, Titel und Text darunter."
 }

@@ -37,9 +37,10 @@ export class SheetPane {
       field.classList.toggle('invalid', error != null);
       if (error != null) { hint.textContent = t('export.stepsInvalid', { part: error, n: count }); return; }
       const list = formatStepRange(indexes);
+      const capt = this.s.export.stepCaption;
       hint.textContent = this.stepsMode === 'sheet' ? t('sheet.stepsHintSheet', { list })
-        : indexes.length === 1 ? t('sheet.exportStepHint', { n: String(indexes[0] + 1).padStart(2, '0') })
-          : t('sheet.stepsHintFiles', { list, n: indexes.length });
+        : indexes.length === 1 ? t(capt ? 'sheet.exportStepHintCaption' : 'sheet.exportStepHint', { n: String(indexes[0] + 1).padStart(2, '0') })
+          : t(capt ? 'sheet.stepsHintFilesCaption' : 'sheet.stepsHintFiles', { list, n: indexes.length });
     };
     const field = h('input.input', {
       type: 'text', value: this.stepsText || '', 'data-key': 'exportSteps', spellcheck: 'false',
@@ -56,6 +57,8 @@ export class SheetPane {
       segmented([['files', t('sheet.stepsFiles')], ['sheet', t('sheet.stepsSheet')]], this.stepsMode || 'files', (v) => { this.stepsMode = v; this.render(); }, { title: t('sheet.exportSteps') }),
       // each step in a file of its own: its size in pixels, of width or of height (a sheet takes the resolution above)
       (this.stepsMode || 'files') === 'files' ? this.#stepSize() : null,
+      // each image with the number, title and text of its step under the drawing
+      (this.stepsMode || 'files') === 'files' ? checkbox(t('sheet.stepsCaption'), this.s.export.stepCaption, (v) => { this.s.export.stepCaption = v; update(); }, { 'data-key': 'stepCaption', title: t('sheet.stepsCaptionTip') }) : null,
       h('div.btn-row', btn('pdf', 'PDF'), btn('svg', 'SVG'), this.#pngGroup(btn('png', 'PNG'))),
       hint));
   }
@@ -63,10 +66,10 @@ export class SheetPane {
   /** The size of the images of the steps exported on their own: pixels, of width or of height. */
   #stepSize() {
     const ex = this.s.export, z = ex.stepSize;
-    return [
-      row(t('sheet.stepsSize'), numField({ value: z.px, unit: 'px', step: 100, min: 100, max: 20000, digits: 0, key: 'stepPx', title: t('sheet.stepsSizeTip'), onCommit: (v) => { ex.stepSize = { ...ex.stepSize, px: v }; this.render(); } })),
-      segmented([['w', t('sheet.sizeWidth')], ['h', t('sheet.sizeHeight')]], z.side, (v) => { ex.stepSize = { ...ex.stepSize, side: v }; this.render(); }, { title: t('sheet.stepsSizeTip'), 'data-key': 'stepSide' }),
-    ];
+    // the number and what it measures, in one group: they are read together
+    return h('div.size-group', { title: t('sheet.stepsSizeTip') },
+      row(t('sheet.stepsSize'), numField({ value: z.px, unit: 'px', step: 100, min: 100, max: 20000, digits: 0, key: 'stepPx', title: t('sheet.stepsSizeTip'), onCommit: (v) => { ex.stepSize = { ...ex.stepSize, px: v }; } })),
+      segmented([['w', t('sheet.sizeWidth')], ['h', t('sheet.sizeHeight')]], z.side, (v) => { ex.stepSize = { ...ex.stepSize, side: v }; }, { title: t('sheet.stepsSizeTip'), 'data-key': 'stepSide' }));
   }
 
   /** The PNG button with its switch right under it, in one group: a transparent background (no paper) or not. */
@@ -137,7 +140,11 @@ export class SheetPane {
         // the columns of the grid: automatic (as many as make the drawings largest) or a number
         sh.layout === 'grid' ? row(t('sheet.cols'), selectField([[0, t('sheet.colsAuto')], ...[1, 2, 3, 4, 5, 6, 7, 8].map((n) => [n, String(n)])], sh.cols || 0, (v) => set((s) => { s.cols = Number(v); }), { 'data-key': 'cols' })) : null,
         row(t('sheet.paper'), selectField(Object.keys(PAPERS).map((k) => [k, `${k} · ${PAPERS[k][0]} × ${PAPERS[k][1]} mm`]), sh.paper, (v) => set((s) => { s.paper = v; }), { 'data-key': 'paper' })),
-        segmented([['landscape', t('sheet.landscape')], ['portrait', t('sheet.portrait')]], sh.orientation, (v) => set((s) => { s.orientation = v; })))),
+        segmented([['landscape', t('sheet.landscape')], ['portrait', t('sheet.portrait')]], sh.orientation, (v) => set((s) => { s.orientation = v; })),
+        // the text of each step: under its drawing, beside it, or wherever the drawings come out larger
+        sh.layout !== 'vertical' ? h('label.form-label', t('sheet.captions')) : null,
+        sh.layout !== 'vertical' ? segmented([['auto', t('sheet.captionsAuto'), t('sheet.captionsAutoTip')], ['below', t('sheet.captionsBelow')], ['beside', t('sheet.captionsBeside')]], sh.captions || 'auto', (v) => set((s) => { s.captions = v; }), { title: t('sheet.captions'), 'data-key': 'captions' }) : null,
+        sh.layout === 'vertical' ? h('p.pane-hint', t('sheet.verticalHint')) : null)),
       section(t('sheet.scale'), h('div.form',
         selectField(SHEET_SCALES.map((d) => [d, d ? `1:${d}` : t('sheet.scaleAuto')]), sh.scale, (v) => set((s) => { s.scale = Number(v); }), { 'data-key': 'scale' }),
         this.#scaleHint())),

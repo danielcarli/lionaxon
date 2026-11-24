@@ -423,6 +423,9 @@ export function normalizeProject(raw) {
         ? sheet.legendAt.map((v) => Math.round(Math.min(1, Math.max(0, v)) * 10000) / 10000) : null,
       // a small north beside each drawing, besides (or instead of) the one of the header
       northEach: sheet.northEach === true,
+      // where the text of each step goes in a row, grid or column: 'auto' (where the drawings come out
+      // larger), 'below' or 'beside' (on the left of the drawing)
+      captions: ['below', 'beside'].includes(sheet.captions) ? sheet.captions : 'auto',
       // the terrain drawn as in the editor: see-through, with the grid on its surfaces
       terrainGrid: sheet.terrainGrid === true,
       // free blocks of text in a column on the right of the sheet (strategy, pros and cons…): a line that starts

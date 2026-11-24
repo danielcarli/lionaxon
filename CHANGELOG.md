@@ -2,6 +2,23 @@
 
 All notable changes to LionAxon are documented here. The project follows [Semantic Versioning](https://semver.org).
 
+## [0.22.3] — 2026-11-24
+
+### Added
+- **Number, title and text of the step** on the steps exported on their own (a checkbox in *Export steps › Separate files*, remembered): under each drawing its number, its title and its text, in lines — the image grows to hold the longest. For PNG, SVG and PDF, one step or many.
+
+### Fixed
+- **Export steps — the size**: a size typed and then an export button clicked right away did not export: committing the size redrew the pane under the mouse, and the click was lost. The pane is no longer redrawn for it.
+- **The size came back as 100 px**: the field showed 2.400 with a thousands separator, and 2.400 was read back as 2.4 (then held at the least, 100). Number fields no longer show thousands separators, and a whole number typed with one (2.500, 2,500) is read as that number.
+
+## [0.22.2] — 2026-11-24
+
+### Added
+- **The text of each step under its drawing or beside it**, as you choose: *Text of each step* in *Layout* (row, grid and column) has *Automatic* (wherever the drawings come out larger — as until now), *Under* and *Beside* (on the left of the drawing). The vertical layout always has it beside.
+
+### Changed
+- The size of the steps exported on their own and whether it is their width or their height are in one group.
+
 ## [0.22.1] — 2026-11-24
 
 ### Changed

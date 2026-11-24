@@ -774,5 +774,15 @@
  "sheet.stepsSize": "サイズ",
  "sheet.stepsSizeTip": "各画像のサイズ（ピクセル）：幅または高さ（もう一方は図面に合わせます）",
  "sheet.sizeWidth": "幅",
- "sheet.sizeHeight": "高さ"
+ "sheet.sizeHeight": "高さ",
+ "sheet.captions": "各ステップのテキスト",
+ "sheet.captionsAuto": "自動",
+ "sheet.captionsAutoTip": "図面の下か横の、図面が大きくなる方",
+ "sheet.captionsBelow": "下",
+ "sheet.captionsBeside": "横",
+ "sheet.verticalHint": "縦型レイアウトでは、テキストは常に図面の横になります。",
+ "sheet.stepsCaption": "ステップの番号・タイトル・テキスト",
+ "sheet.stepsCaptionTip": "各図面の下に、シートと同じくステップの番号・タイトル・テキストを付けます",
+ "sheet.stepsHintFilesCaption": "ステップ {list} の図面。それぞれ下に番号・タイトル・テキスト付き：1 つのフォルダーに {n} ファイル、同じ枠と同じ縮尺。",
+ "sheet.exportStepHintCaption": "ステップ {n} の図面。下に番号・タイトル・テキスト付き。"
 }

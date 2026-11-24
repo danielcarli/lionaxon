@@ -914,6 +914,16 @@ test('sheet: drawings as large as they go — automatic columns, the legend in r
   const north = (svg) => (svg.match(/class="north/g) || []).length;
   const each = sheetOf({ cols: 0, northEach: true });
   assert.ok(north(each.svg) >= base.steps.length && !each.svg.includes('id="north"'), 'a north per drawing, and none in the header');
+  // the text of each step under its drawing or beside it, as asked (automatic: whichever is larger)
+  const capY = (svg) => { const part = svg.slice(svg.indexOf('id="step-01"'));
+    const sv = /<svg x="[\d.]+" y="([\d.]+)" width="[\d.]+" height="([\d.]+)"/.exec(part);
+    return Number(/<text x="[\d.]+" y="([\d.]+)" font-size="[\d.]+" font-weight="500"/.exec(part)[1]) > Number(sv[1]) + Number(sv[2]) ? 'below' : 'beside'; };
+  for (const layout of ['row', 'grid', 'column']) {
+    assert.equal(capY(sheetOf({ layout, cols: 0, captions: 'below' }).svg), 'below', `${layout}: under`);
+    assert.equal(capY(sheetOf({ layout, cols: 0, captions: 'beside' }).svg), 'beside', `${layout}: beside`);
+    const auto2 = sheetOf({ layout, cols: 0, captions: 'auto' }).scale;
+    assert.ok(auto2 <= sheetOf({ layout, cols: 0, captions: 'below' }).scale + 1 && auto2 <= sheetOf({ layout, cols: 0, captions: 'beside' }).scale + 1, `${layout}: automatic is the larger`);
+  }
   // many steps in a column or vertical sheet on wide paper: they go on side by side, on one page, and grow
   const many = structuredClone(base);
   while (many.steps.length < 8) many.steps.push({ ...structuredClone(many.steps.at(-1)), id: 's-m' + many.steps.length });

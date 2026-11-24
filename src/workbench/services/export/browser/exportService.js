@@ -6,7 +6,7 @@
 // Exports: the sheet as SVG, PDF or PNG, and one step alone as SVG or PNG. Every format starts from the
 // same SVG the screen shows. PNG embeds the fonts in the SVG before drawing it, so the text keeps the
 // family's typeface; the PDF is printed by the main process with the fonts of the app.
-import { renderSheet, northGlyph } from '../../render/common/sheet.js';
+import { renderSheet, northGlyph, wrap } from '../../render/common/sheet.js';
 import { stepSvg, stepViews, renderStep, padBox, FONT } from '../../render/common/renderer.js';
 import { getStyle } from '../../render/common/styles.js';
 import { bboxUnion } from '../../../../base/common/geometry/polygon.js';
@@ -25,6 +25,7 @@ export const meters = (n) => `${formatNumber(n, 2)} m`;
 
 const PNG_TRANSPARENT_KEY = 'lionaxon.pngTransparent';
 const STEP_SIZE_KEY = 'lionaxon.stepSize';
+const STEP_CAPTION_KEY = 'lionaxon.stepCaption';
 
 export class ExportService {
   #fontData = new Map();
@@ -41,6 +42,15 @@ export class ExportService {
 
   set pngTransparent(on) {
     try { localStorage.setItem(PNG_TRANSPARENT_KEY, String(!!on)); } catch { /* no storage */ }
+  }
+
+  /** Whether the steps exported on their own carry their number, title and text under the drawing. Remembered. */
+  get stepCaption() {
+    try { return localStorage.getItem(STEP_CAPTION_KEY) === 'true'; } catch { return false; }
+  }
+
+  set stepCaption(on) {
+    try { localStorage.setItem(STEP_CAPTION_KEY, String(!!on)); } catch { /* no storage */ }
   }
 
   /** The size of the images of steps exported on their own: `px` pixels of width ('w') or height ('h'). Remembered. */
@@ -135,10 +145,13 @@ export class ExportService {
   /**
    * Every step as a drawing of its own, all in the same frame (the bounds of every step together, at the
    * same scale), so that the images line up one after the other in a presentation or a board.
-   * `caption`: the number and title of the step underneath (the GIF has them; the single images do not).
+   * `caption`: the number and title of the step underneath (the GIF has them); 'text': its text too, in
+   * lines under the title (the steps exported on their own, when asked).
    */
   stepFrames(width = 900, { fontCss = '', caption = false, steps = null, transparent = false } = {}) {
-    const p = this.doc.project;
+    const p0 = this.doc.project;
+    // a north beside each drawing takes the place of the one lying in it
+    const p = p0.sheet.northEach ? { ...p0, northPlace: 'none' } : p0;
     const style = getStyle(p.style);
     const views = p.steps.map((st) => stepViews(p, st)[0]);
     const only = steps ? new Set(steps) : null; // the frame of the steps exported (the others are not drawn)
@@ -146,7 +159,11 @@ export class ExportService {
     p.steps.forEach((_, i) => { if (!only || only.has(i)) box = bboxUnion(box, renderStep(p, i, { view: views[i], lw: 0.1, fmt: meters, terrainGrid: !!p.sheet.terrainGrid }).bbox); });
     box = padBox(box, 0.05);
     const bw = box[2] - box[0], bh = box[3] - box[1];
-    const cap = caption ? bh * 0.11 : 0; // room for the caption
+    // room for the caption: the number and the title, and the lines of the text (as many as the longest has)
+    const u = bh * 0.11, fsT = u * 0.24, lhT = u * 0.36;
+    const textLines = (st) => (caption === 'text' && st.text ? wrap(st.text, Math.max(20, Math.floor((bw * 0.92) / (fsT * 0.52)))) : []);
+    const most = Math.max(0, ...p.steps.filter((_, i) => !only || only.has(i)).map((st) => textLines(st).length));
+    const cap = caption ? u + (most ? most * lhT + u * 0.2 : 0) : 0;
     const nr = Math.min(bw, bh) * 0.045; // the radius of a north at the corner
     const height = Math.round((width * (bh + cap)) / bw / 2) * 2;
     const esc = (x) => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -160,8 +177,10 @@ export class ExportService {
         // the north at the corner of each drawing, when the sheet asks for it
         + (p.sheet.northEach ? northGlyph(views[i], p.north, own[2] - nr, own[1] + nr, nr, { ink: p.northHalftone ? style.muted : style.ink, muted: style.muted, halftone: p.northHalftone, s: nr / 5.5 }) : '')
         + (!caption ? '</svg>' : '')
-        + (!caption ? '' : `<text x="${box[0] + bw * 0.04}" y="${box[3] + cap * 0.45}" font-family="${FONT}" font-size="${cap * 0.42}" fill="${style.caption}" font-weight="500">${num}</text>`
-        + `<text x="${box[0] + bw * 0.04 + cap * 0.8}" y="${box[3] + cap * 0.45}" font-family="${FONT}" font-size="${cap * 0.3}" fill="${style.text}" font-weight="700" letter-spacing="${cap * 0.01}">${esc((st.title || '').toUpperCase())}</text></svg>`);
+        + (!caption ? '' : `<text x="${box[0] + bw * 0.04}" y="${box[3] + u * 0.45}" font-family="${FONT}" font-size="${u * 0.42}" fill="${style.caption}" font-weight="500">${num}</text>`
+        + `<text x="${box[0] + bw * 0.04 + u * 0.8}" y="${box[3] + u * 0.45}" font-family="${FONT}" font-size="${u * 0.3}" fill="${style.text}" font-weight="700" letter-spacing="${u * 0.01}">${esc((st.title || '').toUpperCase())}</text>`
+        + textLines(st).map((line, k) => `<text x="${box[0] + bw * 0.04}" y="${box[3] + u * 0.95 + k * lhT}" font-family="${FONT}" font-size="${fsT}" fill="${style.muted}">${esc(line)}</text>`).join('')
+        + '</svg>');
     });
     return { svgs, width, height };
   }
@@ -183,11 +202,13 @@ export class ExportService {
     const p = this.doc.project;
     // the size asked (pixels of width or of height); a height gives the width the frame needs for it
     if (width == null && height == null) { const z = this.stepSize; if (z.side === 'h') height = z.px; else width = z.px; }
-    if (width == null) { const probe = this.stepFrames(1000, { steps }); width = Math.max(16, Math.round((height * 1000) / probe.height)); }
+    // the number, title and text of each step under its drawing, when asked
+    const caption = this.stepCaption ? 'text' : false;
+    if (width == null) { const probe = this.stepFrames(1000, { steps, caption }); width = Math.max(16, Math.round((height * 1000) / probe.height)); }
     const fontCss = kinds.includes('png') ? await this.fontCss() : '';
-    const plain = this.stepFrames(width, { steps });                 // SVG and PDF: the fonts come from the system or the print page
+    const plain = this.stepFrames(width, { steps, caption });                 // SVG and PDF: the fonts come from the system or the print page
     // the PNG may leave out the paper (a transparent background); the SVG and the PDF keep it
-    const withFonts = fontCss ? this.stepFrames(width, { fontCss, steps, transparent }) : plain;
+    const withFonts = fontCss ? this.stepFrames(width, { fontCss, steps, transparent, caption }) : plain;
     const pageH = Math.round((pageWidthMm * plain.height) / plain.width * 10) / 10;
     const files = [];
     for (const i of steps || p.steps.map((_, k) => k)) {
@@ -207,6 +228,17 @@ export class ExportService {
     if (width == null && height == null) { const z = this.stepSize; if (z.side === 'h') height = z.px; else width = z.px; }
     const name = `${this.baseName} — ${t('sheet.step')} ${String(index + 1).padStart(2, '0')}${step.title ? ' ' + step.title : ''}`;
     const views = stepViews(p, step); // every angle of the step, side by side
+    // with its number, title and text: the drawing in its frame, the caption under it
+    if (this.stepCaption) {
+      if (width == null) { const probe = this.stepFrames(1000, { steps: [index], caption: 'text' }); width = Math.max(16, Math.round((height * 1000) / probe.height)); }
+      if (kind === 'svg') return this.host.exportSvg(name, this.stepFrames(width, { steps: [index], caption: 'text' }).svgs[index]);
+      if (kind === 'pdf') {
+        const f = this.stepFrames(width, { steps: [index], caption: 'text' });
+        return this.host.exportPdf(name, f.svgs[index], pageWidthMm, Math.round((pageWidthMm * f.height) / f.width * 10) / 10);
+      }
+      const f = this.stepFrames(width, { steps: [index], caption: 'text', transparent, fontCss: await this.fontCss() });
+      return this.host.exportPng(name, await this.rasterize(f.svgs[index], width, f.height));
+    }
     if (width == null) {
       const probe = stepSvg(p, index, { views, width: 1000, fmt: meters });
       width = Math.max(16, Math.round((height * 1000) / Number(/height="([\d.]+)"/.exec(probe)[1])));

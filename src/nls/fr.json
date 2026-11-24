@@ -774,5 +774,15 @@
  "sheet.stepsSize": "Taille",
  "sheet.stepsSizeTip": "La taille de chaque image, en pixels : de sa largeur ou de sa hauteur (l’autre suit le dessin)",
  "sheet.sizeWidth": "Largeur",
- "sheet.sizeHeight": "Hauteur"
+ "sheet.sizeHeight": "Hauteur",
+ "sheet.captions": "Texte de chaque étape",
+ "sheet.captionsAuto": "Automatique",
+ "sheet.captionsAutoTip": "Sous le dessin ou à côté, là où les dessins sortent plus grands",
+ "sheet.captionsBelow": "Dessous",
+ "sheet.captionsBeside": "À côté",
+ "sheet.verticalHint": "Dans la disposition verticale, le texte est toujours à côté de son dessin.",
+ "sheet.stepsCaption": "Numéro, titre et texte de l’étape",
+ "sheet.stepsCaptionTip": "Sous chaque dessin : le numéro, le titre et le texte de l’étape, comme sur la planche",
+ "sheet.stepsHintFilesCaption": "Les dessins des étapes {list}, chacun avec numéro, titre et texte dessous : {n} fichiers dans un dossier, même cadrage et même échelle.",
+ "sheet.exportStepHintCaption": "Le dessin de l’étape {n} avec numéro, titre et texte dessous."
 }

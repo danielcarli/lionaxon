@@ -509,8 +509,11 @@ export function renderSheet(prj, opts) {
       }
       return best;
     };
-    // the best of the two: captions under the drawings, or beside them
-    const bestOf = (sl, per) => Math.max(scaleFor(sl), (bestBeside(per)?.sc || 0) / 1.08);
+    // where the captions go: under the drawings, beside them (on their left), or whichever makes them larger
+    const capPlace = noCaptions || fixed ? 'below' : (sheet.captions || 'auto');
+    const bestOf = (sl, per) => capPlace === 'below' ? scaleFor(sl)
+      : capPlace === 'beside' ? (bestBeside(per)?.sc || scaleFor(sl))
+        : Math.max(scaleFor(sl), (bestBeside(per)?.sc || 0) / 1.08);
     // a grid with no number of columns takes the one that makes the drawings largest
     let gridSheet = sheet;
     if (sheet.layout === 'grid' && !sheet.cols && !fixed) {
@@ -546,11 +549,12 @@ export function renderSheet(prj, opts) {
     if (!fixed) scale = scaleFor(slots);
     // ---- captions beside the drawings: when the drawings are held by the height (a column, a grid of wide
     // cells, an upright paper) the caption goes on the left of its drawing and the drawing grows
-    const beside = !fixed && !noCaptions && besideLayout();
+    const beside = capPlace !== 'below' && besideLayout();
     function besideLayout() {
       const per = sheet.layout === 'row' ? indexes.length : column ? nc : gridOf(gridSheet, indexes.length).cols;
       const fit = bestBeside(per);
-      if (!fit || !(fit.sc > scale * 1.08)) return false; // not worth it: the captions stay under the drawings
+      // not worth it (or the captions do not fit beside): they stay under the drawings
+      if (!fit || (capPlace === 'auto' && !(fit.sc > scale * 1.08))) return false;
       const { rows, capHs, capW, rowH } = fit;
       scale = fit.sc;
       const dw = bw * scale, dh = bh * scale;

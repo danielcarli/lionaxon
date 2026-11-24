@@ -774,5 +774,15 @@
  "sheet.stepsSize": "Dimensione",
  "sheet.stepsSizeTip": "La dimensione di ogni immagine, in pixel: della larghezza o dell’altezza (l’altra segue il disegno)",
  "sheet.sizeWidth": "Larghezza",
- "sheet.sizeHeight": "Altezza"
+ "sheet.sizeHeight": "Altezza",
+ "sheet.captions": "Testo di ogni fase",
+ "sheet.captionsAuto": "Automatico",
+ "sheet.captionsAutoTip": "Sotto o accanto al disegno, dove i disegni vengono più grandi",
+ "sheet.captionsBelow": "Sotto",
+ "sheet.captionsBeside": "Accanto",
+ "sheet.verticalHint": "Nella disposizione verticale il testo sta sempre accanto al disegno.",
+ "sheet.stepsCaption": "Numero, titolo e testo della fase",
+ "sheet.stepsCaptionTip": "Sotto ogni disegno: il numero, il titolo e il testo della fase, come nella tavola",
+ "sheet.stepsHintFilesCaption": "I disegni delle fasi {list}, ognuno con numero, titolo e testo sotto: {n} file in una cartella, stessa inquadratura e stessa scala.",
+ "sheet.exportStepHintCaption": "Il disegno della fase {n} con numero, titolo e testo sotto."
 }

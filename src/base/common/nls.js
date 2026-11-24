@@ -84,8 +84,8 @@ function format(message, params) {
 }
 
 /** Number in the UI's language (decimal comma in Portuguese). */
-export function formatNumber(n, digits = 2) {
-  return new Intl.NumberFormat(locale, { maximumFractionDigits: digits }).format(n);
+export function formatNumber(n, digits = 2, grouping = true) {
+  return new Intl.NumberFormat(locale, { maximumFractionDigits: digits, useGrouping: grouping }).format(n);
 }
 
 /** Translates a key. Unknown keys return the English text, then the key itself. */

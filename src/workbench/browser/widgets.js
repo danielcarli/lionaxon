@@ -20,7 +20,8 @@ export function parseNumber(text) {
  */
 export function numField(o) {
   const step = o.step ?? 0.5;
-  const fmt = (v) => formatNumber(v, o.digits ?? 2);
+  // no thousands separator in a field: "2.400" would be read back as 2.4
+  const fmt = (v) => formatNumber(v, o.digits ?? 2, false);
   const clamp = (v) => Math.min(o.max ?? Infinity, Math.max(o.min ?? -Infinity, v));
   let committed = o.value;
   const input = h('input', {
@@ -43,7 +44,9 @@ export function numField(o) {
     onchange: () => commit(),
   });
   const commit = () => {
-    const v = parseNumber(input.value);
+    // a whole number typed with a thousands separator (2.500, 2,500, 2 500) is that number
+    const whole = (o.digits ?? 2) === 0 && /^\s*-?\d{1,3}([.,\s]\d{3})+\s*$/.test(input.value);
+    const v = whole ? Number(input.value.replace(/[^\d-]/g, '')) : parseNumber(input.value);
     if (!Number.isFinite(v)) { input.value = fmt(committed); return; }
     const c = clamp(v);
     input.value = fmt(c);
