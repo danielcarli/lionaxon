@@ -2,6 +2,14 @@
 
 All notable changes to LionAxon are documented here. The project follows [Semantic Versioning](https://semver.org).
 
+## [0.23.0] — 2026-11-24
+
+### Added
+- **Tight frames** (*Layout › Tight frames*, a switch, off to start with): every drawing of the sheet is framed by its own bounds — its drawing, its labels, its north — instead of the frame shared by all the steps, at the same scale as the others. A step with little around it no longer takes the height of the step with the most (a note far below, a tall model), and a row of captions takes the height of its own longest text, not of the longest of the sheet. The white between the drawings shrinks and the drawings grow (an 8-step A1 sheet went from 1:753 to 1:658); to scale, more steps fit on a page. For the row, grid, column and vertical layouts, captions under or beside. Saved in the project (`sheet.tight`).
+
+### Changed
+- The captions under the drawings are never cut any more: the row takes the height the longest text needs, and the layout weighs that room when it chooses the columns.
+
 ## [0.22.4] — 2026-11-24
 
 ### Added

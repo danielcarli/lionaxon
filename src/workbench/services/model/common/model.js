@@ -423,6 +423,8 @@ export function normalizeProject(raw) {
         ? sheet.legendAt.map((v) => Math.round(Math.min(1, Math.max(0, v)) * 10000) / 10000) : null,
       // a small north beside each drawing, besides (or instead of) the one of the header
       northEach: sheet.northEach === true,
+      // each drawing framed by its own bounds (the same scale for all): a step takes only the height it needs
+      tight: sheet.tight === true,
       // where the text of each step goes in a row, grid or column: 'auto' (where the drawings come out
       // larger), 'below' or 'beside' (on the left of the drawing)
       captions: ['below', 'beside'].includes(sheet.captions) ? sheet.captions : 'auto',

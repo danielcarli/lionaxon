@@ -784,5 +784,7 @@
  "sheet.stepsCaption": "Nummer, Titel und Text des Schritts",
  "sheet.stepsCaptionTip": "Unter jeder Zeichnung: Nummer, Titel und Text des Schritts, wie auf dem Blatt",
  "sheet.stepsHintFilesCaption": "Die Zeichnungen der Schritte {list}, jede mit Nummer, Titel und Text darunter: {n} Dateien in einem Ordner, gleicher Ausschnitt und gleicher Maßstab.",
- "sheet.exportStepHintCaption": "Die Zeichnung von Schritt {n} mit Nummer, Titel und Text darunter."
+ "sheet.exportStepHintCaption": "Die Zeichnung von Schritt {n} mit Nummer, Titel und Text darunter.",
+ "sheet.tight": "Enger Rahmen",
+ "sheet.tightTip": "Jede Zeichnung nimmt nur die Höhe ihrer eigenen Zeichnung und Beschriftungen ein (der Maßstab bleibt für alle gleich): weniger Weiß zwischen den Zeichnungen, größere Zeichnungen"
 }

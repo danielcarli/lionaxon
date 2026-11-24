@@ -148,7 +148,9 @@ export class SheetPane {
         // the text of each step: under its drawing, beside it, or wherever the drawings come out larger
         sh.layout !== 'vertical' ? h('label.form-label', t('sheet.captions')) : null,
         sh.layout !== 'vertical' ? segmented([['auto', t('sheet.captionsAuto'), t('sheet.captionsAutoTip')], ['below', t('sheet.captionsBelow')], ['beside', t('sheet.captionsBeside')]], sh.captions || 'auto', (v) => set((s) => { s.captions = v; }), { title: t('sheet.captions'), 'data-key': 'captions' }) : null,
-        sh.layout === 'vertical' ? h('p.pane-hint', t('sheet.verticalHint')) : null)),
+        sh.layout === 'vertical' ? h('p.pane-hint', t('sheet.verticalHint')) : null,
+        // every drawing in a frame of its own size: less white between the drawings
+        toggleSwitch(t('sheet.tight'), !!sh.tight, (v) => set((s) => { s.tight = v; }), { 'data-key': 'tight', title: t('sheet.tightTip') }))),
       section(t('sheet.scale'), h('div.form',
         selectField(SHEET_SCALES.map((d) => [d, d ? `1:${d}` : t('sheet.scaleAuto')]), sh.scale, (v) => set((s) => { s.scale = Number(v); }), { 'data-key': 'scale' }),
         this.#scaleHint())),

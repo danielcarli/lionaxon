@@ -958,5 +958,29 @@ test('the north beside a drawing: in its top right corner, or above the texts th
   assert.ok(cy2 + 4 <= -14);
 });
 
+// ---- 0.23: tight frames — each step only as tall as its own drawing (and its row of captions)
+test('sheet: tight frames make the drawings larger when the steps differ, and keep them to scale', () => {
+  const base = normalizeProject(JSON.parse(fs.readFileSync(new URL('../examples/plateaus-pt-BR.lionaxon', import.meta.url), 'utf8')));
+  while (base.steps.length < 6) base.steps.push({ ...structuredClone(base.steps.at(-1)), id: 's-t' + base.steps.length });
+  // one step with a note far below its drawing, one with a long text: the others need far less room
+  base.steps.at(-1).objects.push({ type: 'label', id: 'l-far', x: 40, y: 56, z: 0, level: 'L1', dx: 4, dy: 40, text: 'Acesso inferior', size: 1.4 });
+  base.steps[1].text = 'Um texto longo que ocupa várias linhas embaixo do desenho, para que a legenda desta etapa seja bem mais alta que as outras.';
+  const p = normalizeProject(base);
+  const t = (k) => k;
+  const sheetOf = (patch) => { const prj = structuredClone(p); prj.sheet = { ...prj.sheet, paper: 'A2', orientation: 'portrait', scale: 0, cols: 0, texts: true, ...patch }; return renderSheet(prj, { t }); };
+  for (const layout of ['grid', 'column', 'vertical', 'row']) {
+    for (const captions of ['below', 'beside']) {
+      const plain = sheetOf({ layout, captions }), tight = sheetOf({ layout, captions, tight: true });
+      assert.ok(tight.scale <= plain.scale + 1e-6, `${layout} ${captions}: 1:${tight.scale} tight, 1:${plain.scale} not`);
+    }
+  }
+  const g = sheetOf({ layout: 'grid', cols: 2, captions: 'below' }), gt = sheetOf({ layout: 'grid', cols: 2, captions: 'below', tight: true });
+  assert.ok(gt.scale < g.scale * 0.95, `grid: 1:${gt.scale} tight against 1:${g.scale}`);
+  // to scale: the same scale, but more steps on a page
+  const pages = (tight) => sheetOf({ layout: 'grid', cols: 1, captions: 'below', scale: 500, tight }).pages.length;
+  assert.ok(pages(true) <= pages(false), `${pages(true)} pages tight, ${pages(false)} not`);
+  assert.equal(normalizeProject({ ...p, sheet: { ...p.sheet, tight: 1 } }).sheet.tight, false);
+});
+
 console.log(`\n${n} passed`);
 void sortFaces;

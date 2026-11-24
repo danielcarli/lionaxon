@@ -784,5 +784,7 @@
  "sheet.stepsCaption": "Numéro, titre et texte de l’étape",
  "sheet.stepsCaptionTip": "Sous chaque dessin : le numéro, le titre et le texte de l’étape, comme sur la planche",
  "sheet.stepsHintFilesCaption": "Les dessins des étapes {list}, chacun avec numéro, titre et texte dessous : {n} fichiers dans un dossier, même cadrage et même échelle.",
- "sheet.exportStepHintCaption": "Le dessin de l’étape {n} avec numéro, titre et texte dessous."
+ "sheet.exportStepHintCaption": "Le dessin de l’étape {n} avec numéro, titre et texte dessous.",
+ "sheet.tight": "Cadre ajusté",
+ "sheet.tightTip": "Chaque dessin n'occupe que la hauteur de son propre dessin et de ses notes (l'échelle reste la même pour tous) : moins de blanc entre les dessins, des dessins plus grands"
 }

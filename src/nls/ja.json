@@ -784,5 +784,7 @@
  "sheet.stepsCaption": "ステップの番号・タイトル・テキスト",
  "sheet.stepsCaptionTip": "各図面の下に、シートと同じくステップの番号・タイトル・テキストを付けます",
  "sheet.stepsHintFilesCaption": "ステップ {list} の図面。それぞれ下に番号・タイトル・テキスト付き：1 つのフォルダーに {n} ファイル、同じ枠と同じ縮尺。",
- "sheet.exportStepHintCaption": "ステップ {n} の図面。下に番号・タイトル・テキスト付き。"
+ "sheet.exportStepHintCaption": "ステップ {n} の図面。下に番号・タイトル・テキスト付き。",
+ "sheet.tight": "図ごとに詰める",
+ "sheet.tightTip": "各図は自身の図と注記の高さだけを使います（縮尺はすべて同じ）：図の間の余白が減り、図が大きくなります"
 }

@@ -784,5 +784,7 @@
  "sheet.stepsCaption": "단계의 번호, 제목, 텍스트",
  "sheet.stepsCaptionTip": "각 도면 아래: 시트와 같이 단계의 번호, 제목, 텍스트",
  "sheet.stepsHintFilesCaption": "단계 {list}의 도면, 각각 아래에 번호·제목·텍스트: 한 폴더에 {n}개 파일, 같은 구도와 같은 축척.",
- "sheet.exportStepHintCaption": "단계 {n}의 도면, 아래에 번호·제목·텍스트."
+ "sheet.exportStepHintCaption": "단계 {n}의 도면, 아래에 번호·제목·텍스트.",
+ "sheet.tight": "도면별 맞춤 틀",
+ "sheet.tightTip": "각 도면은 자신의 도면과 주석 높이만 차지합니다(축척은 모두 동일): 도면 사이 여백이 줄고 도면이 커집니다"
 }

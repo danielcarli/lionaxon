@@ -784,5 +784,7 @@
  "sheet.stepsCaption": "步骤的编号、标题和文字",
  "sheet.stepsCaptionTip": "每幅图下方：步骤的编号、标题和文字，与图纸上相同",
  "sheet.stepsHintFilesCaption": "步骤 {list} 的图形，每幅下方带编号、标题和文字：一个文件夹里 {n} 个文件，取景和比例相同。",
- "sheet.exportStepHintCaption": "步骤 {n} 的图形，下方带编号、标题和文字。"
+ "sheet.exportStepHintCaption": "步骤 {n} 的图形，下方带编号、标题和文字。",
+ "sheet.tight": "紧凑图框",
+ "sheet.tightTip": "每幅图只占用其自身图形和注释的高度（所有图比例相同）：图之间的空白更少，图更大"
 }

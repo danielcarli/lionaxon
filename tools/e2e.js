@@ -1863,6 +1863,13 @@ async function pngTransparent21(win, js) {
   await sleep(600);
   check('the columns of a grid can be automatic', await js(`document.querySelector('[data-pane=sheet] select[data-key=cols]')?.value === '0'`));
   check('the text of each step: automatic, under or beside', await js(`document.querySelectorAll('[data-pane=sheet] [data-key=captions] button').length === 3`));
+  // 0.23: tight frames, a switch of the layout
+  check('"Tight frames" is a switch of the layout, off to start with', await js(`(() => { const i = document.querySelector('[data-pane=sheet] input[data-key=tight]'); return !!i && !i.checked; })()`));
+  await js(`document.querySelector('[data-pane=sheet] input[data-key=tight]').click(); true`);
+  await sleep(500);
+  check('…turned on, it is kept in the sheet and the preview is drawn again', await js(`${D2}.project.sheet.tight === true && !!document.querySelector('[data-view=sheet] .sheet-page')`));
+  await js(`document.querySelector('[data-pane=sheet] input[data-key=tight]').click(); true`);
+  await sleep(400);
   check('the size of the steps and what it measures are in one group', await js(`(() => { const g = document.querySelector('[data-pane=sheet] .size-group'); return !!g && !!g.querySelector('input[data-key=stepPx]') && !!g.querySelector('[data-key=stepSide]'); })()`));
   const norths = () => js(`document.querySelectorAll('[data-view=sheet] .sheet-page .north').length`);
   const n0 = await norths();

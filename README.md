@@ -13,7 +13,7 @@ Simple to learn in an afternoon. The same app on Windows, macOS and Linux. Free.
 
 **English** · [Português (Brasil)](docs/README.pt-BR.md)
 
-![Version 0.22.4](https://img.shields.io/badge/version-0.22.4-23272b)
+![Version 0.23.0](https://img.shields.io/badge/version-0.23.0-23272b)
 ![Experimental](https://img.shields.io/badge/status-experimental-b5532d)
 ![Platforms: Windows, macOS, Linux](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-23272b)
 ![10 languages](https://img.shields.io/badge/languages-10-d0673f)
@@ -102,7 +102,7 @@ Free software (GPL-3.0). No account, no subscription, no telemetry, and it works
 **Take it out**
 - **PDF and SVG in vectors** (one layer per step in Illustrator and Inkscape), **PNG** up to 300 dpi, the steps as an **animated GIF**, and **every step as its own image** (PNG, SVG or PDF, all in the same frame and scale) in one go.
 - **Text blocks** beside the drawings (strategy, pros and cons with + and −), the **legend** at the top, along the foot or **free** (dragged anywhere on the preview); a **north beside each drawing**; labels with a quieter second line and marks (! × + −), broken into lines at the width you pull the side of their text box to. The terrain can be drawn on the sheet **as a grid**, as in the editor.
-- **Drawings as large as the paper allows**: a grid can choose its columns by itself; a column or a vertical sheet on wide paper goes on in more columns side by side; the captions go beside the drawings, at the width that makes them largest, when that wins; the white left over is shared evenly between the rows; the legend runs in rows, and a site left undrawn no longer takes room.
+- **Drawings as large as the paper allows**: a grid can choose its columns by itself; a column or a vertical sheet on wide paper goes on in more columns side by side; the captions go beside the drawings, at the width that makes them largest, when that wins; the white left over is shared evenly between the rows; the legend runs in rows, and a site left undrawn no longer takes room. **Tight frames** (a switch in *Layout*) frame each drawing by its own bounds, at the same scale as the others: a step with little around it, or a row with short captions, takes only the height it needs — less white between the drawings, and larger drawings.
 - Sheets in row, grid, column or vertical layouts, A4 to A0, to scale, on as many pages as needed; when the drawings are held by the height, the captions go beside them and the drawings grow. The preview is zoomed with the wheel and dragged like the drawing, page by page.
 - Sheets with or without the **number and title** of each step; its text **under or beside** the drawing (or wherever the drawings come out larger).
 - **Export the steps you write** — `7`, `3-7`, `1, 4, 6-8`, `3-` to the last, `-5` from the first — each in a file of its own (of the width or height in pixels you give, with its number, title and text under it or beside it if you want), or as one sheet with just those steps. PNG files come out with a **transparent background** unless you turn it off.
@@ -160,7 +160,7 @@ Download the installer for your system. The links always bring the **latest vers
 
 > The installers are not signed with a paid certificate yet. On first launch, Windows may show "Windows protected your PC" (**More info › Run anyway**) and macOS asks you to allow the app in **System Settings › Privacy & Security › Open Anyway**. The checksums of every file are in [`SHA256SUMS.txt`](https://github.com/danielcarli/lionaxon/releases/latest/download/SHA256SUMS.txt).
 
-LionAxon is **experimental** (version 0.22): it already makes a whole parti diagram and exports it, but the file format and the behaviour may still change before 1.0. **Updating from the app.** Click the version number in the bottom-right corner, then *Check now*: if there is a newer version, *Update now* downloads the installer of your copy (the setup wizard, the `.dmg`, the AppImage, the `.deb` or the `.rpm`), checks its SHA-256 against the release and opens it. Both steps happen only when you click.
+LionAxon is **experimental** (version 0.23): it already makes a whole parti diagram and exports it, but the file format and the behaviour may still change before 1.0. **Updating from the app.** Click the version number in the bottom-right corner, then *Check now*: if there is a newer version, *Update now* downloads the installer of your copy (the setup wizard, the `.dmg`, the AppImage, the `.deb` or the `.rpm`), checks its SHA-256 against the release and opens it. Both steps happen only when you click.
 
 The installers are built by GitHub Actions for each version tag (`.github/workflows/release.yml`), on Windows, macOS and Linux machines, from the code of this repository.
 
@@ -252,7 +252,7 @@ A project is one `.lionaxon` file: indented JSON with a `schemaVersion`, readabl
 }
 ```
 
-Other objects: `area` (a flat street, lawn, water or paving, with `joints`), `opening` (a door, window, arch or oculus on a wall of the box `on`), `tree`, `dim` (a dimension line), and volumes or cuts with `"shape": "poly"` and their `pts`; a box may have `roof`, `roofH`, `roofDir` and `roofColor`; a trapezoid the length `top` of its short side: the top of a standing one (`"shape": "trapezoid"`), the back of a lying one (`"trapezoidLying"`, a trapezoid in plan); a volume a `color` of its own and `fill` (it fills the void of a subtraction: that one leaves it whole, others still cut it); a cut the `target` `"~terrain"` (it digs into the terrain); an arrow `z2` (where it ends); a label `note` and `mark`, and `line: false` for a text box (its texts take `**bold**`, `*italic*` and lines starting with `- ` or `1. `); the sheet `cols` (0: automatic), `legendPlace` (`"free"` with `legendAt`, its corner as a fraction of the paper), `northEach`, `captions` (`"auto"`, `"below"`, `"beside"`), `blocks` and `heads` (the number and title of each step); a step may have `ghostPrev` and `op`.
+Other objects: `area` (a flat street, lawn, water or paving, with `joints`), `opening` (a door, window, arch or oculus on a wall of the box `on`), `tree`, `dim` (a dimension line), and volumes or cuts with `"shape": "poly"` and their `pts`; a box may have `roof`, `roofH`, `roofDir` and `roofColor`; a trapezoid the length `top` of its short side: the top of a standing one (`"shape": "trapezoid"`), the back of a lying one (`"trapezoidLying"`, a trapezoid in plan); a volume a `color` of its own and `fill` (it fills the void of a subtraction: that one leaves it whole, others still cut it); a cut the `target` `"~terrain"` (it digs into the terrain); an arrow `z2` (where it ends); a label `note` and `mark`, and `line: false` for a text box (its texts take `**bold**`, `*italic*` and lines starting with `- ` or `1. `); the sheet `cols` (0: automatic), `legendPlace` (`"free"` with `legendAt`, its corner as a fraction of the paper), `northEach`, `tight`, `captions` (`"auto"`, `"below"`, `"beside"`), `blocks` and `heads` (the number and title of each step); a step may have `ghostPrev` and `op`.
 
 Measures are in metres, angles in degrees; `x`, `y` is the centre of a volume; `z` is the height over its plane (`level`); `on` is the volume it sits on. Files of 0.1 (`schemaVersion` 1) open as they are, with everything on the ground plane.
 
@@ -322,6 +322,7 @@ Code, comments, identifiers and documentation are in English. The interface is t
 
 ## Roadmap
 
+- **0.23** ✓ — tight frames: each drawing of the sheet as tall as its own drawing and labels, each row of captions as tall as its own — less white between the drawings.
 - **0.22** ✓ — drawings as large as the paper allows (automatic columns, columns side by side on wide paper, captions beside at their best width, the white shared evenly, the legend in rows, a hidden site left out); a free legend dragged on the preview; a north beside each drawing; PNG with a transparent background; the size in pixels of the steps exported on their own.
 - **0.21** ✓ — texts lined up as in a drawing program: smart guides while one is dragged, and align and distribute by their boxes on the screen; the subtractions in the 3D viewer; a subtraction started on a volume always cuts it.
 - **0.20** ✓ — text boxes (labels with no leader, resized by their side); bold, italic and lists in the texts of labels; the title and text of a step written on its card.
@@ -345,7 +346,7 @@ Code, comments, identifiers and documentation are in English. The interface is t
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) — current version: **0.22.4**.
+See [CHANGELOG.md](CHANGELOG.md) — current version: **0.23.0**.
 
 ## Credits
 

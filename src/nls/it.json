@@ -784,5 +784,7 @@
  "sheet.stepsCaption": "Numero, titolo e testo della fase",
  "sheet.stepsCaptionTip": "Sotto ogni disegno: il numero, il titolo e il testo della fase, come nella tavola",
  "sheet.stepsHintFilesCaption": "I disegni delle fasi {list}, ognuno con numero, titolo e testo sotto: {n} file in una cartella, stessa inquadratura e stessa scala.",
- "sheet.exportStepHintCaption": "Il disegno della fase {n} con numero, titolo e testo sotto."
+ "sheet.exportStepHintCaption": "Il disegno della fase {n} con numero, titolo e testo sotto.",
+ "sheet.tight": "Cornice aderente",
+ "sheet.tightTip": "Ogni disegno occupa solo l'altezza del proprio disegno e delle sue note (la scala resta la stessa per tutti): meno bianco tra i disegni, disegni più grandi"
 }

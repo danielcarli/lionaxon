@@ -784,5 +784,7 @@
  "sheet.stepsCaption": "Número, título y texto de la etapa",
  "sheet.stepsCaptionTip": "Debajo de cada dibujo: el número, el título y el texto de la etapa, como en la lámina",
  "sheet.stepsHintFilesCaption": "Los dibujos de las etapas {list}, cada uno con número, título y texto debajo: {n} archivos en una carpeta, con el mismo encuadre y la misma escala.",
- "sheet.exportStepHintCaption": "El dibujo de la etapa {n} con número, título y texto debajo."
+ "sheet.exportStepHintCaption": "El dibujo de la etapa {n} con número, título y texto debajo.",
+ "sheet.tight": "Marco ajustado",
+ "sheet.tightTip": "Cada dibujo ocupa solo la altura de su propio dibujo y sus notas (la escala sigue siendo la misma para todos): menos blanco entre los dibujos, dibujos más grandes"
 }

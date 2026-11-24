@@ -784,5 +784,7 @@
  "sheet.stepsCaption": "Number, title and text of the step",
  "sheet.stepsCaptionTip": "Under each drawing: its number, its title and its text, as on the sheet",
  "sheet.stepsHintFilesCaption": "The drawings of steps {list}, each with its number, title and text under it: {n} files in a folder, in the same frame and at the same scale.",
- "sheet.exportStepHintCaption": "The drawing of step {n} with its number, title and text under it."
+ "sheet.exportStepHintCaption": "The drawing of step {n} with its number, title and text under it.",
+ "sheet.tight": "Tight frames",
+ "sheet.tightTip": "Each drawing takes only the height of its own drawing and labels (the scale stays the same for all): less white between the drawings, larger drawings"
 }
