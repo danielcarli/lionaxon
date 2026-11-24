@@ -53,9 +53,27 @@ export class SheetPane {
     update();
     return section(t('sheet.exportSteps'), h('div.form',
       row(t('sheet.stepsField'), field),
-      segmented([['files', t('sheet.stepsFiles')], ['sheet', t('sheet.stepsSheet')]], this.stepsMode || 'files', (v) => { this.stepsMode = v; update(); }, { title: t('sheet.exportSteps') }),
-      h('div.btn-row', btn('pdf', 'PDF'), btn('svg', 'SVG'), btn('png', 'PNG')),
+      segmented([['files', t('sheet.stepsFiles')], ['sheet', t('sheet.stepsSheet')]], this.stepsMode || 'files', (v) => { this.stepsMode = v; this.render(); }, { title: t('sheet.exportSteps') }),
+      // each step in a file of its own: its size in pixels, of width or of height (a sheet takes the resolution above)
+      (this.stepsMode || 'files') === 'files' ? this.#stepSize() : null,
+      h('div.btn-row', btn('pdf', 'PDF'), btn('svg', 'SVG'), this.#pngGroup(btn('png', 'PNG'))),
       hint));
+  }
+
+  /** The size of the images of the steps exported on their own: pixels, of width or of height. */
+  #stepSize() {
+    const ex = this.s.export, z = ex.stepSize;
+    return [
+      row(t('sheet.stepsSize'), numField({ value: z.px, unit: 'px', step: 100, min: 100, max: 20000, digits: 0, key: 'stepPx', title: t('sheet.stepsSizeTip'), onCommit: (v) => { ex.stepSize = { ...ex.stepSize, px: v }; this.render(); } })),
+      segmented([['w', t('sheet.sizeWidth')], ['h', t('sheet.sizeHeight')]], z.side, (v) => { ex.stepSize = { ...ex.stepSize, side: v }; this.render(); }, { title: t('sheet.stepsSizeTip'), 'data-key': 'stepSide' }),
+    ];
+  }
+
+  /** The PNG button with its switch right under it, in one group: a transparent background (no paper) or not. */
+  #pngGroup(button) {
+    const ex = this.s.export;
+    return h('div.png-group', button,
+      toggleSwitch(t('export.transparent'), ex.pngTransparent, (v) => { ex.pngTransparent = v; this.render(); }, { 'data-key': 'pngTransparent', title: t('export.transparentTip') }));
   }
 
   /** What the chosen scale gives: the scale on "auto", the number of pages, or that it does not fit. */
@@ -95,7 +113,11 @@ export class SheetPane {
         h('label.form-label', t('sheet.title')), textField(sh.title, (v) => set((s) => { s.title = v; }), { placeholder: t('sheet.titlePlaceholder'), key: 'sheetTitle' }),
         h('label.form-label', t('sheet.subtitle')), textField(sh.subtitle, (v) => set((s) => { s.subtitle = v; }), { placeholder: t('sheet.subtitlePlaceholder'), key: 'sheetSubtitle' }),
         checkbox(t('sheet.showLegend'), sh.legend, (v) => set((s) => { s.legend = v; })),
-        sh.legend ? row(t('sheet.legendPlace'), segmented([['top', t('sheet.legendTop')], ['bottom', t('sheet.legendBottom')]], sh.legendPlace || 'top', (v) => set((s) => { s.legendPlace = v; }), { title: t('sheet.legendPlace') })) : null,
+        // where the legend goes, across the whole pane (three choices)
+        sh.legend ? h('label.form-label', t('sheet.legendPlace')) : null,
+        sh.legend ? segmented([['top', t('sheet.legendTop')], ['bottom', t('sheet.legendBottom')], ['free', t('sheet.legendFree'), t('sheet.legendFreeTip')]], sh.legendPlace || 'top', (v) => set((s) => { s.legendPlace = v; }), { title: t('sheet.legendPlace'), 'data-key': 'legendPlace' }) : null,
+        sh.legend && sh.legendPlace === 'free' ? h('p.pane-hint', t('sheet.legendFreeHint')) : null,
+        checkbox(t('sheet.northEach'), !!sh.northEach, (v) => set((s) => { s.northEach = v; }), { 'data-key': 'northEach', title: t('sheet.northEachTip') }),
         checkbox(t('sheet.showHeads'), sh.heads !== false, (v) => set((s) => { s.heads = v; }), { 'data-key': 'heads' }),
         checkbox(t('sheet.showTexts'), sh.texts, (v) => set((s) => { s.texts = v; })),
         toggleSwitch(t('sheet.terrainGrid'), sh.terrainGrid, (v) => set((s) => { s.terrainGrid = v; }), { 'data-key': 'terrainGrid', title: t('sheet.terrainGridTip') }))),
@@ -112,14 +134,15 @@ export class SheetPane {
         segmented([['row', t('sheet.row')], ['grid', t('sheet.grid')], ['column', t('sheet.column')], ['vertical', t('sheet.vertical'), t('sheet.verticalTip')]], sh.layout,
           // the vertical sheet is read top to bottom: it turns the paper upright
           (v) => set((s) => { s.layout = v; if (v === 'vertical') s.orientation = 'portrait'; })),
-        sh.layout === 'grid' ? row(t('sheet.cols'), numField({ value: sh.cols, unit: '', step: 1, min: 1, max: 8, digits: 0, onCommit: (v) => set((s) => { s.cols = Math.round(v); }) })) : null,
+        // the columns of the grid: automatic (as many as make the drawings largest) or a number
+        sh.layout === 'grid' ? row(t('sheet.cols'), selectField([[0, t('sheet.colsAuto')], ...[1, 2, 3, 4, 5, 6, 7, 8].map((n) => [n, String(n)])], sh.cols || 0, (v) => set((s) => { s.cols = Number(v); }), { 'data-key': 'cols' })) : null,
         row(t('sheet.paper'), selectField(Object.keys(PAPERS).map((k) => [k, `${k} · ${PAPERS[k][0]} × ${PAPERS[k][1]} mm`]), sh.paper, (v) => set((s) => { s.paper = v; }), { 'data-key': 'paper' })),
         segmented([['landscape', t('sheet.landscape')], ['portrait', t('sheet.portrait')]], sh.orientation, (v) => set((s) => { s.orientation = v; })))),
       section(t('sheet.scale'), h('div.form',
         selectField(SHEET_SCALES.map((d) => [d, d ? `1:${d}` : t('sheet.scaleAuto')]), sh.scale, (v) => set((s) => { s.scale = Number(v); }), { 'data-key': 'scale' }),
         this.#scaleHint())),
       section(t('sheet.export'), h('div.form',
-        h('div.btn-row', exp('pdf', 'PDF'), exp('svg', 'SVG'), exp('png', 'PNG')),
+        h('div.btn-row', exp('pdf', 'PDF'), exp('svg', 'SVG'), this.#pngGroup(exp('png', 'PNG'))),
         row(t('sheet.pngDpi'), selectField([[150, '150 dpi'], [200, '200 dpi'], [300, '300 dpi']], this.dpi, (v) => { this.dpi = Number(v); })),
         h('p.pane-hint', t('sheet.exportHint')))),
       section(t('gif.title'), h('div.form',
@@ -265,6 +288,22 @@ export class SheetView {
     return false;
   }
 
+  /**
+   * The legend let go after a drag of (dx, dy) pixels: it stays where it was put — free on the paper, its top
+   * left corner kept as a fraction of the paper.
+   */
+  #dropLegend(el, dx, dy) {
+    const k = (this.cam || this.#frame(this.page, this.#fitK())).k;
+    const [W, H] = this.size;
+    const s = Math.sqrt((W * H) / (420 * 297));
+    el.removeAttribute('transform');
+    const b = el.getBBox();
+    // a free legend has a box under it (1.5 × s to the left of the items, 1 × s above them); the others start at their first symbol
+    const free = el.dataset.free === '1';
+    const x = b.x + (free ? 1.5 * s : 0) + dx / k, y = b.y + (free ? 1 * s : -0.8 * s) + dy / k;
+    this.s.commands.setProject((p) => { p.sheet.legendPlace = 'free'; p.sheet.legendAt = [Math.min(1, Math.max(0, x / W)), Math.min(1, Math.max(0, y / H))]; }, 'sheet.set');
+  }
+
   #bindPointer() {
     const wrap = this.wrap;
     const at = (e) => { const r = wrap.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
@@ -283,16 +322,30 @@ export class SheetView {
       }
       if (e.button > 2) return;
       e.preventDefault();
-      drag = { id: e.pointerId, x: e.clientX, y: e.clientY };
+      // the legend is taken with the left button and put anywhere on the paper (it becomes free)
+      const legend = e.button === 0 ? e.target.closest?.('.sheet-page[data-page="1"] #legend') : null;
+      drag = { id: e.pointerId, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, legend };
       wrap.setPointerCapture(e.pointerId);
-      wrap.classList.add('panning');
+      if (!legend) wrap.classList.add('panning');
     });
     wrap.addEventListener('pointermove', (e) => {
       if (!drag || e.pointerId !== drag.id) return;
+      if (drag.legend) {
+        // while it is dragged it only slides (the sheet is drawn again when it is let go)
+        const k = (this.cam || this.#frame(this.page, this.#fitK())).k;
+        drag.legend.setAttribute('transform', `translate(${(e.clientX - drag.sx) / k} ${(e.clientY - drag.sy) / k})`);
+        return;
+      }
       this.panBy(e.clientX - drag.x, e.clientY - drag.y);
       drag.x = e.clientX; drag.y = e.clientY;
     });
-    const end = (e) => { if (!drag || e.pointerId !== drag.id) return; drag = null; wrap.classList.remove('panning'); };
+    const end = (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const d = drag;
+      drag = null;
+      wrap.classList.remove('panning');
+      if (d.legend && Math.hypot(e.clientX - d.sx, e.clientY - d.sy) > 2) this.#dropLegend(d.legend, (e.clientX - d.sx), (e.clientY - d.sy));
+    };
     wrap.addEventListener('pointerup', end);
     wrap.addEventListener('pointercancel', end);
     wrap.addEventListener('contextmenu', (e) => e.preventDefault());

@@ -729,6 +729,8 @@
  "sheet.stepsHintFiles": "ステップ {list} の図（タイトルと文なし）: {n} 個のファイルを 1 つのフォルダーに、同じフレームと縮尺で。",
  "sheet.stepsHintSheet": "ステップ {list} だけのシート。ここで選んだレイアウト、用紙、縮尺で。",
  "export.stepsInvalid": "「{part}」を読み取れません。1 から {n} のステップを入力してください: 7、3-7、1, 4, 6-8。3- で最後まで、-5 で最初から（空欄: 現在のステップ、* か - ですべて）。",
+ "export.transparent": "透明",
+ "export.transparentTip": "PNG を図面の背後の用紙なし（透明な背景）で書き出し、ほかの画像に重ねられるようにします。オフにすると用紙の色になります",
  "export.stepsWord": "ステップ",
  "sheet.pages": "ページ",
  "sheet.pagePrev": "前のページ",
@@ -762,5 +764,15 @@
  "format.italic": "斜体",
  "format.bullets": "箇条書き",
  "format.numbers": "番号付きリスト",
- "format.hint": "**太字**、*斜体*。\"- \" で始まる行は箇条書き、\"1. \" で始まる行は番号付きの項目になります。"
+ "format.hint": "**太字**、*斜体*。\"- \" で始まる行は箇条書き、\"1. \" で始まる行は番号付きの項目になります。",
+ "sheet.legendFree": "自由",
+ "sheet.legendFreeTip": "用紙のどこにでも：プレビューでドラッグ",
+ "sheet.legendFreeHint": "プレビューで凡例を好きな位置へドラッグします。図面のスペースは使いません。",
+ "sheet.northEach": "各図面に方位",
+ "sheet.northEachTip": "シートの各図面（および個別に書き出すステップ）の隅に小さな方位記号を付けます。ヘッダーの方位はそのまま",
+ "sheet.colsAuto": "自動",
+ "sheet.stepsSize": "サイズ",
+ "sheet.stepsSizeTip": "各画像のサイズ（ピクセル）：幅または高さ（もう一方は図面に合わせます）",
+ "sheet.sizeWidth": "幅",
+ "sheet.sizeHeight": "高さ"
 }

@@ -41,6 +41,7 @@ export function wrap(text, max) {
 export function gridOf(sheet, n) {
   if (sheet.layout === 'column' || sheet.layout === 'vertical') return { cols: 1, rows: n };
   if (sheet.layout === 'grid') {
+    // no number of columns (0: automatic): as square as it goes (the sheet picks the best when it lays out)
     const cols = Math.max(1, Math.min(n, sheet.cols || Math.ceil(Math.sqrt(n))));
     return { cols, rows: Math.ceil(n / cols) };
   }
@@ -53,7 +54,7 @@ export const SCALES = [100, 200, 250, 500, 750, 1000, 1250, 2000, 2500, 5000];
 /**
  * A north arrow centred at (cx, cy), radius r: the direction of north as it falls on the paper in `view`.
  */
-function northGlyph(view, north, cx, cy, r, { ink, muted, halftone, s, id = '' }) {
+export function northGlyph(view, north, cx, cy, r, { ink, muted, halftone, s, id = '' }) {
   const a = (north * Math.PI) / 180;
   const p0 = project(view, [0, 0, 0]), p1 = project(view, [-Math.sin(a), Math.cos(a), 0]);
   let dx = p1[0] - p0[0], dy = p1[1] - p0[1];
@@ -63,7 +64,7 @@ function northGlyph(view, north, cx, cy, r, { ink, muted, halftone, s, id = '' }
   const back = [cx - dx * r * 0.55, cy - dy * r * 0.55];
   const side = (k) => [back[0] - dy * r * 0.4 * k - dx * r * 0.1, back[1] + dx * r * 0.4 * k - dy * r * 0.1];
   const nPos = [cx + dx * r * 1.55, cy + dy * r * 1.55];
-  return `<g${id ? ` id="${id}"` : ''}${halftone ? ' opacity="0.55"' : ''}><circle cx="${r2(cx)}" cy="${r2(cy)}" r="${r2(r)}" fill="none" stroke="${muted}" stroke-width="${r2(0.25 * s * (r / (5.5 * s)))}"/>`
+  return `<g class="north"${id ? ` id="${id}"` : ''}${halftone ? ' opacity="0.55"' : ''}><circle cx="${r2(cx)}" cy="${r2(cy)}" r="${r2(r)}" fill="none" stroke="${muted}" stroke-width="${r2(0.25 * s * (r / (5.5 * s)))}"/>`
     + `<path d="M${r2(tip[0])} ${r2(tip[1])}L${r2(side(1)[0])} ${r2(side(1)[1])}L${r2(back[0] + dx * r * 0.2)} ${r2(back[1] + dy * r * 0.2)}L${r2(side(-1)[0])} ${r2(side(-1)[1])}Z" fill="${ink}"/>`
     + `<text x="${r2(nPos[0])}" y="${r2(nPos[1])}" font-size="${r2(3.2 * s * (r / (5.5 * s)))}" font-weight="700" fill="${ink}" text-anchor="middle" dominant-baseline="central">N</text></g>`;
 }
@@ -129,6 +130,8 @@ export function renderSheet(prj, opts) {
   const panelW = blocks.length ? Math.min(Math.max(62 * s, (W - 2 * m) * 0.24), 110 * s) : 0;
   const Wc = panelW ? W - panelW - 9 * s : W;      // the right edge of what is laid out (plus the margin)
   const legendBelow = sheet.legendPlace === 'bottom' && sheet.legend;
+  // a free legend floats where it was put (dragged on the preview): it takes no room from the drawings
+  const legendFree = sheet.legendPlace === 'free' && sheet.legend;
   // ---- header (every page: title and subtitle; the first page: also the legend and the north arrow)
   const legendItems = [];
   if (sheet.legend) {
@@ -174,17 +177,17 @@ export function renderSheet(prj, opts) {
     // north arrow, top right: the direction of north in this axonometric view (or drawn in the drawings
     // themselves, flat on the ground, when the project asks for it); the scale under it
     // (with steps seen from different angles, each drawing has its own small north instead)
-    if (prj.northPlace === 'header' && first && uniform) {
-      const r = 5.5 * s;
-      out += northGlyph(view, prj.north, Wc - m - r, m + r, r, { ink, muted: style.muted, halftone: prj.northHalftone, s, id: 'north' });
-    }
+    const northR = 5.5 * s;
+    const northHere = prj.northPlace === 'header' && first && uniform;
+    if (northHere) out += northGlyph(view, prj.north, Wc - m - northR, m + northR, northR, { ink, muted: style.muted, halftone: prj.northHalftone, s, id: 'north' });
     out = `<g id="cabecalho">${out}</g>`;
-    // legend: a column under the subtitle (a row across the page for the vertical layout), unless it goes to the foot
-    if (first && legendItems.length && !legendBelow) {
+    // legend: rows across the page under the subtitle (clear of the north), short, so the drawings keep the
+    // height; unless it goes to the foot or floats
+    if (first && legendItems.length && !legendBelow && !legendFree) {
       y += 7 * s;
-      const l = legendFlow(left, Wc - m, y, vertical);
+      const l = legendFlow(left, Wc - m - (northHere && y < m + 2 * northR + 2 * s ? 2 * northR + 5 * s : 0), y, true);
       out += l.markup;
-      y = l.y + (vertical ? -3 * s : -3 * s);
+      y = l.y - 3 * s;
     }
     return { markup: out, top: y > m ? y + 10 * s : m };
   };
@@ -241,7 +244,8 @@ export function renderSheet(prj, opts) {
     const sx = x + j * (slotW + gap), dx = sx + (slotW - w * scale) / 2, dy = y + ((bh - hh) * scale) / 2;
     const { markup } = renderStep(prj, stepIndex, { view: v, lw: EDGE_MM / scale, fmt: opts.fmt, terrainGrid: !!sheet.terrainGrid });
     let g = `<svg x="${r2(dx)}" y="${r2(dy)}" width="${r2(w * scale)}" height="${r2(hh * scale)}" viewBox="${r2(box[0])} ${r2(box[1])} ${r2(w)} ${r2(hh)}" overflow="visible">${markup}</svg>`;
-    if (!uniform && prj.northPlace === 'header') {
+    // a small north at the corner of each drawing: when the drawings are seen from different angles, or asked
+    if ((!uniform && prj.northPlace === 'header') || sheet.northEach) {
       const r = 3.2 * s;
       g += northGlyph(v, prj.north, sx + slotW - r, y + r, r, { ink, muted: style.muted, halftone: prj.northHalftone, s });
     }
@@ -249,6 +253,19 @@ export function renderSheet(prj, opts) {
   }).join('');
   /** Width of the drawings of a step, side by side. */
   const groupW = (stepIndex, slotW, gap) => { const k = angles.get(stepIndex).length; return k * slotW + (k - 1) * gap; };
+
+  /**
+   * The free legend: a column where it was put (`legendAt`, its top left corner as a fraction of the paper;
+   * under the header to start with), kept on the paper. A clear box under it is what the preview drags.
+   */
+  const freeLegend = () => {
+    const w = Math.max(...legendItems.map((it) => 8 * s + it.name.length * 3.1 * s * 0.62 + 2 * s));
+    const hgt = legendItems.length * 6 * s;
+    const at = sheet.legendAt || [m / W, (header(true).top - 6 * s) / H];
+    const x = Math.min(Math.max(0, at[0] * W), W - w), y = Math.min(Math.max(0, at[1] * H), H - hgt);
+    const l = legendFlow(x, W, y + 3.4 * s, false);
+    return l.markup.replace('<g id="legend">', `<g id="legend" data-free="1"><rect x="${r2(x - 1.5 * s)}" y="${r2(y - 1 * s)}" width="${r2(w + 3 * s)}" height="${r2(hgt + 1 * s)}" fill="${style.paper}" fill-opacity="0.001"/>`);
+  };
 
   const footerH = 8 * s;
   const firstTop = header(true).top;
@@ -335,37 +352,59 @@ export function renderSheet(prj, opts) {
       return rows;
     };
     // as many slots per row as it takes to keep the rows of the grid (wider when a step has more angles)
-    let slots = total;
-    if (sheet.layout !== 'row') {
-      const wanted = gridOf(sheet, indexes.length).rows;
-      slots = Math.max(K, Math.ceil(total / wanted));
-      while (!column && slots < total && flow(slots).length > wanted) slots++;
+    const slotsFor = (gs) => {
+      let sl = total;
+      if (sheet.layout !== 'row') {
+        const wanted = gridOf(gs, indexes.length).rows;
+        sl = Math.max(K, Math.ceil(total / wanted));
+        while (!column && sl < total && flow(sl).length > wanted) sl++;
+      }
+      return sl;
+    };
+    // the captions under the drawings take the room the tallest of them needs (up to a limit: a longer
+    // text is cut), not a fixed height
+    const captionFor = (sl) => {
+      const w0 = (Wc - 2 * m - (sl - 1) * gapX) / sl;
+      const cw = Math.max(30 * s, Math.min(w0, 70 * s));
+      return noCaptions ? 0 : Math.max(heads ? 12 * s : 0, Math.min(sheet.texts ? 30 * s : 18 * s, Math.max(...indexes.map((i) => captionHeight(prj.steps[i], cw)))));
+    };
+    // the scale that fills the paper with that many slots per row: held by the width of a slot or by the
+    // height of a row less its caption
+    const scaleFor = (sl) => {
+      const rows = flow(sl).length;
+      const w0 = (Wc - 2 * m - (sl - 1) * gapX) / sl;
+      const cellH = (Hc - m - firstTop - (rows - 1) * gapY) / rows;
+      return Math.min(w0 / bw, Math.max(10 * s, cellH - captionFor(sl)) / bh);
+    };
+    // a grid with no number of columns takes the one that makes the drawings largest
+    let gridSheet = sheet;
+    if (sheet.layout === 'grid' && !sheet.cols && !fixed) {
+      let best = null;
+      for (let c = 1; c <= Math.min(8, indexes.length); c++) {
+        const sc = scaleFor(slotsFor({ ...sheet, cols: c }));
+        if (!best || sc > best.sc * 1.0001) best = { c, sc };
+      }
+      gridSheet = { ...sheet, cols: best.c };
     }
+    let slots = slotsFor(gridSheet);
     fitWidth = Wc - 2 * m;
     if (fixed) {
       scale = 1000 / sheet.scale / axis;
       // the steps flow into as many slots as fit across the paper
       const fitSlots = Math.max(1, Math.floor((Wc - 2 * m + gapX) / (bw * scale + gapX)));
       slots = Math.max(1, Math.min(slots, fitSlots));
-      overflow = K * bw * scale + (K - 1) * gapX > Wc - 2 * m + 1e-6 || bh * scale + captionH > Hc - m - footerH - nextTop + 1e-6;
       slots = Math.max(slots, K);
+      overflow = K * bw * scale + (K - 1) * gapX > Wc - 2 * m + 1e-6 || bh * scale + captionFor(slots) > Hc - m - footerH - nextTop + 1e-6;
     }
     const rowsAll = flow(slots);
-    // the captions under the drawings take the room the tallest of them needs (up to a limit: a longer
-    // text is cut), not a fixed height
-    const slotW0 = (Wc - 2 * m - (slots - 1) * gapX) / slots;
-    const capWidth = Math.max(30 * s, Math.min(slotW0, 70 * s));
-    const captionH = noCaptions ? 0 : Math.max(heads ? 12 * s : 0, Math.min(sheet.texts ? 30 * s : 18 * s, Math.max(...indexes.map((i) => captionHeight(prj.steps[i], capWidth)))));
-    if (!fixed) {
-      const maxCellH = (Hc - m - firstTop - (rowsAll.length - 1) * gapY) / rowsAll.length;
-      scale = Math.min(slotW0 / bw, Math.max(10 * s, maxCellH - captionH) / bh);
-    }
+    const captionH = captionFor(slots);
+    if (!fixed) scale = scaleFor(slots);
     // ---- captions beside the drawings: when the drawings are held by the height (a column, a grid of wide
     // cells, an upright paper) the caption goes on the left of its drawing and the drawing grows
     const beside = !fixed && !noCaptions && besideLayout();
     function besideLayout() {
       const capW = Math.min(60 * s, Math.max(40 * s, (Wc - 2 * m) * 0.2)), gapC = 6 * s;
-      const per = sheet.layout === 'row' ? indexes.length : column ? 1 : gridOf(sheet, indexes.length).cols;
+      const per = sheet.layout === 'row' ? indexes.length : column ? 1 : gridOf(gridSheet, indexes.length).cols;
       const rows = [];
       indexes.forEach((stepIndex, j) => { if (j % per === 0) rows.push([]); rows[rows.length - 1].push({ stepIndex, j }); });
       const capHs = indexes.map((i) => captionHeight(prj.steps[i], capW));
@@ -449,6 +488,7 @@ export function renderSheet(prj, opts) {
     const head = header(p === 0).markup;
     let extra = '';
     if (p === 0 && legendRows) extra += legendFlow(m, W - m, Hc + 1.5 * s, true).markup;
+    if (p === 0 && legendFree && legendItems.length) extra += freeLegend();
     if (p === 0 && panelW) {
       // the text blocks: a small title in the caption colour, a rule, the text; + and − lines are points for and against
       const x = Wc + 9 * s - m, right = W - m, fsz = 3 * s, lh = fsz * 1.5;
@@ -484,7 +524,7 @@ export function renderSheet(prj, opts) {
     const foot = (scaleText ? `<text id="scale" x="${r2(m)}" y="${r2(H - m * 0.6)}" font-size="${r2(3 * s)}" font-weight="600" letter-spacing="${r2(0.25 * s)}" fill="${style.muted}">${esc(scaleText)}</text>` : '')
       + (pages.length > 1 ? `<text id="page" x="${r2(W - m)}" y="${r2(H - m * 0.6)}" font-size="${r2(3 * s)}" fill="${style.muted}" text-anchor="end">${p + 1} / ${pages.length}</text>` : '');
     return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="${W}mm" height="${H}mm" viewBox="0 0 ${W} ${H}" font-family="${esc(FONT)}">`
-      + fontStyle + `<rect id="papel" width="${W}" height="${H}" fill="${style.paper}"/>` + head + content.join('') + extra + foot + '</svg>';
+      + fontStyle + (opts.transparent ? '' : `<rect id="papel" width="${W}" height="${H}" fill="${style.paper}"/>`) + head + content.join('') + extra + foot + '</svg>';
   });
   return { svg: svgs[0], pages: svgs, width: W, height: H, scale: Math.round(denom), fixed, overflow, stacked, largestFit };
 }

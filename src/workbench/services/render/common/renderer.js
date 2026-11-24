@@ -878,7 +878,11 @@ export function renderStep(prj, index, opts) {
   const cutObjects = step.objects.filter((o) => o.type === 'cut').map((c) => ({ ...c, z: zOf(c) }));
   const cuts = cutObjects.flatMap(expandCut);
   const cats = new Map(prj.categories.map((c) => [c.id, c.color]));
-  let bbox = bboxOf(siteRing(prj.site).map((p) => project(view, p)));
+  // the site counts in the bounds only where it is drawn (its outline, its fill, its grid, the ground line of an
+  // elevation, the editor): a hidden site bigger than the model would leave the drawing small on the sheet
+  const siteRingScr = () => siteRing(prj.site).map((p) => project(view, p));
+  const siteDrawn = opts.editor || opts.grid || opts.terrainGrid || prj.site.mode === 'fill' || prj.site.mode === 'dashed' || isElevation(view);
+  let bbox = siteDrawn ? bboxOf(siteRingScr()) : null;
   if (showNorth(prj, view)) bbox = bboxUnion(bbox, northBounds(prj, view));
 
   const faces = [];
@@ -1266,6 +1270,7 @@ export function renderStep(prj, index, opts) {
   const tile = Math.max(0.6, Math.min(prj.site.w, prj.site.d) / 28);
   const defs = hatchUsed.size ? `<defs>${[...hatchUsed].map((k) => hatchPattern(`lx-h${k}-${uid}`, k, tile, Math.max(lw * 0.7, tile * 0.05), style.edge)).join('')}</defs>` : '';
   const markup = `${defs}<g class="ax-ground">${groundMarkupStr}</g><g class="ax-model">${model}</g><g class="ax-top">${top}</g>`;
+  if (!bbox) bbox = bboxOf(siteRingScr()); // nothing drawn: the site still frames the drawing
   return { markup, bbox, sectionDepth: sec?.depth ?? null, highlighted: [...changed].filter((id) => byId.get(id)?.state === 'normal' && !byId.get(id)?.cat) };
 }
 

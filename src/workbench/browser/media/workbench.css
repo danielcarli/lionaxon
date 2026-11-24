@@ -281,6 +281,16 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 4px; }
 .btn-danger:hover:not(:disabled) { filter: brightness(1.08); }
 .btn-row { display: flex; gap: 6px; flex-wrap: wrap; }
 .btn-row .btn { flex: 1; }
+.btn-row:has(.png-group) { align-items: flex-start; }
+.btn-row:has(.png-group) { flex-wrap: nowrap; }
+.btn-row:has(.png-group) > .btn { flex: 1 1 auto; min-width: 0; padding: 0 8px; }
+.png-group { flex: 1.6 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 5px; padding: 4px 4px 6px; margin-top: -5px; border: 1px solid var(--border); border-radius: calc(var(--radius-sm) + 3px); background: var(--bg-subtle); }
+.png-group > .btn { width: 100%; }
+.png-group .switch { align-self: center; gap: 4px; font-size: 10.5px; max-width: 100%; }
+.png-group .switch-label { white-space: nowrap; }
+.png-group .switch-track { width: 24px; height: 14px; border-radius: 7px; }
+.png-group .switch-thumb { width: 10px; height: 10px; }
+.png-group .switch input:checked + .switch-track .switch-thumb { transform: translateX(10px); }
 .icon-button { width: 26px; height: 26px; display: inline-grid; place-items: center; border-radius: var(--radius-sm); color: var(--text-muted); flex: none; }
 .icon-button:hover:not(:disabled) { background: var(--hover); color: var(--text-primary); }
 .icon-button.danger:hover:not(:disabled) { background: var(--danger-soft); color: var(--danger); }
@@ -665,3 +675,6 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 4px; }
 .canvas .handle-edge { stroke-opacity: 0; cursor: move; }
 .canvas .handle-edge:hover { stroke-opacity: 0.35; }
 .canvas .handle-lw:hover { filter: brightness(1.15); }
+
+/* the legend of the sheet is taken and put anywhere on the paper */
+.sheet-page #legend { cursor: move; }

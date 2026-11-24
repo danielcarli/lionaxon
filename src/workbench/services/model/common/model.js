@@ -50,7 +50,7 @@ export const OPENING_SIDES = ['front', 'right', 'back', 'left'];
 /** A mark drawn at the point of a label: a warning, a refusal, a gain, a loss. */
 export const LABEL_MARKS = ['', '!', '×', '+', '−'];
 /** Where the legend of the sheet goes: a column under the title, or a row along the foot. */
-export const LEGEND_PLACES = ['top', 'bottom'];
+export const LEGEND_PLACES = ['top', 'bottom', 'free'];
 /** A colour written as #rgb or #rrggbb (else null). */
 export const hexColor = (v) => (typeof v === 'string' && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(v.trim()) ? v.trim().toLowerCase() : null);
 export const LABEL_FONT_IDS = ['sans', 'condensed', 'serif', 'mono', 'hand'];
@@ -285,7 +285,7 @@ export function createProject(p = {}) {
     north: 0, northPlace: 'header', northHalftone: false, grid: 1, style: 'beige', catPatterns: false, view: { az: -45 },
     categories: [],
     steps: [createStep()],
-    sheet: { layout: 'row', cols: 3, paper: 'A3', orientation: 'landscape', scale: 0, title: '', subtitle: '', legend: true, texts: true, heads: true },
+    sheet: { layout: 'row', cols: 0, paper: 'A3', orientation: 'landscape', scale: 0, title: '', subtitle: '', legend: true, texts: true, heads: true },
     ...p,
   });
 }
@@ -410,13 +410,19 @@ export function normalizeProject(raw) {
     steps,
     sheet: {
       layout: pick(sheet.layout, LAYOUTS, 'row'),
-      cols: Math.round(num(sheet.cols, 3, 1, 8)),
+      // 0: as many columns as make the drawings largest
+      cols: Math.round(num(sheet.cols, 3, 0, 8)),
       paper: pick(sheet.paper, Object.keys(PAPERS), 'A3'),
       orientation: sheet.orientation === 'portrait' ? 'portrait' : 'landscape',
       scale: SHEET_SCALES.includes(Number(sheet.scale)) ? Number(sheet.scale) : 0,
       title: str(sheet.title), subtitle: str(sheet.subtitle),
       legend: sheet.legend !== false, texts: sheet.texts !== false, heads: sheet.heads !== false,
       legendPlace: pick(sheet.legendPlace, LEGEND_PLACES, 'top'),
+      // where a free legend is (its top left corner, as a fraction of the paper), dragged on the preview
+      legendAt: Array.isArray(sheet.legendAt) && sheet.legendAt.length === 2 && sheet.legendAt.every(Number.isFinite)
+        ? sheet.legendAt.map((v) => Math.round(Math.min(1, Math.max(0, v)) * 10000) / 10000) : null,
+      // a small north beside each drawing, besides (or instead of) the one of the header
+      northEach: sheet.northEach === true,
       // the terrain drawn as in the editor: see-through, with the grid on its surfaces
       terrainGrid: sheet.terrainGrid === true,
       // free blocks of text in a column on the right of the sheet (strategy, pros and cons…): a line that starts

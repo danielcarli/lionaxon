@@ -354,6 +354,7 @@ async function phase1(win, js) {
   await stepCard20(win, js);
   await alignTexts21(win, js);
   await orbitCuts21(win, js);
+  await pngTransparent21(win, js);
 
   // ---- leave unsaved work behind for phase 2
   await js(`${S}.document.switchTo(${S}.document.tabs.findIndex((t) => t.project.name === 'E2E test')); true`);
@@ -1830,6 +1831,63 @@ async function orbitCuts21(win, js) {
   await js(`${S}.layout.setTab('axon'); true`);
 }
 
+// 0.21.4: PNG with a transparent background, by a switch right under the PNG buttons (on by default)
+
+async function pngTransparent21(win, js) {
+  const S2 = `${S}.export`, C2 = `${S}.commands`, D2 = `${S}.document`;
+  await js(`localStorage.removeItem('lionaxon.pngTransparent'); ${S}.layout.setTab('sheet'); ${S}.layout.setActivity('sheet'); true`);
+  await sleep(500);
+  check('the PNG buttons have a "Transparent" switch under them, in one group, on by default', await js(`(() => {
+    const groups = [...document.querySelectorAll('.png-group')];
+    return groups.length === 2 && groups.every((g) => g.querySelector('[data-export=png], [data-export-steps=png]') && g.querySelector('input[data-key=pngTransparent]')?.checked);
+  })()`), await js(`document.querySelectorAll('.png-group').length`));
+  if (process.env.SHOT) { await sleep(300); fs.writeFileSync(process.env.SHOT, (await win.webContents.capturePage()).toPNG()); }
+  // the corner of the picture: no paper, nothing drawn there
+  const corner = (opts) => js(`(async () => { const ex = ${S2}; const f = ex.stepFrames(200, ${opts}); const svg = f.svgs.find(Boolean);
+    const px = await ex.pixels(svg, 200, f.height); return px[(200 * 2 + 2) * 4 + 3]; })()`);
+  check('…a transparent PNG leaves out the paper: its corner is clear', (await corner('{ transparent: true }')) === 0);
+  const opaque = await corner('{ transparent: false }');
+  check('…an opaque one keeps it', opaque === 255, String(opaque));
+  check('…and the sheet too', await js(`!${S2}.sheet({ transparent: true }).svg.includes('id="papel"') && ${S2}.sheet({}).svg.includes('id="papel"')`));
+  await js(`document.querySelector('.png-group input[data-key=pngTransparent]').click(); true`);
+  await sleep(400);
+  check('…turned off, both switches are off, and it is remembered', await js(`${S2}.pngTransparent === false && [...document.querySelectorAll('input[data-key=pngTransparent]')].every((x) => !x.checked) && localStorage.getItem('lionaxon.pngTransparent') === 'false'`));
+  await js(`${S2}.pngTransparent = true; true`);
+  await sleep(300);
+
+  // 0.21.4: the sheet: automatic columns, a north at each drawing, a free legend dragged on the preview,
+  // the size of the steps exported on their own
+  await js(`${C2}.example('plateaus').then(() => true)`);
+  await sleep(600);
+  await js(`${C2}.setProject((p) => { p.sheet.layout = 'grid'; p.sheet.cols = 0; p.sheet.legend = true; p.sheet.legendPlace = 'top'; p.sheet.northEach = false; }, 'sheet.set'); ${S}.layout.setTab('sheet'); ${S}.layout.setActivity('sheet'); true`);
+  await sleep(600);
+  check('the columns of a grid can be automatic', await js(`document.querySelector('[data-pane=sheet] select[data-key=cols]')?.value === '0'`));
+  const norths = () => js(`document.querySelectorAll('[data-view=sheet] .sheet-page .north').length`);
+  const n0 = await norths();
+  await js(`document.querySelector('[data-pane=sheet] input[data-key=northEach]').click(); true`);
+  await sleep(500);
+  check('"North beside each drawing" puts a north at every drawing', (await norths()) >= n0 + (await js(`${D2}.project.steps.length`)) - 1, String(await norths()));
+  // the legend dragged on the preview becomes free, where it was put
+  const lg = await js(`(() => { const r = document.querySelector('[data-view=sheet] .sheet-page #legend').getBoundingClientRect(); return JSON.stringify([r.left + r.width / 2, r.top + r.height / 2]); })()`).then(JSON.parse);
+  const send = (type, x, y) => js(`(() => { const el = ${type === 'pointerdown' ? `document.querySelector('[data-view=sheet] .sheet-page #legend rect, [data-view=sheet] .sheet-page #legend text')` : `document.querySelector('[data-view=sheet] .sheet-wrap')`};
+    el.dispatchEvent(new PointerEvent('${type}', { clientX: ${x}, clientY: ${y}, button: 0, buttons: ${type === 'pointerup' ? 0 : 1}, bubbles: true, pointerId: 1, isPrimary: true })); return true; })()`);
+  await send('pointerdown', lg[0], lg[1]);
+  for (let i = 1; i <= 5; i++) await send('pointermove', lg[0] + i * 30, lg[1] + i * 40);
+  await send('pointerup', lg[0] + 150, lg[1] + 200);
+  await sleep(600);
+  const sh = await js(`JSON.stringify(${D2}.project.sheet)`).then(JSON.parse);
+  check('…the legend dragged on the preview goes where it is put: free, its place kept', sh.legendPlace === 'free' && Array.isArray(sh.legendAt) && sh.legendAt[1] > 0.1
+    && await js(`!!document.querySelector('[data-view=sheet] .sheet-page #legend[data-free="1"]') && document.querySelector('[data-pane=sheet] [data-key=legendPlace] [aria-checked=true]')?.textContent === 'Free'`), JSON.stringify(sh.legendAt));
+  // the size of each step exported on its own
+  check('Export steps has a size in pixels, of width or height', await js(`!!document.querySelector('[data-pane=sheet] input[data-key=stepPx]') && !!document.querySelector('[data-pane=sheet] [data-key=stepSide]')`));
+  await js(`(() => { const b = [...document.querySelectorAll('[data-pane=sheet] [data-key=stepSide] button')].find((x) => x.textContent === 'Height'); b.click(); return true; })()`);
+  await sleep(300);
+  await js(`(() => { const f = document.querySelector('[data-pane=sheet] input[data-key=stepPx]'); f.focus(); f.value = '800'; f.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); f.blur(); return true; })()`);
+  await sleep(300);
+  check('…kept for the next time', await js(`(() => { const z = ${S2}.stepSize; return z.px === 800 && z.side === 'h'; })()`), await js(`JSON.stringify(${S2}.stepSize)`));
+  await js(`${S2}.stepSize = { px: 2400, side: 'w' }; ${S}.layout.setActivity('steps'); ${S}.layout.setTab('axon'); true`);
+}
+
 async function labelWrap15(win, js) {
   const D = `${S}.document`, C = `${S}.commands`;
   await js(`${C}.newProject(); true`);
@@ -2540,6 +2598,14 @@ async function shots(win, js) {
     win.webContents.invalidate();
     await shot('align-panel.png');
   }
+  // 0.21.4: the PNG buttons and the switch of a transparent background (not in the README: to see them)
+  await js(`${S}.layout.setTab('sheet'); ${S}.layout.setActivity('sheet'); true`);
+  await sleep(500);
+  await js(`document.querySelector('.png-group')?.scrollIntoView({ block: 'start' }); true`);
+  await sleep(200);
+  win.webContents.invalidate();
+  await shot('png-group.png');
+  await js(`${S}.layout.setActivity('steps'); true`);
   // 0.12: the versions window with a new version found and the way this copy is updated
   await js(`document.querySelector('.status-version').click(); true`);
   await sleep(1300);

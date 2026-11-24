@@ -895,5 +895,30 @@ test('a volume that fills a void is still cut by other subtractions (a smaller o
   assert.ok(faces.length > volumeFaces(v, 0, []).length, 'the new subtraction takes a piece out of it');
 });
 
+test('sheet: drawings as large as they go — automatic columns, the legend in rows (or free), a hidden site left out, a north at each drawing', () => {
+  const base = normalizeProject(JSON.parse(fs.readFileSync(new URL('../examples/plateaus-pt-BR.lionaxon', import.meta.url), 'utf8')));
+  const t = (k) => k;
+  const sheetOf = (patch) => { const prj = structuredClone(base); prj.sheet = { ...prj.sheet, layout: 'grid', paper: 'A3', orientation: 'landscape', scale: 0, legend: true, ...patch }; return renderSheet(prj, { t }); };
+  const auto = sheetOf({ cols: 0 });
+  for (let c = 1; c <= base.steps.length; c++) assert.ok(auto.scale <= sheetOf({ cols: c }).scale + 1, `automatic columns: no number of columns makes them larger (${c})`);
+  // a free legend floats where it was put, and leaves the header
+  const free = sheetOf({ cols: 0, legendPlace: 'free', legendAt: [0.7, 0.8] });
+  assert.ok(free.svg.includes('<g id="legend" data-free="1">'));
+  const lx = Number(/<g id="legend" data-free="1"><rect x="([\d.]+)"/.exec(free.svg)[1]);
+  assert.ok(Math.abs(lx - (0.7 * free.width - 1.5 * Math.sqrt((free.width * free.height) / (420 * 297)))) < 0.5, 'where it was put');
+  assert.ok(free.scale <= auto.scale, 'and gives the drawings the room it had');
+  // a north at the corner of each drawing
+  const north = (svg) => (svg.match(/class="north/g) || []).length;
+  const each = sheetOf({ cols: 0, northEach: true });
+  assert.ok(north(each.svg) >= north(auto.svg) + base.steps.length - 1, 'one more north per drawing');
+  // a site that is not drawn does not count in the bounds of the drawing
+  const prj = normalizeProject(JSON.parse(fs.readFileSync(new URL('../examples/parti-pt-BR.lionaxon', import.meta.url), 'utf8')));
+  prj.site = { ...prj.site, w: 400, d: 400, mode: 'none', dims: false, thickness: 0 };
+  const v = makeView(-45);
+  const hidden = renderStep(prj, 0, { view: v, lw: 0.1 }).bbox;
+  const shown = renderStep({ ...prj, site: { ...prj.site, mode: 'dashed' } }, 0, { view: v, lw: 0.1 }).bbox;
+  assert.ok(hidden[2] - hidden[0] < (shown[2] - shown[0]) * 0.6, 'the hidden site is left out');
+});
+
 console.log(`\n${n} passed`);
 void sortFaces;

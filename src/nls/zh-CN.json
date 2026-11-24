@@ -729,6 +729,8 @@
  "sheet.stepsHintFiles": "步骤 {list} 的图，不含标题和文字：{n} 个文件放在一个文件夹中，取景和比例相同。",
  "sheet.stepsHintSheet": "只包含步骤 {list} 的图板，使用此处选择的排版、纸张和比例。",
  "export.stepsInvalid": "无法识别“{part}”。请输入 1 到 {n} 的步骤：7、3-7 或 1, 4, 6-8；3- 表示到最后，-5 表示从第一步开始（留空：当前步骤；* 或 - 表示全部）。",
+ "export.transparent": "透明",
+ "export.transparentTip": "PNG 输出时去掉图纸背景（透明背景），便于叠放在其他图片上；关闭时使用纸张颜色",
  "export.stepsWord": "步骤",
  "sheet.pages": "页面",
  "sheet.pagePrev": "上一页",
@@ -762,5 +764,15 @@
  "format.italic": "斜体",
  "format.bullets": "列表",
  "format.numbers": "编号列表",
- "format.hint": "**粗体**、*斜体*；以 \"- \" 开头的行是列表项，以 \"1. \" 开头的是编号列表项。"
+ "format.hint": "**粗体**、*斜体*；以 \"- \" 开头的行是列表项，以 \"1. \" 开头的是编号列表项。",
+ "sheet.legendFree": "自由",
+ "sheet.legendFreeTip": "放在图纸任意位置：在预览中拖动",
+ "sheet.legendFreeHint": "在预览中把图例拖到想要的位置；它不占用图形的空间。",
+ "sheet.northEach": "每幅图旁都有指北针",
+ "sheet.northEachTip": "在图纸上每幅图（以及单独导出的步骤）的角上加一个小指北针，标题栏的指北针保留",
+ "sheet.colsAuto": "自动",
+ "sheet.stepsSize": "尺寸",
+ "sheet.stepsSizeTip": "每张图片的像素尺寸：宽度或高度（另一边随图形而定）",
+ "sheet.sizeWidth": "宽度",
+ "sheet.sizeHeight": "高度"
 }

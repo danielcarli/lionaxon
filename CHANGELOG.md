@@ -2,6 +2,22 @@
 
 All notable changes to LionAxon are documented here. The project follows [Semantic Versioning](https://semver.org).
 
+## [0.22.0] — 2026-11-24
+
+### Added
+- **PNG with a transparent background**: a *Transparent* switch right under the PNG buttons, grouped with them, in *Export the sheet* and in *Export steps* — on by default (the drawing with no paper behind it, to lay over other images), remembered. SVG and PDF keep the paper.
+- **A free legend**: *Legend* has *Free* beside *Top* and *Foot*; the legend floats where it is put and takes no room from the drawings. Drag it on the preview with the left button — a legend at the top or the foot becomes free where it is dropped.
+- **North beside each drawing** (a checkbox in the *Sheet* pane): a small north at the corner of every drawing of the sheet, and of the steps exported on their own, besides the one of the header.
+- **The size of the steps exported on their own**, in pixels, of their **width** or of their **height** (the other follows the drawing), remembered; for PNG and SVG.
+- **Automatic columns** for the grid (*Columns: Automatic*, the default for new diagrams): the sheet takes the number of columns that makes the drawings largest.
+
+### Changed
+- **The drawings on the sheet are larger**: the legend at the top runs in rows under the title instead of a column (it was taking a band of the page from the drawings); a site that is not drawn (no outline, no fill, no grid) no longer counts in the frame of the drawings, so a large site around a small building does not shrink them. In the examples the drawings of a grid grow 6 to 55 %.
+- The choices of the legend are shorter: *Top*, *Foot*, *Free*.
+
+### Fixed
+- A sheet at a fixed scale in a row, grid or column could fail to lay out (a measure used before it was worked out).
+
 ## [0.21.3] — 2026-11-23
 
 ### Changed
