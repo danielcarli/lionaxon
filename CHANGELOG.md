@@ -2,6 +2,16 @@
 
 All notable changes to LionAxon are documented here. The project follows [Semantic Versioning](https://semver.org).
 
+## [0.22.1] — 2026-11-24
+
+### Changed
+- **The drawings fill the sheet much better** — measured on a sheet of eight steps with texts:
+  - **Column** and **vertical** on wide paper go on in more columns side by side (read top to bottom, then the next column), when that makes the drawings larger: on A1 landscape the drawings went from 1:4600 to 1:660 (column) and from 1:5347 on two pages to 1:853 on one (vertical).
+  - The captions beside the drawings are tried at several widths (wider: fewer lines, lower rows) and taken when they win; a caption that cannot fit the page is never taken. A grid of 2 columns on A1 upright: 1:859 → 1:634.
+  - The white left over is shared evenly above, between and below the rows, instead of a band under the header.
+  - The automatic columns of a grid weigh the captions beside too.
+- **North beside each drawing**: the north sits in the top right corner of the drawing's own bounds, as close to it as it goes, and the north of the header goes (as does the north lying in the drawings).
+
 ## [0.22.0] — 2026-11-24
 
 ### Added

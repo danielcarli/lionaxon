@@ -13,7 +13,7 @@ Simples de aprender em uma tarde. O mesmo programa no Windows, no macOS e no Lin
 
 [English](../README.md) · **Português (Brasil)**
 
-![Versão 0.22.0](https://img.shields.io/badge/vers%C3%A3o-0.22.0-23272b)
+![Versão 0.22.1](https://img.shields.io/badge/vers%C3%A3o-0.22.1-23272b)
 ![Experimental](https://img.shields.io/badge/status-experimental-b5532d)
 ![Plataformas: Windows, macOS, Linux](https://img.shields.io/badge/plataforma-Windows%20%7C%20macOS%20%7C%20Linux-23272b)
 ![10 línguas](https://img.shields.io/badge/l%C3%ADnguas-10-d0673f)
@@ -102,7 +102,7 @@ Software livre (GPL-3.0). Sem conta, sem assinatura, sem telemetria, e funciona 
 **Levar embora**
 - **PDF e SVG vetoriais** (uma camada por etapa no Illustrator e no Inkscape), **PNG** até 300 dpi, as etapas em **GIF animado**, e **cada etapa como imagem própria** (PNG, SVG ou PDF, todas no mesmo enquadramento e escala) de uma vez.
 - **Blocos de texto** ao lado dos desenhos (estratégia, prós e contras com + e −), a **legenda** no topo, no rodapé ou **livre** (arrastada para qualquer lugar na prévia); um **norte junto de cada desenho**; rótulos com uma segunda linha mais discreta e marcadores (! × + −), que quebram em linhas na largura até onde você puxa a lateral da caixa de texto. O terreno pode ir para a prancha **em grade**, como na edição.
-- **Desenhos do maior tamanho que o papel permite**: a grade escolhe sozinha o número de colunas, a legenda corre em linhas, e um terreno que não é desenhado não ocupa mais espaço.
+- **Desenhos do maior tamanho que o papel permite**: a grade escolhe sozinha o número de colunas; coluna e vertical em papel largo continuam em mais colunas lado a lado; os textos vão para o lado dos desenhos, na largura que os deixa maiores, quando isso ganha; o branco que sobra se divide igualmente entre as linhas; a legenda corre em linhas, e um terreno que não é desenhado não ocupa mais espaço.
 - Pranchas em linha, grade, coluna ou vertical, de A4 a A0, em escala, em quantas páginas for preciso; quando os desenhos ficam presos pela altura, as legendas vão para o lado e os desenhos crescem. A prévia tem zoom pela roda e se arrasta como o desenho, página a página.
 - Pranchas com ou sem o **número e o título** de cada etapa.
 - **Exportar as etapas que você escrever** — `7`, `3-7`, `1, 4, 6-8`, `3-` até a última, `-5` desde a primeira — cada uma num arquivo próprio (na largura ou altura em pixels que você der), ou numa prancha só com elas. Os PNG saem com **fundo transparente**, a não ser que você desligue.
@@ -270,7 +270,7 @@ Código, comentários, identificadores e documentação em inglês. A interface 
 
 ## Próximas versões
 
-- **0.22** ✓ — desenhos do maior tamanho que o papel permite (colunas automáticas, legenda em linhas, terreno oculto fora da conta); legenda livre arrastada na prévia; norte junto de cada desenho; PNG com fundo transparente; o tamanho em pixels das etapas exportadas separadas.
+- **0.22** ✓ — desenhos do maior tamanho que o papel permite (colunas automáticas, colunas lado a lado em papel largo, textos ao lado na melhor largura, o branco dividido por igual, legenda em linhas, terreno oculto fora da conta); legenda livre arrastada na prévia; norte junto de cada desenho; PNG com fundo transparente; o tamanho em pixels das etapas exportadas separadas.
 - **0.21** ✓ — textos alinhados como num programa de desenho: guias inteligentes ao arrastar, e alinhar e distribuir pelas caixas na tela; as subtrações no visualizador 3D; uma subtração começada num volume sempre o recorta.
 - **0.20** ✓ — caixas de texto (rótulos sem linha, redimensionados pela lateral); negrito, itálico e listas nos textos dos rótulos; o título e o texto da etapa escritos no próprio card.
 - **0.19** ✓ — trapézios em pé (os lados inclinados até um topo mais estreito) e deitados (um trapézio na planta, com as paredes retas), como volumes e como subtrações; paredes movidas pelas arestas, cantos pelas alças.
@@ -291,7 +291,7 @@ Código, comentários, identificadores e documentação em inglês. A interface 
 - **Depois** — a importação de modelos de edifício (IFC, depois arquivos Rev), testada em projetos reais; várias pranchas e alternativas no mesmo projeto; terreno livre; escadas; plantas de zoneamento; pátios e união de volumes; lajes soltas e pilotis; sombras sobre volumes e terreno; cortes na prancha; desenhar formas novas no visualizador 3D; paleta de comandos; instaladores assinados.
 - **1.0** — DXF de entrada e saída; manual e tutoriais na ordem de um ateliê de projeto; traduções revisadas.
 
-O histórico completo está no [CHANGELOG](../CHANGELOG.md) — versão atual: **0.22.0**.
+O histórico completo está no [CHANGELOG](../CHANGELOG.md) — versão atual: **0.22.1**.
 
 ## Créditos
 

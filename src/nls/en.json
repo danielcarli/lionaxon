@@ -769,7 +769,7 @@
  "sheet.legendFreeTip": "Anywhere on the paper: drag it on the preview",
  "sheet.legendFreeHint": "Drag the legend on the preview to where you want it; it takes no room from the drawings.",
  "sheet.northEach": "North beside each drawing",
- "sheet.northEachTip": "A small north at the corner of each drawing of the sheet (and of the steps exported on their own), besides the one of the header",
+ "sheet.northEachTip": "A small north at the corner of each drawing of the sheet (and of the steps exported on their own), as close to the drawing as it goes, in place of the north of the header",
  "sheet.colsAuto": "Automatic",
  "sheet.stepsSize": "Size",
  "sheet.stepsSizeTip": "The size of each image, in pixels: of its width or of its height (the other follows the drawing)",

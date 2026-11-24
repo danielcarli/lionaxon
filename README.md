@@ -13,7 +13,7 @@ Simple to learn in an afternoon. The same app on Windows, macOS and Linux. Free.
 
 **English** · [Português (Brasil)](docs/README.pt-BR.md)
 
-![Version 0.22.0](https://img.shields.io/badge/version-0.22.0-23272b)
+![Version 0.22.1](https://img.shields.io/badge/version-0.22.1-23272b)
 ![Experimental](https://img.shields.io/badge/status-experimental-b5532d)
 ![Platforms: Windows, macOS, Linux](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-23272b)
 ![10 languages](https://img.shields.io/badge/languages-10-d0673f)
@@ -102,7 +102,7 @@ Free software (GPL-3.0). No account, no subscription, no telemetry, and it works
 **Take it out**
 - **PDF and SVG in vectors** (one layer per step in Illustrator and Inkscape), **PNG** up to 300 dpi, the steps as an **animated GIF**, and **every step as its own image** (PNG, SVG or PDF, all in the same frame and scale) in one go.
 - **Text blocks** beside the drawings (strategy, pros and cons with + and −), the **legend** at the top, along the foot or **free** (dragged anywhere on the preview); a **north beside each drawing**; labels with a quieter second line and marks (! × + −), broken into lines at the width you pull the side of their text box to. The terrain can be drawn on the sheet **as a grid**, as in the editor.
-- **Drawings as large as the paper allows**: a grid can choose its columns by itself, the legend runs in rows, and a site left undrawn no longer takes room.
+- **Drawings as large as the paper allows**: a grid can choose its columns by itself; a column or a vertical sheet on wide paper goes on in more columns side by side; the captions go beside the drawings, at the width that makes them largest, when that wins; the white left over is shared evenly between the rows; the legend runs in rows, and a site left undrawn no longer takes room.
 - Sheets in row, grid, column or vertical layouts, A4 to A0, to scale, on as many pages as needed; when the drawings are held by the height, the captions go beside them and the drawings grow. The preview is zoomed with the wheel and dragged like the drawing, page by page.
 - Sheets with or without the **number and title** of each step.
 - **Export the steps you write** — `7`, `3-7`, `1, 4, 6-8`, `3-` to the last, `-5` from the first — each in a file of its own (of the width or height in pixels you give), or as one sheet with just those steps. PNG files come out with a **transparent background** unless you turn it off.
@@ -322,7 +322,7 @@ Code, comments, identifiers and documentation are in English. The interface is t
 
 ## Roadmap
 
-- **0.22** ✓ — drawings as large as the paper allows (automatic columns, the legend in rows, a hidden site left out); a free legend dragged on the preview; a north beside each drawing; PNG with a transparent background; the size in pixels of the steps exported on their own.
+- **0.22** ✓ — drawings as large as the paper allows (automatic columns, columns side by side on wide paper, captions beside at their best width, the white shared evenly, the legend in rows, a hidden site left out); a free legend dragged on the preview; a north beside each drawing; PNG with a transparent background; the size in pixels of the steps exported on their own.
 - **0.21** ✓ — texts lined up as in a drawing program: smart guides while one is dragged, and align and distribute by their boxes on the screen; the subtractions in the 3D viewer; a subtraction started on a volume always cuts it.
 - **0.20** ✓ — text boxes (labels with no leader, resized by their side); bold, italic and lists in the texts of labels; the title and text of a step written on its card.
 - **0.19** ✓ — trapezoids, standing (the sides leaning in to a narrower top) and lying (a trapezoid in plan, its walls straight up), as volumes and as subtractions; walls moved by their edges, corners by their handles.
@@ -345,7 +345,7 @@ Code, comments, identifiers and documentation are in English. The interface is t
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) — current version: **0.22.0**.
+See [CHANGELOG.md](CHANGELOG.md) — current version: **0.22.1**.
 
 ## Credits
 

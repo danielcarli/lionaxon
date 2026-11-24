@@ -769,7 +769,7 @@
  "sheet.legendFreeTip": "Irgendwo auf dem Papier: in der Vorschau ziehen",
  "sheet.legendFreeHint": "Ziehen Sie die Legende in der Vorschau, wohin Sie wollen; sie nimmt den Zeichnungen keinen Platz.",
  "sheet.northEach": "Nordpfeil bei jeder Zeichnung",
- "sheet.northEachTip": "Ein kleiner Nordpfeil in der Ecke jeder Zeichnung des Blatts (und der einzeln exportierten Schritte), zusätzlich zu dem im Kopf",
+ "sheet.northEachTip": "Ein kleiner Nordpfeil in der Ecke jeder Zeichnung des Blatts (und der einzeln exportierten Schritte), so nah wie möglich an der Zeichnung, statt des Nordpfeils im Kopf",
  "sheet.colsAuto": "Automatisch",
  "sheet.stepsSize": "Größe",
  "sheet.stepsSizeTip": "Die Größe jedes Bildes in Pixeln: seiner Breite oder seiner Höhe (das andere folgt der Zeichnung)",

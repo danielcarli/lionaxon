@@ -152,13 +152,13 @@ export class ExportService {
     const esc = (x) => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const svgs = p.steps.map((st, i) => {
       if (only && !only.has(i)) return null;
-      const { markup } = renderStep(p, i, { view: views[i], lw: (bw / width) * 1.2, fmt: meters, terrainGrid: !!p.sheet.terrainGrid });
+      const { markup, bbox: own } = renderStep(p, i, { view: views[i], lw: (bw / width) * 1.2, fmt: meters, terrainGrid: !!p.sheet.terrainGrid });
       const num = String(i + 1).padStart(2, '0');
       return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${box[0]} ${box[1]} ${bw} ${bh + cap}" width="${width}" height="${height}">`
         + (fontCss ? `<defs><style>${fontCss}</style></defs>` : '')
         + (transparent ? '' : `<rect x="${box[0]}" y="${box[1]}" width="${bw}" height="${bh + cap}" fill="${style.paper}"/>`) + markup
         // the north at the corner of each drawing, when the sheet asks for it
-        + (p.sheet.northEach ? northGlyph(views[i], p.north, box[2] - nr * 1.6, box[1] + nr * 1.6, nr, { ink: p.northHalftone ? style.muted : style.ink, muted: style.muted, halftone: p.northHalftone, s: nr / 5.5 }) : '')
+        + (p.sheet.northEach ? northGlyph(views[i], p.north, own[2] - nr, own[1] + nr, nr, { ink: p.northHalftone ? style.muted : style.ink, muted: style.muted, halftone: p.northHalftone, s: nr / 5.5 }) : '')
         + (!caption ? '</svg>' : '')
         + (!caption ? '' : `<text x="${box[0] + bw * 0.04}" y="${box[3] + cap * 0.45}" font-family="${FONT}" font-size="${cap * 0.42}" fill="${style.caption}" font-weight="500">${num}</text>`
         + `<text x="${box[0] + bw * 0.04 + cap * 0.8}" y="${box[3] + cap * 0.45}" font-family="${FONT}" font-size="${cap * 0.3}" fill="${style.text}" font-weight="700" letter-spacing="${cap * 0.01}">${esc((st.title || '').toUpperCase())}</text></svg>`);

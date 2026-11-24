@@ -769,7 +769,7 @@
  "sheet.legendFreeTip": "En cualquier lugar del papel: arrástrela en la vista previa",
  "sheet.legendFreeHint": "Arrastre la leyenda en la vista previa hasta donde quiera; no ocupa espacio de los dibujos.",
  "sheet.northEach": "Norte junto a cada dibujo",
- "sheet.northEachTip": "Un norte pequeño en la esquina de cada dibujo de la lámina (y de las etapas exportadas por separado), además del de la cabecera",
+ "sheet.northEachTip": "Un norte pequeño en la esquina de cada dibujo de la lámina (y de las etapas exportadas por separado), lo más cerca posible del dibujo, en lugar del norte de la cabecera",
  "sheet.colsAuto": "Automático",
  "sheet.stepsSize": "Tamaño",
  "sheet.stepsSizeTip": "El tamaño de cada imagen, en píxeles: de su ancho o de su alto (el otro sigue al dibujo)",

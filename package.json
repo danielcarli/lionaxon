@@ -1,6 +1,6 @@
 {
   "name": "lionaxon",
-  "version": "0.22.0",
+  "version": "0.22.1",
   "description": "LionAxon — parti diagrams and massing studies for architecture: simple volumes on a site, steps that tell how the design came about, and a vector sheet ready to print.",
   "main": "src/code/electron-main/main.js",
   "scripts": {

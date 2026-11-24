@@ -769,7 +769,7 @@
  "sheet.legendFreeTip": "放在图纸任意位置：在预览中拖动",
  "sheet.legendFreeHint": "在预览中把图例拖到想要的位置；它不占用图形的空间。",
  "sheet.northEach": "每幅图旁都有指北针",
- "sheet.northEachTip": "在图纸上每幅图（以及单独导出的步骤）的角上加一个小指北针，标题栏的指北针保留",
+ "sheet.northEachTip": "在图纸上每幅图（以及单独导出的步骤）的角上加一个小指北针，尽量靠近图形，取代标题栏的指北针",
  "sheet.colsAuto": "自动",
  "sheet.stepsSize": "尺寸",
  "sheet.stepsSizeTip": "每张图片的像素尺寸：宽度或高度（另一边随图形而定）",

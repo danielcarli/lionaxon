@@ -769,7 +769,7 @@
  "sheet.legendFreeTip": "Em qualquer lugar do papel: arraste-a na pré-visualização",
  "sheet.legendFreeHint": "Arraste a legenda na pré-visualização até onde quiser; não ocupa espaço dos desenhos.",
  "sheet.northEach": "Norte junto de cada desenho",
- "sheet.northEachTip": "Um norte pequeno no canto de cada desenho da prancha (e das etapas exportadas em separado), além do norte do cabeçalho",
+ "sheet.northEachTip": "Um norte pequeno no canto de cada desenho da prancha (e das etapas exportadas em separado), o mais perto possível do desenho, em vez do norte do cabeçalho",
  "sheet.colsAuto": "Automático",
  "sheet.stepsSize": "Tamanho",
  "sheet.stepsSizeTip": "O tamanho de cada imagem, em píxeis: da largura ou da altura (a outra acompanha o desenho)",

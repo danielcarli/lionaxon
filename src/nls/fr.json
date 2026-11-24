@@ -769,7 +769,7 @@
  "sheet.legendFreeTip": "N’importe où sur le papier : faites-la glisser sur l’aperçu",
  "sheet.legendFreeHint": "Faites glisser la légende sur l’aperçu où vous voulez ; elle ne prend pas de place aux dessins.",
  "sheet.northEach": "Nord à côté de chaque dessin",
- "sheet.northEachTip": "Un petit nord au coin de chaque dessin de la planche (et des étapes exportées à part), en plus de celui de l’en-tête",
+ "sheet.northEachTip": "Un petit nord au coin de chaque dessin de la planche (et des étapes exportées à part), aussi près du dessin que possible, à la place du nord de l’en-tête",
  "sheet.colsAuto": "Automatique",
  "sheet.stepsSize": "Taille",
  "sheet.stepsSizeTip": "La taille de chaque image, en pixels : de sa largeur ou de sa hauteur (l’autre suit le dessin)",

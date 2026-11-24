@@ -109,13 +109,17 @@ export function renderSheet(prj, opts) {
   const fixed = sheet.scale > 0 && opts.only == null;
   const vertical = sheet.layout === 'vertical';
   const K = Math.max(...indexes.map((i) => angles.get(i).length)); // the most angles of one step
+  // the north lying in the drawings (or always drawn in plan) gives way to the north beside each drawing
+  const drawPrj = sheet.northEach ? { ...prj, northPlace: 'none' } : prj;
+  // a north beside each drawing: asked, or the drawings are seen from different angles (one north can't serve them)
+  const northEach = sheet.northEach || (!uniform && prj.northPlace === 'header');
 
   // the same scale for every step: the union of their bounds, per angle; the slots take the largest
   const boxes = new Map();
   const highlighted = [];
   for (const i of indexes) {
     angles.get(i).forEach(({ key, view: v }, j) => {
-      const r = renderStep(prj, i, { view: v, lw: 0.1, fmt: opts.fmt, terrainGrid: !!sheet.terrainGrid });
+      const r = renderStep(drawPrj, i, { view: v, lw: 0.1, fmt: opts.fmt, terrainGrid: !!sheet.terrainGrid });
       boxes.set(key, bboxUnion(boxes.get(key) || null, r.bbox));
       if (j === 0 && r.highlighted.length) highlighted.push(i);
     });
@@ -178,7 +182,8 @@ export function renderSheet(prj, opts) {
     // themselves, flat on the ground, when the project asks for it); the scale under it
     // (with steps seen from different angles, each drawing has its own small north instead)
     const northR = 5.5 * s;
-    const northHere = prj.northPlace === 'header' && first && uniform;
+    // the north of the header, unless every drawing has its own
+    const northHere = prj.northPlace === 'header' && first && uniform && !sheet.northEach;
     if (northHere) out += northGlyph(view, prj.north, Wc - m - northR, m + northR, northR, { ink, muted: style.muted, halftone: prj.northHalftone, s, id: 'north' });
     out = `<g id="cabecalho">${out}</g>`;
     // legend: rows across the page under the subtitle (clear of the north), short, so the drawings keep the
@@ -242,12 +247,14 @@ export function renderSheet(prj, opts) {
     const box = boxes.get(key);
     const w = box[2] - box[0], hh = box[3] - box[1];
     const sx = x + j * (slotW + gap), dx = sx + (slotW - w * scale) / 2, dy = y + ((bh - hh) * scale) / 2;
-    const { markup } = renderStep(prj, stepIndex, { view: v, lw: EDGE_MM / scale, fmt: opts.fmt, terrainGrid: !!sheet.terrainGrid });
+    const { markup, bbox: own } = renderStep(drawPrj, stepIndex, { view: v, lw: EDGE_MM / scale, fmt: opts.fmt, terrainGrid: !!sheet.terrainGrid });
     let g = `<svg x="${r2(dx)}" y="${r2(dy)}" width="${r2(w * scale)}" height="${r2(hh * scale)}" viewBox="${r2(box[0])} ${r2(box[1])} ${r2(w)} ${r2(hh)}" overflow="visible">${markup}</svg>`;
-    // a small north at the corner of each drawing: when the drawings are seen from different angles, or asked
-    if ((!uniform && prj.northPlace === 'header') || sheet.northEach) {
+    // a small north at each drawing (when the drawings are seen from different angles, or asked), as close as it
+    // goes to the drawing: in the top right corner of its own bounds, which an axonometric leaves empty
+    if (northEach) {
       const r = 3.2 * s;
-      g += northGlyph(v, prj.north, sx + slotW - r, y + r, r, { ink, muted: style.muted, halftone: prj.northHalftone, s });
+      const right = dx + (own[2] - box[0]) * scale, top = dy + (own[1] - box[1]) * scale;
+      g += northGlyph(v, prj.north, right - r, top + r, r, { ink, muted: style.muted, halftone: prj.northHalftone, s });
     }
     return g;
   }).join('');
@@ -279,60 +286,133 @@ export function renderSheet(prj, opts) {
   if (vertical) {
     // ---- vertical: one step under the other, the drawing on the left, its caption on the right
     // no captions at all: the drawings take the whole width
-    const capW = noCaptions ? 0 : Math.max(46 * s, (Wc - 2 * m) * 0.3);
-    const gap = noCaptions ? 0 : 8 * s, rowGap = 7 * s, gapIn = 6 * s;
-    const drawW = Wc - 2 * m - capW - gap;
-    fitWidth = drawW;
-    const capH = indexes.map((i) => captionHeight(prj.steps[i], capW));
-    if (fixed) scale = 1000 / sheet.scale / axis;
-    else {
-      // the largest scale that fits every step on one page
-      const room = Hc - m - footerH - firstTop - (indexes.length - 1) * rowGap;
-      scale = Math.min((drawW - (K - 1) * gapIn) / (K * bw), Math.max(4 * s, room / indexes.length) / bh);
-      for (let k = 0; k < 30; k++) { // rows taller than the drawing (long captions) take room too
-        const total = indexes.reduce((sum, _, j) => sum + Math.max(bh * scale, capH[j]), 0) + (indexes.length - 1) * rowGap;
-        if (total <= Hc - m - footerH - firstTop + 1e-6) break;
-        scale *= 0.97;
+    // to scale (or when nothing below fits) one column of steps, page after page; else the steps fill the
+    // paper: in one column, or going on in more columns side by side on wide paper, with the width of the
+    // captions that makes the drawings largest
+    const done = !fixed && verticalColumns();
+    function verticalColumns() {
+      const colGap = 10 * s, gap = noCaptions ? 0 : 8 * s, rowGap = 7 * s, gapIn = 6 * s;
+      const room = Hc - m - footerH - firstTop;
+      const fit = (nc, capW) => {
+        const colW = (Wc - 2 * m - (nc - 1) * colGap) / nc;
+        const cw = noCaptions ? 0 : capW;
+        const drawW = colW - cw - gap;
+        if (drawW < 20 * s) return null;
+        const R = Math.ceil(indexes.length / nc);
+        const cols = [];
+        indexes.forEach((stepIndex, j) => { (cols[Math.floor(j / R)] ||= []).push(stepIndex); });
+        const capH = new Map(indexes.map((i) => [i, noCaptions ? 0 : captionHeight(prj.steps[i], cw)]));
+        const colHeight = (col, k) => col.reduce((a, i) => a + Math.max(bh * k, capH.get(i)), 0) + (col.length - 1) * rowGap;
+        const tallest = (k) => Math.max(...cols.map((col) => colHeight(col, k)));
+        if (tallest(0) > room + 1e-6) return null;
+        let sc = (drawW - (K - 1) * gapIn) / (K * bw);
+        if (tallest(sc) > room + 1e-6) {
+          let lo = 0, hi = sc;
+          for (let n = 0; n < 40; n++) { const mid = (lo + hi) / 2; if (tallest(mid) <= room + 1e-6) lo = mid; else hi = mid; }
+          sc = lo;
+        }
+        return { nc, sc, colW, cw, drawW, cols, capH, tallest };
+      };
+      let best = null;
+      for (let nc = 1; nc <= Math.min(4, indexes.length); nc++) {
+        const colW = (Wc - 2 * m - (nc - 1) * colGap) / nc;
+        for (const w of [noCaptions ? 0 : Math.max(46 * s, colW * 0.3), 46 * s, 60 * s, 75 * s, 90 * s, 110 * s]) {
+          if (!noCaptions && w > colW * 0.55) continue;
+          const f = fit(nc, w);
+          // another column only when it is worth it
+          if (f && (!best || f.sc > best.sc * (f.nc > best.nc ? 1.03 : 1.002))) best = f;
+          if (noCaptions) break;
+        }
       }
+      if (!best) return false;
+      scale = best.sc;
+      fitWidth = best.drawW;
+      const { colW, cw, drawW, cols, capH } = best;
+      const dw = bw * scale, dh = bh * scale;
+      // the leftover height shared evenly above, between and below the rows
+      const extra = Math.max(0, room - best.tallest(scale)) / (Math.max(...cols.map((col) => col.length)) + 1);
+      const y0 = firstTop + extra;
+      const page = [];
+      cols.forEach((col, c) => {
+        const x0 = m + c * (colW + colGap);
+        let y = y0;
+        col.forEach((stepIndex, q) => {
+          const ch = capH.get(stepIndex), rowH = Math.max(dh, ch);
+          const num = String(stepIndex + 1).padStart(2, '0');
+          let g = drawings(stepIndex, x0 + Math.max(0, (drawW - groupW(stepIndex, dw, gapIn)) / 2), y + (rowH - dh) / 2, scale, dw, gapIn);
+          if (!noCaptions) g += caption(prj.steps[stepIndex], num, x0 + drawW + gap, y + Math.max(0, (rowH - ch) / 2), cw, rowH);
+          // a thin rule between steps, and a small arrow down the caption column: one step leads to the next
+          if (q < col.length - 1) {
+            const ry = y + rowH + (rowGap + extra) / 2;
+            g += `<path d="M${r2(x0)} ${r2(ry)}H${r2(x0 + drawW)}" stroke="${style.grid}" stroke-width="${r2(0.25 * s)}"/>`;
+            const ax = noCaptions ? x0 - Math.min(m, colGap) / 2 : x0 + drawW + gap + 2.5 * s;
+            const nextOp = opSign(col[q + 1], ax, ry, 6 * s);
+            if (nextOp) g += nextOp;
+            else g += `<path d="M${r2(ax - 1.6 * s)} ${r2(ry - 1 * s)}L${r2(ax)} ${r2(ry + 0.8 * s)}L${r2(ax + 1.6 * s)} ${r2(ry - 1 * s)}" fill="none" stroke="${style.caption}" stroke-width="${r2(0.35 * s)}" stroke-linecap="round" stroke-linejoin="round"/>`;
+          }
+          page.push(stepGroup(stepIndex, g));
+          y += rowH + rowGap + extra;
+        });
+      });
+      pages.push(page);
+      return true;
     }
-    // a drawing too wide to share the line with its caption takes the whole width, the caption under it
-    const widest = K * bw * scale + (K - 1) * gapIn;
-    stacked = fixed && widest > drawW + 1e-6;
-    overflow = fixed && widest > Wc - 2 * m + 1e-6;
-    const dw = bw * scale, dh = bh * scale;
-    let page = [], y = firstTop;
-    if (stacked) {
-      const fullW = Wc - 2 * m;
-      const capHs = indexes.map((i) => captionHeight(prj.steps[i], Math.min(fullW, 110 * s)));
-      indexes.forEach((stepIndex, j) => {
-        const rowH = dh + capHs[j];
+    if (!done) {
+      const capW = noCaptions ? 0 : Math.max(46 * s, (Wc - 2 * m) * 0.3);
+      const gap = noCaptions ? 0 : 8 * s, rowGap = 7 * s, gapIn = 6 * s;
+      const drawW = Wc - 2 * m - capW - gap;
+      fitWidth = drawW;
+      const capH = indexes.map((i) => captionHeight(prj.steps[i], capW));
+      if (fixed) scale = 1000 / sheet.scale / axis;
+      else {
+        // the largest scale that fits every step on one page
+        const room = Hc - m - footerH - firstTop - (indexes.length - 1) * rowGap;
+        scale = Math.min((drawW - (K - 1) * gapIn) / (K * bw), Math.max(4 * s, room / indexes.length) / bh);
+        for (let k = 0; k < 30; k++) { // rows taller than the drawing (long captions) take room too
+          const total = indexes.reduce((sum, _, j) => sum + Math.max(bh * scale, capH[j]), 0) + (indexes.length - 1) * rowGap;
+          if (total <= Hc - m - footerH - firstTop + 1e-6) break;
+          scale *= 0.97;
+        }
+      }
+      // a drawing too wide to share the line with its caption takes the whole width, the caption under it
+      const widest = K * bw * scale + (K - 1) * gapIn;
+      stacked = fixed && widest > drawW + 1e-6;
+      overflow = fixed && widest > Wc - 2 * m + 1e-6;
+      const dw = bw * scale, dh = bh * scale;
+      let page = [], y = firstTop;
+      if (stacked) {
+        const fullW = Wc - 2 * m;
+        const capHs = indexes.map((i) => captionHeight(prj.steps[i], Math.min(fullW, 110 * s)));
+        indexes.forEach((stepIndex, j) => {
+          const rowH = dh + capHs[j];
+          if (page.length && y + rowH > Hc - m - footerH + 1e-6) { pages.push(page); page = []; y = nextTop; }
+          const num = String(stepIndex + 1).padStart(2, '0');
+          let g = drawings(stepIndex, m + Math.max(0, (fullW - groupW(stepIndex, dw, gapIn)) / 2), y, scale, dw, gapIn);
+          g += caption(prj.steps[stepIndex], num, m, y + dh, Math.min(fullW, 110 * s), capHs[j]);
+          page.push(stepGroup(stepIndex, g));
+          y += rowH + rowGap;
+        });
+        pages.push(page);
+      } else indexes.forEach((stepIndex, j) => {
+        const rowH = Math.max(dh, capH[j]);
         if (page.length && y + rowH > Hc - m - footerH + 1e-6) { pages.push(page); page = []; y = nextTop; }
         const num = String(stepIndex + 1).padStart(2, '0');
-        let g = drawings(stepIndex, m + Math.max(0, (fullW - groupW(stepIndex, dw, gapIn)) / 2), y, scale, dw, gapIn);
-        g += caption(prj.steps[stepIndex], num, m, y + dh, Math.min(fullW, 110 * s), capHs[j]);
+        let g = drawings(stepIndex, m + Math.max(0, (drawW - groupW(stepIndex, dw, gapIn)) / 2), y + (rowH - dh) / 2, scale, dw, gapIn);
+        g += caption(prj.steps[stepIndex], num, m + drawW + gap, y + Math.max(0, (rowH - capH[j]) / 2), capW, Math.max(rowH, capH[j]));
+        // a thin rule between steps, and a small arrow down the caption column: one step leads to the next
+        if (j < indexes.length - 1 && y + rowH + rowGap + Math.max(dh, capH[j + 1]) <= Hc - m - footerH + 1e-6) {
+          const ry = y + rowH + rowGap / 2;
+          g += `<path d="M${r2(m)} ${r2(ry)}H${r2(m + drawW)}" stroke="${style.grid}" stroke-width="${r2(0.25 * s)}"/>`;
+          const ax = noCaptions ? m / 2 : m + drawW + gap + 2.5 * s; // no caption column: in the margin
+          const nextOp = opSign(indexes[j + 1], ax, ry, 6 * s);
+          if (nextOp) g += nextOp;
+          else g += `<path d="M${r2(ax - 1.6 * s)} ${r2(ry - 1 * s)}L${r2(ax)} ${r2(ry + 0.8 * s)}L${r2(ax + 1.6 * s)} ${r2(ry - 1 * s)}" fill="none" stroke="${style.caption}" stroke-width="${r2(0.35 * s)}" stroke-linecap="round" stroke-linejoin="round"/>`;
+        }
         page.push(stepGroup(stepIndex, g));
         y += rowH + rowGap;
       });
-      pages.push(page);
-    } else indexes.forEach((stepIndex, j) => {
-      const rowH = Math.max(dh, capH[j]);
-      if (page.length && y + rowH > Hc - m - footerH + 1e-6) { pages.push(page); page = []; y = nextTop; }
-      const num = String(stepIndex + 1).padStart(2, '0');
-      let g = drawings(stepIndex, m + Math.max(0, (drawW - groupW(stepIndex, dw, gapIn)) / 2), y + (rowH - dh) / 2, scale, dw, gapIn);
-      g += caption(prj.steps[stepIndex], num, m + drawW + gap, y + Math.max(0, (rowH - capH[j]) / 2), capW, Math.max(rowH, capH[j]));
-      // a thin rule between steps, and a small arrow down the caption column: one step leads to the next
-      if (j < indexes.length - 1 && y + rowH + rowGap + Math.max(dh, capH[j + 1]) <= Hc - m - footerH + 1e-6) {
-        const ry = y + rowH + rowGap / 2;
-        g += `<path d="M${r2(m)} ${r2(ry)}H${r2(m + drawW)}" stroke="${style.grid}" stroke-width="${r2(0.25 * s)}"/>`;
-        const ax = noCaptions ? m / 2 : m + drawW + gap + 2.5 * s; // no caption column: in the margin
-        const nextOp = opSign(indexes[j + 1], ax, ry, 6 * s);
-        if (nextOp) g += nextOp;
-        else g += `<path d="M${r2(ax - 1.6 * s)} ${r2(ry - 1 * s)}L${r2(ax)} ${r2(ry + 0.8 * s)}L${r2(ax + 1.6 * s)} ${r2(ry - 1 * s)}" fill="none" stroke="${style.caption}" stroke-width="${r2(0.35 * s)}" stroke-linecap="round" stroke-linejoin="round"/>`;
-      }
-      page.push(stepGroup(stepIndex, g));
-      y += rowH + rowGap;
-    });
-    if (!stacked) pages.push(page);
+      if (!stacked) pages.push(page);
+    }
   } else {
     // ---- row, grid or column: captions under the drawings. The paper is divided in slots of the same
     // width; a step takes one slot per angle, and the steps flow into rows of slots.
@@ -349,6 +429,15 @@ export function renderSheet(prj, opts) {
         used += ks[j];
       });
       if (cur.length) rows.push(cur);
+      return rows;
+    };
+    // the rows of slots: the steps flow left to right (row, grid); a column reads top to bottom, and when the
+    // paper is wide it goes on in a second column beside the first (as in a newspaper): `sl / K` columns
+    const rowsFor = (sl) => {
+      if (!column) return flow(sl);
+      const nc = Math.max(1, Math.floor(sl / K)), R = Math.ceil(indexes.length / nc);
+      const rows = Array.from({ length: R }, () => []);
+      indexes.forEach((stepIndex, j) => rows[j % R].push({ stepIndex, slot: Math.floor(j / R) * K, k: ks[j] }));
       return rows;
     };
     // as many slots per row as it takes to keep the rows of the grid (wider when a step has more angles)
@@ -371,22 +460,78 @@ export function renderSheet(prj, opts) {
     // the scale that fills the paper with that many slots per row: held by the width of a slot or by the
     // height of a row less its caption
     const scaleFor = (sl) => {
-      const rows = flow(sl).length;
+      const rows = rowsFor(sl).length;
       const w0 = (Wc - 2 * m - (sl - 1) * gapX) / sl;
       const cellH = (Hc - m - firstTop - (rows - 1) * gapY) / rows;
       return Math.min(w0 / bw, Math.max(10 * s, cellH - captionFor(sl)) / bh);
     };
+    // ---- captions beside the drawings (on their left), `per` steps a row: the rows, and the scale that fits
+    // them with captions `capW` wide — or null when the captions alone do not fit the height of the paper
+    const gapC = 6 * s;
+    const avail = Wc - 2 * m;
+    const besideRows = (per) => {
+      const rows = [];
+      if (column) {
+        const R = Math.ceil(indexes.length / per);
+        for (let r = 0; r < R; r++) rows.push([]);
+        indexes.forEach((stepIndex, j) => rows[j % R].push({ stepIndex, j }));
+      } else indexes.forEach((stepIndex, j) => { if (j % per === 0) rows.push([]); rows[rows.length - 1].push({ stepIndex, j }); });
+      return rows;
+    };
+    const besideFit = (per, capW) => {
+      const rows = besideRows(per);
+      const capHs = indexes.map((i) => captionHeight(prj.steps[i], capW));
+      const fixedW = (row) => row.reduce((a, { j }) => a + capW + gapC + (ks[j] - 1) * gapX, 0) + (row.length - 1) * gapX;
+      const sumK = (row) => row.reduce((a, { j }) => a + ks[j], 0);
+      let sc = Math.min(...rows.map((row) => (avail - fixedW(row)) / (sumK(row) * bw)));
+      if (!(sc > 0)) return null;
+      const room = Hc - m - firstTop - (rows.length - 1) * gapY;
+      const rowH = (row, k) => Math.max(bh * k, ...row.map(({ j }) => capHs[j]));
+      const height = (k) => rows.reduce((a, row) => a + rowH(row, k), 0);
+      if (height(0) > room + 1e-6) return null;
+      if (height(sc) > room + 1e-6) {
+        // the largest scale whose rows (each as tall as its drawing or its caption) fill the height
+        let lo = 0, hi = sc;
+        for (let n = 0; n < 40; n++) { const mid = (lo + hi) / 2; if (height(mid) <= room + 1e-6) lo = mid; else hi = mid; }
+        sc = lo;
+      }
+      return { sc, rows, capHs, capW, rowH };
+    };
+    // the width of the captions beside that makes the drawings largest (wider: fewer lines, lower rows)
+    const bestBeside = (per) => {
+      if (noCaptions || fixed) return null;
+      let best = null;
+      for (const w of [36, 44, 52, 60, 75, 90, 110, 130]) {
+        const capW = w * s;
+        if (capW > avail * 0.45) break;
+        const f = besideFit(per, capW);
+        if (f && (!best || f.sc > best.sc * 1.002)) best = f;
+      }
+      return best;
+    };
+    // the best of the two: captions under the drawings, or beside them
+    const bestOf = (sl, per) => Math.max(scaleFor(sl), (bestBeside(per)?.sc || 0) / 1.08);
     // a grid with no number of columns takes the one that makes the drawings largest
     let gridSheet = sheet;
     if (sheet.layout === 'grid' && !sheet.cols && !fixed) {
       let best = null;
       for (let c = 1; c <= Math.min(8, indexes.length); c++) {
-        const sc = scaleFor(slotsFor({ ...sheet, cols: c }));
+        const sc = bestOf(slotsFor({ ...sheet, cols: c }), c);
         if (!best || sc > best.sc * 1.0001) best = { c, sc };
       }
       gridSheet = { ...sheet, cols: best.c };
     }
-    let slots = slotsFor(gridSheet);
+    // a column on wide paper goes on in more columns, side by side, when that makes the drawings larger
+    let nc = 1;
+    if (column && !fixed) {
+      let best = { c: 1, sc: bestOf(K, 1) };
+      for (let c = 2; c <= Math.min(4, indexes.length); c++) {
+        const sc = bestOf(c * K, c);
+        if (sc > best.sc * 1.03) best = { c, sc };
+      }
+      nc = best.c;
+    }
+    let slots = column ? nc * K : slotsFor(gridSheet);
     fitWidth = Wc - 2 * m;
     if (fixed) {
       scale = 1000 / sheet.scale / axis;
@@ -396,32 +541,23 @@ export function renderSheet(prj, opts) {
       slots = Math.max(slots, K);
       overflow = K * bw * scale + (K - 1) * gapX > Wc - 2 * m + 1e-6 || bh * scale + captionFor(slots) > Hc - m - footerH - nextTop + 1e-6;
     }
-    const rowsAll = flow(slots);
+    const rowsAll = rowsFor(slots);
     const captionH = captionFor(slots);
     if (!fixed) scale = scaleFor(slots);
     // ---- captions beside the drawings: when the drawings are held by the height (a column, a grid of wide
     // cells, an upright paper) the caption goes on the left of its drawing and the drawing grows
     const beside = !fixed && !noCaptions && besideLayout();
     function besideLayout() {
-      const capW = Math.min(60 * s, Math.max(40 * s, (Wc - 2 * m) * 0.2)), gapC = 6 * s;
-      const per = sheet.layout === 'row' ? indexes.length : column ? 1 : gridOf(gridSheet, indexes.length).cols;
-      const rows = [];
-      indexes.forEach((stepIndex, j) => { if (j % per === 0) rows.push([]); rows[rows.length - 1].push({ stepIndex, j }); });
-      const capHs = indexes.map((i) => captionHeight(prj.steps[i], capW));
-      const avail = Wc - 2 * m;
-      const fixedW = (row) => row.reduce((a, { j }) => a + capW + gapC + (ks[j] - 1) * gapX, 0) + (row.length - 1) * gapX;
-      const sumK = (row) => row.reduce((a, { j }) => a + ks[j], 0);
-      let sc = Math.min(...rows.map((row) => (avail - fixedW(row)) / (sumK(row) * bw)));
-      if (!(sc > 0)) return false;
-      const room = Hc - m - firstTop - (rows.length - 1) * gapY;
-      sc = Math.min(sc, room / rows.length / bh);
-      const rowH = (row, k) => Math.max(bh * k, ...row.map(({ j }) => capHs[j]));
-      for (let n = 0; n < 40 && rows.reduce((a, row) => a + rowH(row, sc), 0) > room + 1e-6; n++) sc *= 0.97;
-      if (!(sc > scale * 1.08)) return false; // not worth it: the captions stay under the drawings
-      scale = sc;
+      const per = sheet.layout === 'row' ? indexes.length : column ? nc : gridOf(gridSheet, indexes.length).cols;
+      const fit = bestBeside(per);
+      if (!fit || !(fit.sc > scale * 1.08)) return false; // not worth it: the captions stay under the drawings
+      const { rows, capHs, capW, rowH } = fit;
+      scale = fit.sc;
       const dw = bw * scale, dh = bh * scale;
       const used = rows.reduce((a, row) => a + rowH(row, scale), 0) + (rows.length - 1) * gapY;
-      let y = firstTop + Math.max(0, Hc - m - firstTop - used) / 3;
+      // the height left over is shared evenly above, between and below the rows: no band of white anywhere
+      const extra = Math.max(0, Hc - m - firstTop - used) / (rows.length + 1);
+      let y = firstTop + extra;
       const page = [];
       // the steps line up in columns (the captions of a column one under the other); the leftover width is
       // shared evenly around the columns, so the drawings stay beside their captions
@@ -443,7 +579,7 @@ export function renderSheet(prj, opts) {
             + drawings(stepIndex, dx, y + (rh - dh) / 2, scale, dw, gapX);
           page.push(stepGroup(stepIndex, g));
         });
-        y += rh + gapY;
+        y += rh + gapY + extra;
       }
       pages.push(page);
       return true;
@@ -457,15 +593,16 @@ export function renderSheet(prj, opts) {
     while (k < rowsAll.length) {
       const top = pages.length ? nextTop : firstTop;
       const rowsHere = fixed ? Math.min(perPage(top), rowsAll.length - k) : rowsAll.length;
-      // the block of steps starts under the header; when there is room left over it is shared: a third
-      // above, two thirds below, so the steps stay close to the title and the legend
+      // the block of steps starts under the header; the height left over is shared evenly above, between
+      // and below the rows, so no band of white is left anywhere
       const slack = fixed ? 0 : Math.max(0, Hc - m - top - (rowsAll.length * cellH + (rowsAll.length - 1) * gapY));
-      const start = top + slack / 3;
+      const extra = slack / (rowsAll.length + 1);
+      const start = top + extra;
       const page = [];
       for (let r = 0; r < rowsHere; r++, k++) {
         for (const { stepIndex, slot, k: n } of rowsAll[k]) {
           const x = m + slot * (slotW + gapX);
-          const yTop = start + r * (cellH + gapY);
+          const yTop = start + r * (cellH + gapY + extra);
           const num = String(stepIndex + 1).padStart(2, '0');
           const w = groupW(stepIndex, slotW, gapX);
           // the rule under the number spans every drawing of the step: they read as one

@@ -769,7 +769,7 @@
  "sheet.legendFreeTip": "用紙のどこにでも：プレビューでドラッグ",
  "sheet.legendFreeHint": "プレビューで凡例を好きな位置へドラッグします。図面のスペースは使いません。",
  "sheet.northEach": "各図面に方位",
- "sheet.northEachTip": "シートの各図面（および個別に書き出すステップ）の隅に小さな方位記号を付けます。ヘッダーの方位はそのまま",
+ "sheet.northEachTip": "シートの各図面（および個別に書き出すステップ）の隅に、図面にできるだけ近く小さな方位記号を付けます。ヘッダーの方位記号の代わりになります",
  "sheet.colsAuto": "自動",
  "sheet.stepsSize": "サイズ",
  "sheet.stepsSizeTip": "各画像のサイズ（ピクセル）：幅または高さ（もう一方は図面に合わせます）",

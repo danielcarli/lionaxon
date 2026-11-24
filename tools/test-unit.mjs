@@ -468,7 +468,8 @@ test('a step seen from several angles: side by side on the sheet, one layer, one
     prj.sheet.layout = layout;
     const r = renderSheet(prj, { t });
     const svg = r.pages.join('');
-    const g2 = svg.slice(svg.indexOf('id="step-02"'), svg.indexOf('id="step-03"'));
+    const from = svg.indexOf('id="step-02"');
+    const g2 = svg.slice(from, svg.indexOf('id="step-', from + 5)); // up to the next step (a column may go on beside)
     assert.equal((g2.match(/<svg x=/g) || []).length, 2, `${layout}: two drawings in step 2`);
     assert.equal((g2.match(/font-size="[\d.]+" font-weight="500"/g) || []).length, 1, `${layout}: one number`);
     const ws = [...g2.matchAll(/<svg x="([\d.]+)" y="[\d.]+" width="([\d.]+)"/g)].map((m) => [Number(m[1]), Number(m[2])]);
@@ -740,9 +741,11 @@ test('sheet: a column on upright paper puts the captions beside the drawings, wh
   prj.sheet = { ...prj.sheet, layout: 'column', orientation: 'portrait', paper: 'A3', scale: 0 };
   const beside = renderSheet(prj, { t: (k) => k });
   assert.ok(width(beside) > 60, `${width(beside)} mm (the captions under the drawings gave 38 mm)`);
-  const g = /<g id="step-01"[^>]*>(.*?)<\/g>/s.exec(beside.svg)[1];
-  const numX = Number(/<text x="([\d.]+)"/.exec(g)[1]), drawX = Number(/<svg x="([\d.]+)"/.exec(g)[1]);
-  assert.ok(numX < drawX, 'the caption is on the left of the drawing');
+  // the column goes on in a second column beside the first when that makes the drawings larger
+  const one = renderSheet({ ...prj, sheet: { ...prj.sheet, orientation: 'landscape' } }, { t: (k) => k });
+  assert.equal(one.pages.length, 1);
+  const xs = new Set([...one.svg.matchAll(/<g id="step-\d+"[^>]*><svg x="([\d.]+)"/g)].map((m) => Math.round(Number(m[1]))));
+  assert.ok(xs.size >= 2, 'on landscape paper the steps go on in more than one column');
   const some = renderSheet(prj, { t: (k) => k, steps: [0, 2] });
   assert.ok(some.svg.includes('id="step-01"') && some.svg.includes('id="step-03"') && !some.svg.includes('id="step-02"'));
 });
@@ -910,7 +913,18 @@ test('sheet: drawings as large as they go — automatic columns, the legend in r
   // a north at the corner of each drawing
   const north = (svg) => (svg.match(/class="north/g) || []).length;
   const each = sheetOf({ cols: 0, northEach: true });
-  assert.ok(north(each.svg) >= north(auto.svg) + base.steps.length - 1, 'one more north per drawing');
+  assert.ok(north(each.svg) >= base.steps.length && !each.svg.includes('id="north"'), 'a north per drawing, and none in the header');
+  // many steps in a column or vertical sheet on wide paper: they go on side by side, on one page, and grow
+  const many = structuredClone(base);
+  while (many.steps.length < 8) many.steps.push({ ...structuredClone(many.steps.at(-1)), id: 's-m' + many.steps.length });
+  many.steps.forEach((st) => { st.text = 'Como o teatro está organizado, nas áreas públicas, palco e plateia e áreas restritas'; });
+  for (const layout of ['column', 'vertical']) {
+    const prj2 = structuredClone(many);
+    prj2.sheet = { ...prj2.sheet, layout, paper: 'A1', orientation: 'landscape', scale: 0, cols: 0 };
+    const r = renderSheet(prj2, { t });
+    assert.equal(r.pages.length, 1, `${layout}: one page`);
+    assert.ok(r.scale < 1200, `${layout}: 1:${r.scale} (one column gave 1:4600 and 1:5347 on two pages)`);
+  }
   // a site that is not drawn does not count in the bounds of the drawing
   const prj = normalizeProject(JSON.parse(fs.readFileSync(new URL('../examples/parti-pt-BR.lionaxon', import.meta.url), 'utf8')));
   prj.site = { ...prj.site, w: 400, d: 400, mode: 'none', dims: false, thickness: 0 };

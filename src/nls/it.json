@@ -769,7 +769,7 @@
  "sheet.legendFreeTip": "Ovunque sul foglio: trascinala nell’anteprima",
  "sheet.legendFreeHint": "Trascina la legenda nell’anteprima dove vuoi; non toglie spazio ai disegni.",
  "sheet.northEach": "Nord accanto a ogni disegno",
- "sheet.northEachTip": "Un piccolo nord nell’angolo di ogni disegno della tavola (e delle fasi esportate a parte), oltre a quello dell’intestazione",
+ "sheet.northEachTip": "Un piccolo nord nell’angolo di ogni disegno della tavola (e delle fasi esportate a parte), il più vicino possibile al disegno, al posto del nord dell’intestazione",
  "sheet.colsAuto": "Automatico",
  "sheet.stepsSize": "Dimensione",
  "sheet.stepsSizeTip": "La dimensione di ogni immagine, in pixel: della larghezza o dell’altezza (l’altra segue il disegno)",

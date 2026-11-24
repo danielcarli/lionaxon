@@ -769,7 +769,7 @@
  "sheet.legendFreeTip": "용지 어디에나: 미리보기에서 끌기",
  "sheet.legendFreeHint": "미리보기에서 범례를 원하는 곳으로 끕니다. 도면의 공간을 차지하지 않습니다.",
  "sheet.northEach": "각 도면에 방위표",
- "sheet.northEachTip": "시트의 각 도면(및 따로 내보내는 단계) 모서리에 작은 방위표를 넣습니다. 머리글의 방위표는 그대로",
+ "sheet.northEachTip": "시트의 각 도면(및 따로 내보내는 단계) 모서리에 도면에 최대한 가깝게 작은 방위표를 넣습니다. 머리글의 방위표를 대신합니다",
  "sheet.colsAuto": "자동",
  "sheet.stepsSize": "크기",
  "sheet.stepsSizeTip": "각 이미지의 크기(픽셀): 너비 또는 높이(다른 쪽은 도면에 맞춤)",

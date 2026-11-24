@@ -1,4 +1,4 @@
-# Installers for Windows, macOS and Linux, built by GitHub when a version tag is pushed (v0.22.0…),
+# Installers for Windows, macOS and Linux, built by GitHub when a version tag is pushed (v0.22.1…),
 # or by hand from the Actions tab (then the files are only kept as artifacts of the run).
 # Each system builds its own installers, with fixed names; a last job writes manifest.txt (read by the
 # app when asked to look for a new version), SHA256SUMS.txt and the notes, and publishes the release.
