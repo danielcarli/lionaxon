@@ -14,7 +14,7 @@
 // A face: { role: 'top' | 'wall' | 'slant', rings: [outer, ...holes] (3D), n (outward unit normal), lines (floor
 // lines), smooth? }. A smooth face (curved surfaces) carries `rim` (edges always drawn) and `seams` (edges
 // drawn only where the neighbouring face turns away from the viewer: the silhouette).
-import { rectRing, difference, union, signedArea, convexHull } from '../../../../base/common/geometry/polygon.js';
+import { rectRing, difference, union, signedArea, convexHull, multiArea } from '../../../../base/common/geometry/polygon.js';
 
 const EPS = 1e-6;
 export const CURVE_SEGMENTS = 48;
@@ -75,6 +75,30 @@ function ellipseInfo(o) {
  * narrows the way the shape does. Each piece keeps the outline it was made from (`curve`) so curved walls
  * are drawn smooth.
  */
+/**
+ * The cuts that take from a volume (`cuts`: expanded from `cutObjects`, absolute heights). A volume that
+ * fills the void of a subtraction is not taken from by the subtractions it sits in — most of it inside the
+ * subtraction, in plan and in height — but any other one still cuts it: a smaller subtraction made in it
+ * later, or one that only touches it.
+ */
+export function cutsTaking(v, base, cutObjects, cuts) {
+  if (!v.fill || !cutObjects.length) return cuts;
+  const ring = footprintOf(v);
+  const area = Math.abs(signedArea(ring));
+  if (!(area > 1e-9) || !(v.h > 0)) return [];
+  const z0 = base, z1 = base + v.h;
+  const filled = new Set();
+  for (const c of cutObjects) {
+    if (c.target && c.target !== v.id) continue;
+    const top = c.z + Math.min(c.h, 1e4);
+    if (Math.min(z1, top) - Math.max(z0, c.z) < (z1 - z0) * 0.5) continue;
+    const cr = footprintOf({ ...c, shape: c.shape === 'sphere' ? 'cylinder' : c.shape === 'trapezoid' || c.shape === 'cone' || c.shape === 'pyramid' ? 'box' : c.shape });
+    const outside = multiArea(difference([[ring]], [[[cr]]]));
+    if (area - outside >= area * 0.5) filled.add(c.id);
+  }
+  return filled.size ? cuts.filter((c) => !filled.has(c.id)) : cuts;
+}
+
 export function expandCut(c) {
   const shape = c.shape || 'box';
   if (shape === 'box') return [c];

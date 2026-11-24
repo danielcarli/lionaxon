@@ -13,7 +13,7 @@ Simples de aprender em uma tarde. O mesmo programa no Windows, no macOS e no Lin
 
 [English](../README.md) · **Português (Brasil)**
 
-![Versão 0.19.1](https://img.shields.io/badge/vers%C3%A3o-0.19.1-23272b)
+![Versão 0.21.3](https://img.shields.io/badge/vers%C3%A3o-0.21.3-23272b)
 ![Experimental](https://img.shields.io/badge/status-experimental-b5532d)
 ![Plataformas: Windows, macOS, Linux](https://img.shields.io/badge/plataforma-Windows%20%7C%20macOS%20%7C%20Linux-23272b)
 ![10 línguas](https://img.shields.io/badge/l%C3%ADnguas-10-d0673f)
@@ -77,10 +77,11 @@ Software livre (GPL-3.0). Sem conta, sem assinatura, sem telemetria, e funciona 
 ## O que vem junto
 
 **Contar a história**
-- **Etapas** com título e texto, reordenadas arrastando; mudanças aplicadas às etapas seguintes com um clique; sinais entre as etapas (+ − = →).
+- **Etapas** com título e texto, escritos direto no card da etapa atual, reordenadas arrastando; mudanças aplicadas às etapas seguintes com um clique; sinais entre as etapas (+ − = →).
 - **Categorias** com cor *e* hachura (circulação, núcleo de escada, teatro…): a legenda funciona em impressão cinza e para quem não distingue as cores.
 - **Alinhar faces** (`L`): clique na face de referência e depois na face de outra forma, e ela se move até as duas ficarem no mesmo plano — lado com lado, topo com topo.
-- **Setas, pessoas, rótulos, cotas e árvores** — as pessoas na altura real, para dar a escala (as ferramentas de pessoa e árvore continuam ativas: uma a mais a cada clique); pessoas e árvores ficam em cima do que estiver embaixo delas (um platô, um talude, uma cobertura). Duplo clique em um rótulo para escrever o texto — e o texto menor embaixo dele — direto no desenho.
+- **Setas, pessoas, rótulos, cotas e árvores** — as pessoas na altura real, para dar a escala (as ferramentas de pessoa e árvore continuam ativas: uma a mais a cada clique); pessoas e árvores ficam em cima do que estiver embaixo delas (um platô, um talude, uma cobertura). Duplo clique em um rótulo para escrever o texto — e o texto menor embaixo dele — direto no desenho, com **negrito**, *itálico* e listas. A **caixa de texto** é um rótulo sem linha: texto solto, numa caixa redimensionada pela lateral.
+- **Textos alinhados**: arraste um texto perto de outro e ele se encaixa na lateral esquerda, no meio, na lateral direita, no topo ou na base, com uma guia rosa passando pelos dois (`Alt`: livre); selecione vários e *Alinhar* os põe em linha pelas caixas como estão desenhadas — esquerda, centro, direita, topo, meio, base — ou *Distribuir* deixa espaços iguais entre eles, na horizontal ou na vertical. Os textos se movem; os pontos das linhas de chamada ficam onde estão.
 
 **Moldar o terreno**
 - **Terreno**: platôs, taludes, fossos, planos de referência com linhas de nível na elevação; terreno de qualquer contorno. **Unir terrenos** (uma chave na barra de ferramentas do desenho) desenha platôs e taludes que se tocam como uma peça só, sem as linhas entre eles.
@@ -93,7 +94,7 @@ Software livre (GPL-3.0). Sem conta, sem assinatura, sem telemetria, e funciona 
 
 **Ver de qualquer lugar**
 - **Axonometria, planta e quatro elevações**, com **cortes**.
-- Um **visualizador 3D** que gira em todas as direções — e onde também dá para **selecionar, mover, redimensionar e puxar alturas**. O mouse tem **dois modos, Rev e Sketch** (você escolhe), com um cubo de vistas no canto. Uma moldura azul avisa que você está nele.
+- Um **visualizador 3D** que gira em todas as direções — e onde também dá para **selecionar, mover, redimensionar e puxar alturas**, e ver as subtrações (um botão na barra dele). O mouse tem **dois modos, Rev e Sketch** (você escolhe), com um cubo de vistas no canto. Uma moldura azul avisa que você está nele.
 - **Duplicar uma etapa** com um clique, para contar o próximo movimento a partir de onde o anterior parou.
 - **`Tab` alcança o que está atrás**: o próximo objeto no mesmo ponto ganha um contorno de outra cor e o resto fica transparente.
 - **Vistas explodidas**, e uma etapa **vista de vários ângulos lado a lado** na prancha.
@@ -103,7 +104,7 @@ Software livre (GPL-3.0). Sem conta, sem assinatura, sem telemetria, e funciona 
 - **Blocos de texto** ao lado dos desenhos (estratégia, prós e contras com + e −), a **legenda** abaixo do título ou no rodapé; rótulos com uma segunda linha mais discreta e marcadores (! × + −), que quebram em linhas na largura até onde você puxa a lateral da caixa de texto. O terreno pode ir para a prancha **em grade**, como na edição.
 - Pranchas em linha, grade, coluna ou vertical, de A4 a A0, em escala, em quantas páginas for preciso; quando os desenhos ficam presos pela altura, as legendas vão para o lado e os desenhos crescem. A prévia tem zoom pela roda e se arrasta como o desenho, página a página.
 - Pranchas com ou sem o **número e o título** de cada etapa.
-- **Exportar as etapas que você escrever** — `7`, `3-7`, `1, 4, 6-8` — cada uma num arquivo próprio, ou numa prancha só com elas.
+- **Exportar as etapas que você escrever** — `7`, `3-7`, `1, 4, 6-8`, `3-` até a última, `-5` desde a primeira — cada uma num arquivo próprio, ou numa prancha só com elas.
 - **Oito estilos de desenho**, interface clara e escura e dois temas coloridos.
 
 <table>
@@ -122,6 +123,10 @@ Software livre (GPL-3.0). Sem conta, sem assinatura, sem telemetria, e funciona 
 <tr>
 <td><img src="screenshots/pt-BR/openings.png" alt="Uma garagem com arco, óculo e telhado vermelho"><br><sub>Aberturas nas paredes, telhado com cor própria</sub></td>
 <td><img src="screenshots/pt-BR/sheet-blocks.png" alt="Uma prancha com blocos de texto à direita e a legenda no rodapé"><br><sub>Blocos de texto e legenda no rodapé</sub></td>
+</tr>
+<tr>
+<td><img src="screenshots/pt-BR/align-texts.png" alt="Um texto arrastado perto da lateral esquerda de outros dois, uma guia rosa passando por eles"><br><sub>Textos alinhados: a guia ao arrastar</sub></td>
+<td><img src="screenshots/pt-BR/label-edit.png" alt="O texto de um rótulo escrito direto no desenho"><br><sub>Um rótulo escrito no desenho</sub></td>
 </tr>
 <tr>
 <td><img src="screenshots/pt-BR/align-faces.png" alt="A ferramenta de alinhar: uma face escolhida, outra prestes a ir até ela"><br><sub>Alinhar faces: a referência e depois a face que vai até ela</sub></td>
@@ -154,7 +159,7 @@ Baixe o instalador do seu sistema. Os links trazem sempre a **versão mais recen
 
 > Os instaladores ainda não são assinados com um certificado pago. Na primeira execução, o Windows pode mostrar "O Windows protegeu o computador" (**Mais informações › Executar assim mesmo**) e o macOS pede para liberar o programa em **Ajustes do Sistema › Privacidade e Segurança › Abrir Mesmo Assim**. As somas de verificação de cada arquivo estão em [`SHA256SUMS.txt`](https://github.com/danielcarli/lionaxon/releases/latest/download/SHA256SUMS.txt).
 
-O LionAxon é **experimental** (versão 0.19): já faz um diagrama de partido inteiro e exporta, mas o formato do arquivo e o comportamento ainda podem mudar antes da 1.0. **Atualizar pelo programa.** Clique no número da versão, no canto inferior direito, e em *Verificar agora*: se houver versão mais nova, *Atualizar agora* baixa o instalador da sua cópia (o assistente do Windows, o `.dmg`, o AppImage, o `.deb` ou o `.rpm`), confere o SHA-256 com o da release e abre. As duas coisas só acontecem quando você clica.
+O LionAxon é **experimental** (versão 0.21): já faz um diagrama de partido inteiro e exporta, mas o formato do arquivo e o comportamento ainda podem mudar antes da 1.0. **Atualizar pelo programa.** Clique no número da versão, no canto inferior direito, e em *Verificar agora*: se houver versão mais nova, *Atualizar agora* baixa o instalador da sua cópia (o assistente do Windows, o `.dmg`, o AppImage, o `.deb` ou o `.rpm`), confere o SHA-256 com o da release e abre. As duas coisas só acontecem quando você clica.
 
 Os instaladores são gerados pelo GitHub Actions a cada tag de versão (`.github/workflows/release.yml`), em máquinas Windows, macOS e Linux, a partir do código deste repositório.
 
@@ -179,7 +184,7 @@ O programa abre em uma tela inicial com seis exemplos — do partido em cinco et
 
 | Atalho | Ação |
 |---|---|
-| `V` `B` `S` `G` `A` `P` `T` | Selecionar · volume · subtrair · terreno · seta · pessoa · rótulo |
+| `V` `B` `S` `G` `A` `P` `T` `X` | Selecionar · volume · subtrair · terreno · seta · pessoa · rótulo · caixa de texto |
 | `N` | Novo plano de referência (na elevação) |
 | `Delete` · `Ctrl+D` | Apagar · duplicar a seleção |
 | `Ctrl+Shift+D` | Duplicar a etapa atual |
@@ -190,7 +195,8 @@ O programa abre em uma tela inicial com seis exemplos — do partido em cinco et
 | `L` | Alinhar faces: a face de referência e depois a face a levar até ela |
 | `Tab` · `Shift+Tab` | O próximo · o anterior objeto no mesmo ponto (os outros ficam transparentes) |
 | Arrastar a aresta de uma parede · um canto (forma selecionada) | Mover a parede para fora ou para dentro (`Shift`: qualquer direção) · mover o canto |
-| Duplo clique em um rótulo · `Enter` com ele selecionado | Escrever o texto e o texto menor direto no desenho (`Enter` aplica, `Shift+Enter` nova linha, `Tab` o outro texto, `Esc` desiste) |
+| Arrastar um texto perto de outro · `Alt` ao arrastar | Ele se alinha com o outro (uma guia rosa) · livre |
+| Duplo clique em um rótulo · `Enter` com ele selecionado | Escrever o texto e o texto menor direto no desenho (`Enter` aplica, `Shift+Enter` nova linha, `Tab` o outro texto, `Ctrl+B` negrito, `Ctrl+I` itálico, `Esc` desiste) |
 | `F2` · `Ctrl+L` · `Ctrl+H` | Renomear · travar · ocultar a seleção |
 | Botão direito | Menu do objeto (ou do papel) |
 | `R` · `Espaço` · `Shift` | Girar a seleção 90° (`Shift`: 15°); `Espaço` também ao mover; segure `Espaço` e arraste para deslocar |
@@ -263,6 +269,8 @@ Código, comentários, identificadores e documentação em inglês. A interface 
 
 ## Próximas versões
 
+- **0.21** ✓ — textos alinhados como num programa de desenho: guias inteligentes ao arrastar, e alinhar e distribuir pelas caixas na tela; as subtrações no visualizador 3D; uma subtração começada num volume sempre o recorta.
+- **0.20** ✓ — caixas de texto (rótulos sem linha, redimensionados pela lateral); negrito, itálico e listas nos textos dos rótulos; o título e o texto da etapa escritos no próprio card.
 - **0.19** ✓ — trapézios em pé (os lados inclinados até um topo mais estreito) e deitados (um trapézio na planta, com as paredes retas), como volumes e como subtrações; paredes movidas pelas arestas, cantos pelas alças.
 - **0.18** ✓ — uma forma que preenche o vazio de uma subtração, inteiro ou em parte; subtrações no terreno (fossos, recortes nas plataformas); pessoas e árvores colocadas uma atrás da outra; pranchas sem o número e o título das etapas.
 - **0.17** ✓ — exportar as etapas que você escrever (3-7, 1, 4, 6), em arquivos separados ou numa prancha; a prévia da prancha com zoom e arrasto como no desenho, página a página; legendas ao lado dos desenhos quando isso os deixa maiores; a caixa de texto do rótulo redimensionada pela lateral, e o texto pequeno escrito direto no desenho; a importação de IFC retirada até ler modelos reais.
@@ -281,7 +289,7 @@ Código, comentários, identificadores e documentação em inglês. A interface 
 - **Depois** — a importação de modelos de edifício (IFC, depois arquivos Rev), testada em projetos reais; várias pranchas e alternativas no mesmo projeto; terreno livre; escadas; plantas de zoneamento; pátios e união de volumes; lajes soltas e pilotis; sombras sobre volumes e terreno; cortes na prancha; desenhar formas novas no visualizador 3D; paleta de comandos; instaladores assinados.
 - **1.0** — DXF de entrada e saída; manual e tutoriais na ordem de um ateliê de projeto; traduções revisadas.
 
-O histórico completo está no [CHANGELOG](../CHANGELOG.md) — versão atual: **0.19.1**.
+O histórico completo está no [CHANGELOG](../CHANGELOG.md) — versão atual: **0.21.3**.
 
 ## Créditos
 

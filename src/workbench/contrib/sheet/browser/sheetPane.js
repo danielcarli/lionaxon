@@ -43,6 +43,7 @@ export class SheetPane {
     };
     const field = h('input.input', {
       type: 'text', value: this.stepsText || '', 'data-key': 'exportSteps', spellcheck: 'false',
+      title: t('sheet.stepsTip'),
       placeholder: t('sheet.stepsPlaceholder', { n: current + 1 }),
       oninput: () => { this.stepsText = field.value; update(); },
       onkeydown: (e) => { if (e.key === 'Enter') field.blur(); e.stopPropagation(); },

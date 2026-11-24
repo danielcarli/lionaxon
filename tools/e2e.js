@@ -350,6 +350,10 @@ async function phase1(win, js) {
   await fill18(win, js);
   await trapezoid19(win, js);
   await edges19(win, js);
+  await textbox20(win, js);
+  await stepCard20(win, js);
+  await alignTexts21(win, js);
+  await orbitCuts21(win, js);
 
   // ---- leave unsaved work behind for phase 2
   await js(`${S}.document.switchTo(${S}.document.tabs.findIndex((t) => t.project.name === 'E2E test')); true`);
@@ -1524,6 +1528,14 @@ async function fill18(win, js) {
   await sleep(300);
   const pit = await js(`JSON.stringify(${D}.objects.at(-1) || null)`).then(JSON.parse) || {};
   check('…on the ground it digs a pit 3 m deep', pit.type === 'cut' && pit.target === '~terrain' && Math.abs(pit.z + 3) < 1e-6 && Math.abs(pit.h - 3) < 1e-6, JSON.stringify(pit));
+  // 0.21: with the option on, a subtraction started on a volume still cuts the volume
+  await js(`(async () => { const m = await import('../services/model/common/model.js');
+    ${D}.run('object.add', (_p, step) => { step.objects.push(m.createVolume({ id: 't-vol', x: 30, y: 10, w: 10, d: 8, h: 6 })); }); ${S}.layout.setTool('cut'); return true; })()`);
+  await sleep(300);
+  await drag(win, await at(js, [28, 8, 6], 'plan'), await at(js, [31, 11, 6], 'plan'), 6);
+  await sleep(300);
+  const onVol = await js(`JSON.stringify(${D}.objects.at(-1))`).then(JSON.parse);
+  check('…but started on a volume it cuts the volume, the option on or not', onVol.type === 'cut' && onVol.target === 't-vol', JSON.stringify(onVol));
   await js(`${S}.layout.setToolOption('cutTerrain', false); (async () => { const m = await import('../services/model/common/model.js');
     ${D}.run('object.add', (_p, step) => { step.objects.push(m.createPlatform({ id: 't-plat', x: 30, y: 30, w: 12, d: 12, z: 2 })); }); return true; })()`);
   await sleep(300);
@@ -1649,6 +1661,172 @@ async function edges19(win, js) {
   await sleep(300);
   const t2 = await js(`JSON.stringify(${D}.byId('eg-trap'))`).then(JSON.parse);
   check('…an edge of a lying trapezoid moves too (it becomes an outline, 2 m less deep)', t2.shape === 'poly' && t2.d === 4 && t2.top === undefined, JSON.stringify(t2));
+  await js(`${S}.layout.setTab('axon'); true`);
+}
+
+// ---------------------------------------------------------------------------------------------
+// 0.20: a text box (a label with no leader), bold, italic and lists in the texts of labels
+
+async function textbox20(win, js) {
+  const D = `${S}.document`, C = `${S}.commands`;
+  const canvasQ = `document.querySelector('[data-view=plan] .canvas')`;
+  await js(`${C}.newProject(); ${S}.layout.setTab('plan'); true`);
+  await sleep(300);
+  await js(`window.lionaxon.views.plan.fit(); true`);
+  check('a text box tool in the toolbar', await js(`!!document.querySelector('[data-view=plan] .tool[data-tool=textbox]')`));
+  await key(win, 'X');
+  await sleep(100);
+  await click(win, await at(js, [10, 30, 0], 'plan'));
+  await sleep(500);
+  const tb = await js(`JSON.stringify(${D}.objects.at(-1))`).then(JSON.parse);
+  check('…a click makes a label with no leader, a width and no capitals, and opens its text', tb.type === 'label' && tb.line === false && tb.wrap > 0 && tb.caps === false
+    && await js(`!!document.querySelector('.label-box textarea[data-key=text]') && document.querySelectorAll('.label-box .format-btn').length === 4`), JSON.stringify(tb));
+  // bold from the bar in the box on the drawing
+  await js(`(() => { const a = document.querySelector('.label-box textarea[data-key=text]'); a.focus(); a.value = 'Praça coberta'; a.dispatchEvent(new Event('input')); a.setSelectionRange(0, 5); return true; })()`);
+  await js(`document.querySelector('.label-box .format-btn[data-format=b]').click(); true`);
+  check('…B makes the selection bold (**…**), the text keeps the focus', await js(`document.activeElement?.dataset.key === 'text' && document.activeElement.value === '**Praça** coberta'`));
+  await key(win, 'Return');
+  await sleep(300);
+  check('…drawn with no leader, the bold word in bold', await js(`(() => { const g = ${canvasQ}.querySelector('[data-id="${tb.id}"]');
+    return !!g && !g.querySelector('path') && [...g.querySelectorAll('tspan[font-weight]')].some((x) => x.textContent === 'Praça'); })()`));
+  // its box is resized by its side, as any label
+  await js(`${D}.select(['${tb.id}']); ${S}.layout.setTool('select'); true`);
+  await sleep(300);
+  check('…its box has the handles of the width', await js(`!!${canvasQ}.querySelector('.label-frame') && !!${canvasQ}.querySelector('[data-handle=lw]:not(path)') && !${canvasQ}.querySelector('[data-handle=lt]')`));
+  const g = await js(`(() => { const r = ${canvasQ}.querySelector('rect[data-handle=lw]').getBoundingClientRect(); return JSON.stringify([r.left + r.width / 2, r.top + r.height / 2]); })()`).then(JSON.parse);
+  const w0 = await js(`${D}.byId('${tb.id}').wrap`);
+  await drag(win, g, [g[0] - 40, g[1]], 6);
+  await sleep(300);
+  check('…pulling its side makes it narrower', (await js(`${D}.byId('${tb.id}').wrap`)) < w0);
+  // a list in the small text, from the properties
+  await js(`(() => { const n = document.querySelector('.properties textarea[data-key=note]'); n.focus(); n.value = 'sombra\\nventilação'; n.select(); return true; })()`);
+  check('the properties have the format bar over each text', await js(`document.querySelectorAll('.properties .format-bar').length === 2`));
+  await js(`document.querySelectorAll('.properties .format-bar')[1].querySelector('[data-format=ul]').click(); true`);
+  await js(`document.querySelector('.properties textarea[data-key=note]').dispatchEvent(new Event('change')); true`);
+  await sleep(300);
+  check('…the list button makes each line an item; the drawing shows the bullets', (await js(`${D}.byId('${tb.id}').note`)) === '- sombra\n- ventilação'
+    && await js(`[...${canvasQ}.querySelectorAll('[data-id="${tb.id}"] .label-note tspan')].filter((x) => x.textContent === '•').length === 2`),
+    await js(`JSON.stringify(${D}.byId('${tb.id}').note) + ' ' + ([...${canvasQ}.querySelectorAll('[data-id="${tb.id}"] .label-note tspan')].map((x) => x.textContent).join('|'))`));
+  await js(`document.querySelector('.properties input[data-key=line]').click(); true`);
+  await sleep(300);
+  check('…the leader can be turned on: it is a label again', await js(`${D}.byId('${tb.id}').line === undefined && !!${canvasQ}.querySelector('[data-id="${tb.id}"] path')`));
+  await js(`${S}.layout.setTab('axon'); true`);
+}
+
+// 0.20: the title and the text of the current step written on its card
+
+async function stepCard20(win, js) {
+  const D = `${S}.document`, C = `${S}.commands`;
+  await js(`${C}.newProject(); ${S}.layout.setTab('axon'); ${D}.clearSelection(); true`);
+  await sleep(400);
+  check('the current step card has its title and text fields; the others do not', await js(`(() => {
+    const cards = [...document.querySelectorAll('[data-pane=steps] .step-card')];
+    const on = cards.find((c) => c.classList.contains('active'));
+    return !!on.querySelector('.step-edit input[data-key=cardTitle]') && !!on.querySelector('.step-edit textarea[data-key=cardText]') && cards.filter((c) => c.querySelector('.step-edit')).length === 1;
+  })()`));
+  await js(`(() => { const f = document.querySelector('.step-card.active input[data-key=cardTitle]'); f.focus(); f.value = 'Terreno e acessos'; f.dispatchEvent(new Event('change')); return true; })()`);
+  await js(`(() => { const f = document.querySelector('.step-card.active textarea[data-key=cardText]'); f.value = 'O lote em declive e as duas ruas.'; f.dispatchEvent(new Event('change')); f.blur(); return true; })()`);
+  await sleep(600);
+  check('…what is typed there is the title and the text of the step', await js(`${D}.project.steps[${D}.stepIndex].title === 'Terreno e acessos' && ${D}.project.steps[${D}.stepIndex].text === 'O lote em declive e as duas ruas.'`));
+  check('…and only there: the properties of the step no longer have them', await js(`!document.querySelector('.properties [data-key=stepTitle]') && !document.querySelector('.properties [data-key=stepText]')`));
+  await js(`document.activeElement?.blur(); ${C}.addStep(); true`);
+  await sleep(500);
+  check('…a new step brings its own fields to its card', await js(`(() => { const on = document.querySelector('[data-pane=steps] .step-card.active'); return on?.dataset.step === '1' && !!on.querySelector('.step-edit'); })()`));
+}
+
+// 0.21: texts lined up by their boxes on the screen, and smart guides while one is dragged
+
+async function alignTexts21(win, js) {
+  const D = `${S}.document`, C = `${S}.commands`;
+  const canvasQ = `document.querySelector('[data-view=axon] .canvas')`;
+  await js(`${C}.newProject(); ${S}.layout.setTab('axon'); ${S}.layout.setTool('select'); true`);
+  await sleep(300);
+  await js(`(async () => { const m = await import('../services/model/common/model.js');
+    ${D}.run('object.add', (_p, step) => { step.objects.push(
+      m.createLabel({ id: 't-a', x: 10, y: 10, text: 'Cozinha', note: 'Área técnica', dx: 4, dy: -4 }),
+      m.createLabel({ id: 't-b', x: 25, y: 20, text: 'Salão 2', note: 'Principal área', dx: 9, dy: -12 }),
+      m.createLabel({ id: 't-c', x: 30, y: 35, text: 'Praça inferior', line: false, caps: false, size: 1.2, wrap: 14, dx: 0, dy: 0 })); });
+    return true; })()`);
+  await sleep(200);
+  await js(`window.lionaxon.views.axon.fit(); ${D}.select(['t-a', 't-b', 't-c']); true`);
+  await sleep(400);
+  const boxes = () => js(`JSON.stringify([...window.lionaxon.views.axon.textBoxes(['t-a', 't-b', 't-c']).values()])`).then(JSON.parse);
+  check('texts selected: the align buttons are icons, their names under the mouse — top and bottom, of the screen', await js(`(() => { const b = document.querySelector('.properties [data-align=top]'); return !!b && b.textContent.trim() === '' && !!b.querySelector('svg') && b.title === 'Align tops' && document.querySelectorAll('.properties .align-bar button').length === 8; })()`));
+  await js(`document.querySelector('.properties [data-align=left]').click(); true`);
+  await sleep(400);
+  let b = await boxes();
+  check('…Left lines up the left sides of the texts as drawn', Math.max(...b.map((x) => x[0])) - Math.min(...b.map((x) => x[0])) < 0.05, JSON.stringify(b));
+  check('…the points of the leaders stay where they were; the texts moved', await js(`${D}.byId('t-a').x === 10 && ${D}.byId('t-b').y === 20 && ${D}.byId('t-b').dx !== 9`));
+  await js(`document.querySelector('.properties [data-distribute=y]').click(); true`);
+  await sleep(400);
+  b = (await boxes()).sort((p, q) => p[1] - q[1]);
+  const gaps = [b[1][1] - b[0][3], b[2][1] - b[1][3]];
+  check('…Distribute vertically leaves equal gaps between them', Math.abs(gaps[0] - gaps[1]) < 0.05, JSON.stringify(gaps));
+  await js(`document.querySelector('.properties [data-align=top]').click(); true`);
+  await sleep(400);
+  b = await boxes();
+  check('…Top lines up their tops on the screen', Math.max(...b.map((x) => x[1])) - Math.min(...b.map((x) => x[1])) < 0.05, JSON.stringify(b));
+  await js(`${C}.undo(); ${C}.undo(); true`);
+  await sleep(300);
+  // a smart guide: the text of t-b dragged close to the left side of t-a snaps to it
+  await js(`${D}.run('object.edit', (_p, step) => { const o = step.objects.find((x) => x.id === 't-b'); o.dx = 9; o.dy = -12; }); ${D}.select(['t-b']); true`);
+  await sleep(400);
+  const [ba, bb] = (await boxes()).slice(0, 2);
+  const scale = await js(`window.lionaxon.views.axon.cam.scale`);
+  const g = await js(`(() => { const r = ${canvasQ}.querySelector('[data-handle=lt]').getBoundingClientRect(); return JSON.stringify([r.left + r.width / 2, r.top + r.height / 2]); })()`).then(JSON.parse);
+  const to = [g[0], g[1] + (ba[1] - bb[1]) * scale + 3];
+  // the pointer events are sent in the page: a window not shown may hold the moves of the mouse until it
+  // is let go, and the guide is only there while the text is dragged
+  const ptr = (type, [x, y], on) => js(`(() => { const el = ${on ? `${canvasQ}.querySelector('[data-handle=lt]')` : `${canvasQ}.querySelector('svg')`};
+    el.dispatchEvent(new PointerEvent('${type}', { clientX: ${x}, clientY: ${y}, button: 0, buttons: ${type === 'pointerup' ? 0 : 1}, bubbles: true, pointerId: 1, isPrimary: true })); return true; })()`);
+  await ptr('pointerdown', g, true);
+  for (let i = 1; i <= 8; i++) await ptr('pointermove', [g[0] + ((to[0] - g[0]) * i) / 8, g[1] + ((to[1] - g[1]) * i) / 8]);
+  await sleep(200);
+  check('…while it is dragged near the top of another text, a pink guide shows', await js(`window.lionaxon.views.axon.textGuides.length > 0 && ${canvasQ}.querySelectorAll('.text-guide').length > 0`));
+  await ptr('pointerup', to);
+  await sleep(300);
+  const [ba2, bb2, bc2] = await boxes();
+  // the three lines of a box along one axis: its two sides and its middle
+  const lines = (q, axis) => [q[axis], (q[axis] + q[axis + 2]) / 2, q[axis + 2]];
+  const shares = (p, q, axis) => lines(p, axis).some((v) => lines(q, axis).some((u) => Math.abs(u - v) < 0.02));
+  check('…and it snaps to it; the guide goes when the mouse is let go', (shares(ba2, bb2, 1) || shares(bc2, bb2, 1)) && !(await js(`${canvasQ}.querySelectorAll('.text-guide').length`)), JSON.stringify([ba2, bb2]));
+  // with Alt it does not
+  const g2 = await js(`(() => { const r = ${canvasQ}.querySelector('[data-handle=lt]').getBoundingClientRect(); return JSON.stringify([r.left + r.width / 2, r.top + r.height / 2]); })()`).then(JSON.parse);
+  await drag(win, g2, [g2[0], g2[1] + 3], 4, ['alt']);
+  await sleep(300);
+  const [ba3, bb3, bc3] = await boxes();
+  check('…with Alt the text moves freely', !shares(ba3, bb3, 1) && !shares(bc3, bb3, 1), JSON.stringify([ba3, bb3]));
+  // the text box moved as a whole snaps too
+  await js(`${D}.select(['t-c']); true`);
+  await sleep(300);
+  const [ga, , bc] = await boxes();
+  const p = await js(`(() => { const r = ${canvasQ}.querySelector('[data-id="t-c"] text').getBoundingClientRect(); return JSON.stringify([r.left + 10, r.top + r.height / 2]); })()`).then(JSON.parse);
+  const p2 = [p[0] - (bc[0] - ga[0]) * scale + 3, p[1] - 15];
+  await drag(win, p, p2, 8);
+  await sleep(300);
+  const [ga4, , bc4] = await boxes();
+  check('…a text box moved as a whole lines up with the other texts too', shares(ga4, bc4, 0), JSON.stringify([ga4, bc4]));
+}
+
+// 0.21: the subtractions seen in the 3D viewer
+
+async function orbitCuts21(win, js) {
+  const D = `${S}.document`, C = `${S}.commands`;
+  const q = `document.querySelector('[data-view=orbit] .canvas')`;
+  await js(`${C}.newProject(); (async () => { const m = await import('../services/model/common/model.js');
+    ${D}.run('object.add', (_p, step) => { step.objects.push(m.createVolume({ id: 'o-v', x: 20, y: 30, w: 12, d: 10, h: 6 }), m.createCut({ id: 'o-c', x: 16, y: 27, w: 4, d: 4, z: 3, h: 3, target: 'o-v' })); });
+    ${D}.clearSelection(); ${S}.layout.setTab('orbit'); window.lionaxon.views.orbit.setCuts(false); return true; })()`);
+  await sleep(500);
+  check('the 3D viewer has a button to show the subtractions; off, none is drawn', await js(`!!document.querySelector('[data-view=orbit] [data-action=cuts]') && !${q}.querySelector('.ax-cut')`));
+  await js(`document.querySelector('[data-view=orbit] [data-action=cuts]').click(); true`);
+  await sleep(400);
+  check('…on: the subtraction is drawn there, as in the drawing', await js(`!!${q}.querySelector('.ax-cut[data-id="o-c"]') && document.querySelector('[data-view=orbit] [data-action=cuts]').getAttribute('aria-pressed') === 'true'`));
+  await js(`window.lionaxon.views.orbit.setCuts(false); ${D}.select(['o-c']); true`);
+  await sleep(400);
+  check('…off, a selected subtraction still shows, with the handles to resize it and pull its height', await js(`!!${q}.querySelector('.ax-cut[data-id="o-c"]') && !!document.querySelector('[data-view=orbit] [data-handle=h]') && !!document.querySelector('[data-view=orbit] [data-handle=e]')`));
+  await js(`${D}.clearSelection(); true`);
+  await sleep(300);
+  check('…and goes when it is no longer selected', await js(`!${q}.querySelector('.ax-cut')`));
   await js(`${S}.layout.setTab('axon'); true`);
 }
 
@@ -2321,6 +2499,46 @@ async function shots(win, js) {
     await sleep(300);
     await shot('align-faces.png');
     await key(win, 'Escape');
+  }
+  // 0.21: texts lined up: two aligned on their left sides, a third dragged close to that line shows the guide
+  {
+    const pt = (await js(`document.documentElement.lang`)).startsWith('pt');
+    const tx = pt ? [['Cozinha', 'Área técnica de cozinha industrial'], ['Salão do restaurante', 'Principal área, de maior ocupação'], ['Cafeteria', 'Pode ser isolada do salão']]
+      : [['Kitchen', 'The technical area of an industrial kitchen'], ['Restaurant hall', 'The main area, the most people'], ['Café', 'It can be closed off from the hall']];
+    await js(`(async () => { const m = await import('../services/model/common/model.js'); const d = ${S}.document;
+      ${S}.commands.newProject();
+      d.run('object.add', (p, step) => {
+        p.site.w = 34; p.site.d = 26;
+        step.objects.push(
+          m.createVolume({ id: 'sh-k', x: 9, y: 9, w: 6, d: 10, h: 4, color: '#e0605c' }),
+          m.createVolume({ id: 'sh-h', x: 17, y: 9, w: 10, d: 10, h: 4, color: '#9ccbe4' }),
+          m.createVolume({ id: 'sh-c', x: 26, y: 9, w: 8, d: 10, h: 4, color: '#8ea547' }),
+          m.createLabel({ id: 'sh-a', x: 9, y: 10, z: 4, text: ${JSON.stringify(tx[0][0])}, note: ${JSON.stringify(tx[0][1])}, dx: 24, dy: -16, wrap: 12, size: 1.1 }),
+          m.createLabel({ id: 'sh-b', x: 17, y: 10, z: 4, text: ${JSON.stringify(tx[1][0])}, note: ${JSON.stringify(tx[1][1])}, dx: 15, dy: -9, wrap: 12, size: 1.1 }),
+          m.createLabel({ id: 'sh-c2', x: 26, y: 9, z: 4, text: ${JSON.stringify(tx[2][0])}, note: ${JSON.stringify(tx[2][1])}, dx: 6, dy: -1, wrap: 12, size: 1.1 })); });
+      ${S}.layout.setTab('axon'); ${S}.layout.setTool('select'); return true; })()`);
+    await sleep(400);
+    await js(`window.lionaxon.views.axon.fit(); ${S}.document.select(['sh-a', 'sh-b']); ${S}.commands.alignSelection('left'); ${S}.document.select(['sh-c2']); true`);
+    await sleep(500);
+    const b = await js(`JSON.stringify([...window.lionaxon.views.axon.textBoxes(['sh-a', 'sh-c2']).values()])`).then(JSON.parse);
+    const scale = await js(`window.lionaxon.views.axon.cam.scale`);
+    const g = await js(`(() => { const r = document.querySelector('[data-view=axon] .canvas [data-handle=lt]').getBoundingClientRect(); return JSON.stringify([r.left + r.width / 2, r.top + r.height / 2]); })()`).then(JSON.parse);
+    const to = [g[0] + (b[0][0] - b[1][0]) * scale + 4, g[1] + 6];
+    await mouse(win, 'mouseMove', g);
+    await mouse(win, 'mouseDown', g);
+    // a hidden window draws no frames, and the moves wait for one: each move is followed by a frame
+    for (let i = 1; i <= 6; i++) { await mouse(win, 'mouseMove', [g[0] + ((to[0] - g[0]) * i) / 6, g[1] + ((to[1] - g[1]) * i) / 6]); win.webContents.invalidate(); await sleep(60); }
+    await sleep(300);
+    win.webContents.invalidate();
+    await sleep(300);
+    await shot('align-texts.png');
+    await mouse(win, 'mouseUp', to);
+    await sleep(200);
+    // the align panel of the properties, with its icons (not in the README: to see it)
+    await js(`${S}.document.select(['sh-a', 'sh-b', 'sh-c2']); true`);
+    await sleep(300);
+    win.webContents.invalidate();
+    await shot('align-panel.png');
   }
   // 0.12: the versions window with a new version found and the way this copy is updated
   await js(`document.querySelector('.status-version').click(); true`);

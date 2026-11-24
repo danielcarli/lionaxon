@@ -17,7 +17,8 @@ import { icon } from '../../../../base/browser/icons.js';
 import { t, formatNumber } from '../../../../base/common/nls.js';
 import { makeView, planView, project, unproject, verticalScale } from '../../../../base/common/geometry/projection.js';
 import { rectRing, pointInRing } from '../../../../base/common/geometry/polygon.js';
-import { renderStep, padBox, arrowPoints, labelTextBox } from '../../../services/render/common/renderer.js';
+import { formatBar, formatKeys } from '../../../browser/formatBar.js';
+import { renderStep, padBox, arrowPoints, labelTextBox, textRight } from '../../../services/render/common/renderer.js';
 import { footprintOf } from '../../../services/render/common/solids.js';
 import { getStyle } from '../../../services/render/common/styles.js';
 import {
@@ -32,14 +33,15 @@ import { parseNumber, toggleSwitch } from '../../../browser/widgets.js';
 const SEL = '#2f74e8';
 import { PickCycle } from './pickCycle.js';
 import { facesOf, faceAt, alignDelta, ALIGNABLE } from './alignFaces.js';
+import { snapBox } from '../../../../base/common/geometry/alignBoxes.js';
 const NS = 'http://www.w3.org/2000/svg';
 const r3 = (v) => Math.round(v * 1000) / 1000;
 const escHtml = (x) => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const FONT_UI = "'Plus Jakarta Sans', system-ui, sans-serif";
 
-const TOOLS = ['select', 'align', 'box', 'cut', 'terrain', 'arrow', 'dim', 'person', 'tree', 'label'];
-const TOOL_ICONS = { select: 'select', box: 'box', cut: 'cut', terrain: 'terrain', arrow: 'arrow', person: 'person', label: 'text', tree: 'tree', dim: 'dim', align: 'alignFaces' };
-export const TOOL_KEYS = { select: 'V', box: 'B', cut: 'S', terrain: 'G', arrow: 'A', person: 'P', label: 'T', tree: 'E', dim: 'D' };
+const TOOLS = ['select', 'align', 'box', 'cut', 'terrain', 'arrow', 'dim', 'person', 'tree', 'label', 'textbox'];
+const TOOL_ICONS = { select: 'select', box: 'box', cut: 'cut', terrain: 'terrain', arrow: 'arrow', person: 'person', label: 'text', textbox: 'textbox', tree: 'tree', dim: 'dim', align: 'alignFaces' };
+export const TOOL_KEYS = { select: 'V', box: 'B', cut: 'S', terrain: 'G', arrow: 'A', person: 'P', label: 'T', textbox: 'X', tree: 'E', dim: 'D' };
 const SHAPE_ICONS = { box: 'box', cylinder: 'cylinder', sphere: 'sphere', cone: 'cone', pyramid: 'pyramid', trapezoid: 'trapezoid', trapezoidLying: 'trapezoidLying', poly: 'poly' };
 const TERRAIN_ICONS = { platform: 'platform', slope: 'slope', area: 'area' };
 const RECT_TYPES = new Set(['volume', 'cut', 'platform', 'slope', 'area']);
@@ -113,6 +115,7 @@ export class DrawingView {
     this.alignRef = null;      // align tool: the face picked to align to ({ id, face })
     this.alignHover = null;    // align tool: the face under the mouse
     this.guides = [];          // lines shown while an object being moved lines up with another
+    this.textGuides = [];      // the same for texts, on the screen: [[x, y], [x, y]] in drawing units
     this.listHover = null;     // the object under the mouse in the element list
 
     this.#renderToolbar();
@@ -376,7 +379,7 @@ export class DrawingView {
       } else if (o.type === 'label') {
         // the box of the text: lightly filled, its far side (the one that is pulled) drawn heavier
         const b = this.#labelBox(o);
-        const ex = r3(o.dx >= 0 ? b[2] : b[0]);
+        const ex = r3(textRight(o) ? b[2] : b[0]);
         s += `<rect class="label-frame" x="${r3(b[0])}" y="${r3(b[1])}" width="${r3(b[2] - b[0])}" height="${r3(b[3] - b[1])}" rx="${r3(px * 2)}" fill="${SEL}" fill-opacity="0.05" stroke="${SEL}" stroke-width="${r3(px * 1.2)}" pointer-events="none"/>`
           + `<path class="label-frame-side" d="M${ex} ${r3(b[1])}V${r3(b[3])}" stroke="${SEL}" stroke-width="${r3(px * 3)}" pointer-events="none"/>`
           // the whole side can be taken, not only its grip (only when the handles are shown)
@@ -396,6 +399,12 @@ export class DrawingView {
     if (objs.length === 1 && !objs[0].locked && (this.elev ? this.elevTool === 'select' : this.layout.tool === 'select')) s += this.#handlesMarkup(objs[0], byId, px);
     if (this.preview) s += this.#previewMarkup(px);
     for (const [a, b] of this.guides) s += `<path d="${line([P(a), P(b)])}" stroke="${GUIDE}" stroke-width="${r3(px * 1.1)}" pointer-events="none"/>`;
+    for (const [a, b] of this.textGuides) {
+      // a text guide runs a little past the boxes it joins
+      const ext = px * 12, v = a[0] === b[0];
+      const p0 = v ? [a[0], a[1] - ext] : [a[0] - ext, a[1]], p1 = v ? [b[0], b[1] + ext] : [b[0] + ext, b[1]];
+      s += `<path class="text-guide" d="M${r3(p0[0])} ${r3(p0[1])}L${r3(p1[0])} ${r3(p1[1])}" stroke="${GUIDE}" stroke-width="${r3(px * 1.1)}" pointer-events="none"/>`;
+    }
     if (this.drag?.kind === 'marquee' && this.drag.box) {
       const [x0, y0, x1, y1] = this.drag.box;
       s += `<rect x="${r3(Math.min(x0, x1))}" y="${r3(Math.min(y0, y1))}" width="${r3(Math.abs(x1 - x0))}" height="${r3(Math.abs(y1 - y0))}" fill="${SEL}" fill-opacity="0.08" stroke="${SEL}" stroke-width="${r3(px)}" stroke-dasharray="${r3(px * 4)} ${r3(px * 3)}" pointer-events="none"/>`;
@@ -469,11 +478,11 @@ export class DrawingView {
       out.push({ id: 'a1', p: project(view, [o.x1, o.y1, z]) }, { id: 'a2', p: project(view, [o.x2, o.y2, z]) });
     } else if (o.type === 'label') {
       const [ax, ay] = project(view, [o.x, o.y, this.levelZ(o.level) + o.z]);
-      out.push({ id: 'lt', p: [ax + o.dx, ay + o.dy] });
+      if (o.line !== false) out.push({ id: 'lt', p: [ax + o.dx, ay + o.dy] }); // a text box moves as a whole
       // the width of the text: the far side of the box around the text, a grip in the middle and its two
       // corners (drag them in and the text breaks into more lines)
       const b = this.#labelBox(o);
-      const ex = o.dx >= 0 ? b[2] : b[0];
+      const ex = textRight(o) ? b[2] : b[0];
       out.push({ id: 'lw', p: [ex, (b[1] + b[3]) / 2] }, { id: 'lw1', p: [ex, b[1]] }, { id: 'lw2', p: [ex, b[3]] });
     }
     return out;
@@ -483,9 +492,9 @@ export class DrawingView {
    * The box around the text of a label as it is drawn (its lines measured, not the leader), with a margin
    * of a few pixels: what the selection outlines and what the width handles sit on.
    */
-  #labelBox(o, pad = 5) {
+  #labelBox(o, pad = 5, estimate = false) {
     const px = 1 / (this.cam?.scale || 1);
-    const el = this.content.querySelector(`[data-id="${CSS.escape(o.id)}"]`);
+    const el = estimate ? null : this.content.querySelector(`[data-id="${CSS.escape(o.id)}"]`);
     let b = null;
     for (const tx of el ? el.querySelectorAll(':scope > text') : []) {
       if (tx.getAttribute('text-anchor') === 'middle') continue; // the mark at the point
@@ -496,9 +505,50 @@ export class DrawingView {
       const [ax, ay] = project(this.view, [o.x, o.y, this.levelZ(o.level) + o.z]);
       const { w, h } = labelTextBox(o);
       const tx = ax + o.dx, y0 = o.note || o.wrap ? ay + o.dy - o.size * 0.625 : ay + o.dy - h / 2;
-      b = o.dx >= 0 ? [tx, y0, tx + w, y0 + h] : [tx - w, y0, tx, y0 + h];
+      b = textRight(o) ? [tx, y0, tx + w, y0 + h] : [tx - w, y0, tx, y0 + h];
     }
     return [b[0] - pad * px, b[1] - pad * px, b[2] + pad * px, b[3] + pad * px];
+  }
+
+  /**
+   * The boxes of these texts (labels and text boxes) as drawn in this view, in drawing units: measured when
+   * the view is open, else the estimate of the renderer. For aligning texts on the screen.
+   */
+  textBoxes(ids) {
+    const byId = indexById(this.doc.objects);
+    const out = new Map();
+    for (const id of ids) {
+      const o = byId.get(id);
+      if (o?.type === 'label') out.set(id, this.#labelBox(o, 0, !this.visible));
+    }
+    return out;
+  }
+
+  /** The boxes of the other texts drawn (not hidden, not in `skip`): what a text being moved lines up with. */
+  #otherTextBoxes(skip) {
+    return this.doc.objects.filter((o) => o.type === 'label' && o.text && !o.hidden && !skip.has(o.id)).map((o) => this.#labelBox(o, 0));
+  }
+
+  /** A text moved on the screen by (sx, sy): the correction that lines it up with another text (Alt: none), and its guides. */
+  #textSnap(t, sx, sy, e) {
+    this.textGuides = [];
+    if (e.altKey || !t.others.length) return [0, 0];
+    const b = t.box0;
+    const { fix, guides } = snapBox([b[0] + sx, b[1] + sy, b[2] + sx, b[3] + sy], t.others, GUIDE_PX / this.cam.scale);
+    this.textGuides = guides;
+    return fix;
+  }
+
+  /** A text moved as a whole (its point on the ground too): the move on the ground, lined up on the screen. */
+  #textMove(d, dx, dy, e) {
+    const t = d.text;
+    const sx = t.ex[0] * dx + t.ey[0] * dy, sy = t.ex[1] * dx + t.ey[1] * dy;
+    const [fx, fy] = this.#textSnap(t, sx, sy, e);
+    if (!fx && !fy) return [dx, dy];
+    // back from the screen to the ground: the inverse of the projection of the plane
+    const det = t.ex[0] * t.ey[1] - t.ey[0] * t.ex[1];
+    if (Math.abs(det) < 1e-12) { this.textGuides = []; return [dx, dy]; }
+    return [r3(dx + (fx * t.ey[1] - t.ey[0] * fy) / det), r3(dy + (t.ex[0] * fy - fx * t.ex[1]) / det)];
   }
 
   #handlesMarkup(o, byId, px) {
@@ -522,7 +572,7 @@ export class DrawingView {
         // a grip on the far side of the box, pulled sideways: a bar with two arrows ↔ (what it does, at a glance)
         const tip = `<title>${t('label.wrapHandleTip')}</title>`;
         // the double arrow sits outside the box, beside the grip, so it never covers the text
-        const sg = o.dx >= 0 ? 1 : -1, x0 = p[0] + sg * 9 * px, x1 = p[0] + sg * 23 * px, hh = 3.5 * px, ah = 3.5 * px * sg;
+        const sg = textRight(o) ? 1 : -1, x0 = p[0] + sg * 9 * px, x1 = p[0] + sg * 23 * px, hh = 3.5 * px, ah = 3.5 * px * sg;
         return `<rect class="handle handle-lw" data-handle="lw" x="${r3(p[0] - 4 * px)}" y="${r3(p[1] - 11 * px)}" width="${r3(8 * px)}" height="${r3(22 * px)}" rx="${r3(3 * px)}" fill="${SEL}" stroke="#fff" stroke-width="${r3(px * 1.5)}">${tip}</rect>`
           + `<path class="lw-arrows" d="M${r3(x0)} ${r3(p[1])}H${r3(x1)}M${r3(x0 + ah)} ${r3(p[1] - hh)}L${r3(x0)} ${r3(p[1])}L${r3(x0 + ah)} ${r3(p[1] + hh)}M${r3(x1 - ah)} ${r3(p[1] - hh)}L${r3(x1)} ${r3(p[1])}L${r3(x1 - ah)} ${r3(p[1] + hh)}" fill="none" stroke="${SEL}" stroke-width="${r3(px * 1.5)}" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>`;
       }
@@ -960,10 +1010,7 @@ export class DrawingView {
       { label: t('edit.lock'), key: 'Ctrl+L', run: () => cmd.setLocked(true) },
       { label: t('edit.hide'), key: 'Ctrl+H', run: () => cmd.setHidden(true) },
       n > 1 ? { sep: true } : null,
-      n > 1 ? { label: t('align.left'), run: () => cmd.alignSelection('left') } : null,
-      n > 1 ? { label: t('align.centerX'), run: () => cmd.alignSelection('centerX') } : null,
-      n > 1 ? { label: t('align.top'), run: () => cmd.alignSelection('top') } : null,
-      n > 1 ? { label: t('align.centerY'), run: () => cmd.alignSelection('centerY') } : null,
+      ...(n > 1 ? this.#alignItems(cmd) : []),
       { sep: true },
       { label: t('propagate.apply'), run: () => cmd.applyToFollowing(), disabled: last },
       { label: t('propagate.delete'), run: () => cmd.deleteInFollowing(), disabled: last, danger: true },
@@ -977,6 +1024,20 @@ export class DrawingView {
       { label: t('drawing.fit'), key: 'F', run: () => this.fit() },
     ];
     showContextMenu(e.clientX, e.clientY, items);
+  }
+
+  /** The align items of the right-button menu: for texts, all six and the two spreads, by the screen. */
+  #alignItems(cmd) {
+    if (!cmd.textsSelected) return ['left', 'centerX', 'top', 'centerY'].map((how) => ({ label: t('align.' + how), run: () => cmd.alignSelection(how) }));
+    const many = this.doc.selection.size > 2;
+    return [
+      ...['left', 'centerX', 'right'].map((how) => ({ label: t('align.' + how), run: () => cmd.alignSelection(how) })),
+      { label: t('align.textTop'), run: () => cmd.alignSelection('top') },
+      { label: t('align.textMiddle'), run: () => cmd.alignSelection('centerY') },
+      { label: t('align.textBottom'), run: () => cmd.alignSelection('bottom') },
+      { label: t('align.textDistributeX'), run: () => cmd.distributeSelection('x'), disabled: !many },
+      { label: t('align.textDistributeY'), run: () => cmd.distributeSelection('y'), disabled: !many },
+    ];
   }
 
   /** The object under the mouse in the element list gets a light outline in the drawing. */
@@ -1011,7 +1072,7 @@ export class DrawingView {
     const left = Math.min(...rects.map((r) => r.left)), right = Math.max(...rects.map((r) => r.right));
     const top = Math.min(...rects.map((r) => r.top));
     const k = this.svg.getScreenCTM()?.a || this.cam.scale; // screen px per drawing unit
-    const right2left = o.dx < 0;
+    const right2left = !textRight(o);
     const family = titleEl?.getAttribute('font-family') || 'inherit';
     const sizePx = o.size * k, notePx = o.size * 0.72 * k;
     // a width set on the label: the boxes break their lines at the width the text has on the drawing
@@ -1047,10 +1108,12 @@ export class DrawingView {
         style: { fontSize: `${r3(px)}px`, lineHeight: `${r3(px * lh)}px`, fontFamily: family, textAlign: right2left ? 'right' : 'left', ...(width ? { width: `${Math.round(width)}px`, whiteSpace: 'pre-wrap' } : {}), ...extra },
         onkeydown: (e) => {
           e.stopPropagation();
+          if (formatKeys(e, el)) return;
           if (e.key === 'Escape') { e.preventDefault(); close(false); }
           else if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); close(true); }
         },
         oninput: () => fit(el),
+        onfocus: () => { last = el; },
         // a field left with a change: applied unless the focus went to the other part of the box (change
         // comes even when the window itself is not the active one, focusout does not)
         onchange: () => setTimeout(() => { if (!box.contains(document.activeElement)) close(true); }, 0),
@@ -1059,6 +1122,7 @@ export class DrawingView {
       el.value = value || '';
       return el;
     };
+    let last = null; // the part the format buttons work on: the one last in focus
     const area = field('text', o.text, sizePx, 1.25, { textTransform: o.caps === false ? 'none' : 'uppercase', fontWeight: titleEl?.getAttribute('font-weight') || '600' });
     const noteArea = field('note', o.note, notePx, 1.3, { fontWeight: '400', opacity: '0.8' });
     // leaving the box applies (going from one part to the other does not)
@@ -1074,7 +1138,7 @@ export class DrawingView {
         if (untouched && performance.now() - opened < 250) { setTimeout(take, 0); return; }
         close(true);
       },
-    }, area, noteArea);
+    }, formatBar(() => last || area), area, noteArea);
     this.labelBox = box;
     this.closeLabel = close;
     this.wrap.append(box);
@@ -1184,6 +1248,11 @@ export class DrawingView {
       const g = this.#ground(e, z);
       this.#create(createLabel({ x: r3(g[0]), y: r3(g[1]), z: r3(z - lz), level, text: t('label.default'), dx: 6, dy: -6 }), e);
       { const made = this.doc.objects.at(-1).id; setTimeout(() => this.editLabel(made), 0); }
+    } else if (tool === 'textbox') {
+      // a text box: a label with no leader, its text where it is clicked, in a box of a width (resized by its side)
+      const g = this.#ground(e, z);
+      this.#create(createLabel({ x: r3(g[0]), y: r3(g[1]), z: r3(z - lz), level, text: t('label.boxDefault'), dx: 0, dy: 0, line: false, caps: false, size: 1.2, wrap: 18 }), e);
+      { const made = this.doc.objects.at(-1).id; setTimeout(() => this.editLabel(made), 0); }
     }
   }
 
@@ -1213,6 +1282,14 @@ export class DrawingView {
     // the pointer slides on the plane of the object it grabbed, so it stays under the cursor
     const zp = o ? this.#anchorZ(o, byId) : 0;
     this.drag = { kind: 'move', id, zp, g0: this.#ground(e, zp), start: this.#withStacked(), moved: false };
+    if (o?.type === 'label' && !this.elev) {
+      // a text lines up with the other texts on the screen: how a step on the ground moves it there
+      const p0 = project(this.view, [0, 0, zp]), px1 = project(this.view, [1, 0, zp]), py1 = project(this.view, [0, 1, zp]);
+      this.drag.text = {
+        box0: this.#labelBox(o, 0), others: this.#otherTextBoxes(this.drag.start),
+        ex: [px1[0] - p0[0], px1[1] - p0[1]], ey: [py1[0] - p0[0], py1[1] - p0[1]],
+      };
+    }
   }
 
   #startHandle(e, handle) {
@@ -1241,12 +1318,13 @@ export class DrawingView {
       kind: 'handle', handle, zp, g0, y0: this.toDrawing(e)[1], start: structuredClone(o),
       a0: Math.atan2(g0[1] - o.y, g0[0] - o.x), group: handle === 'rot' ? this.#withStacked() : null,
     };
+    if (handle === 'lt' && o.type === 'label') this.drag.text = { box0: this.#labelBox(o, 0), others: this.#otherTextBoxes(new Set([o.id])) };
     if (handle.startsWith('lw') && o.type === 'label') {
       // the width is pulled on the text as drawn; the renderer breaks lines on its estimate of a letter's
       // width, so the measured box gives the factor between the two (the edge stays under the mouse)
       const b = this.#labelBox(o, 0);
       const est = labelTextBox(o).w - o.size * 0.4;
-      this.drag.from = o.dx >= 0 ? b[0] : b[2];
+      this.drag.from = textRight(o) ? b[0] : b[2];
       this.drag.k = est > 0 && b[2] - b[0] > 0 ? est / (b[2] - b[0]) : 1;
     }
     this.doc.begin(handle === 'rot' ? 'object.rotate' : 'object.resize');
@@ -1306,9 +1384,9 @@ export class DrawingView {
     if (d.kind === 'move') {
       const g = this.#ground(e, d.zp);
       let dx = this.#snap(g[0] - d.g0[0], e), dy = this.#snap(g[1] - d.g0[1], e);
-      [dx, dy] = this.#alignGuides(d, dx, dy, e);
+      if (!d.moved && Math.hypot(dx, dy) < 1e-9) return;
+      [dx, dy] = d.text ? this.#textMove(d, dx, dy, e) : this.#alignGuides(d, dx, dy, e);
       if (!d.moved) {
-        if (Math.hypot(dx, dy) < 1e-9) return;
         d.moved = true;
         this.doc.begin('object.move');
       }
@@ -1452,14 +1530,18 @@ export class DrawingView {
       } else if (H.startsWith('lw')) {
         // the text breaks at the width pulled to (never narrower than two letters)
         const [X] = this.toDrawing(e);
-        const width = (s0.dx >= 0 ? X - d.from : d.from - X) - 5 / this.cam.scale;
+        const width = (textRight(s0) ? X - d.from : d.from - X) - 5 / this.cam.scale;
         o.wrap = r3(Math.max(s0.size * 2, width * (d.k || 1)));
         this.badge.textContent = `${t('label.wrap')}: ${formatNumber(o.wrap)} m`;
       } else if (H === 'lt') {
         const [X, Y] = this.toDrawing(e);
         const [ax, ay] = project(this.view, [s0.x, s0.y, this.levelZ(s0.level) + s0.z]);
-        o.dx = r3(X - ax);
-        o.dy = r3(Y - ay);
+        // the text lines up with the other texts it comes close to (Alt: free)
+        const flips = (X - ax >= 0) !== (s0.dx >= 0); // the text goes to the other side of its point: no snap
+        if (flips) this.textGuides = [];
+        const [fx, fy] = d.text && !flips ? this.#textSnap(d.text, X - ax - s0.dx, Y - ay - s0.dy, e) : [0, 0];
+        o.dx = r3(X - ax + fx);
+        o.dy = r3(Y - ay + fy);
       }
     });
   }
@@ -1472,8 +1554,8 @@ export class DrawingView {
     if (!d) return;
     if (d.kind === 'pan') { if (d.menu) this.#contextMenu(e, d.menu); return; }
     if (d.kind === 'marquee') { if (!d.box && d.lockedId && this.doc.byId(d.lockedId)) this.doc.select([d.lockedId]); this.#renderOverlay(); return; }
-    if (d.kind === 'move') { if (d.moved) this.doc.end(); if (this.guides.length) { this.guides = []; this.#renderOverlay(); } return; }
-    if (d.kind === 'handle') { this.doc.end(); return; }
+    if (d.kind === 'move') { if (d.moved) this.doc.end(); if (this.guides.length || this.textGuides.length) { this.guides = []; this.textGuides = []; this.#renderOverlay(); } return; }
+    if (d.kind === 'handle') { this.doc.end(); if (this.textGuides.length) { this.textGuides = []; this.#renderOverlay(); } return; }
     if (d.kind === 'level') {
       if (d.moved) this.doc.end(); else this.doc.setActiveLevel(d.id);
       this.#renderOverlay();
@@ -1524,8 +1606,10 @@ export class DrawingView {
    * platform or a slope), the volume it starts on, or every volume it touches.
    */
   #cutTarget(target) {
+    // started on a volume, it cuts that volume — also with the terrain option on, which is for the ground
+    if (target?.type === 'volume') return target.id;
     if (this.layout.cutTerrain || target?.type === 'platform' || target?.type === 'slope') return TERRAIN_TARGET;
-    return target?.type === 'volume' ? target.id : null;
+    return null;
   }
 
   #cutHeight(d, zr) {
@@ -1656,6 +1740,7 @@ export class DrawingView {
     this.preview = null;
     this.poly = null;
     this.guides = [];
+    this.textGuides = [];
     this.canvas.classList.remove('panning');
     this.badge.textContent = '';
     if (d && (d.kind === 'handle' || ((d.kind === 'move' || d.kind === 'elevMove' || d.kind === 'level') && d.moved))) { this.doc.end(); this.s.commands.undo(); }

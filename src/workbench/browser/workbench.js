@@ -121,7 +121,7 @@ host.onOpenFile?.((file) => services.commands.openPath(file));
 host.onCloseRequest?.(() => services.commands.closeWindow());
 
 // ---- keyboard shortcuts ----
-const TOOL_KEYS = { v: 'select', b: 'box', s: 'cut', g: 'terrain', a: 'arrow', p: 'person', t: 'label', e: 'tree', d: 'dim', l: 'align' };
+const TOOL_KEYS = { v: 'select', b: 'box', s: 'cut', g: 'terrain', a: 'arrow', p: 'person', t: 'label', x: 'textbox', e: 'tree', d: 'dim', l: 'align' };
 const currentView = () => views[services.layout.tab];
 
 window.addEventListener('keydown', (e) => {

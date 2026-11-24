@@ -8,6 +8,7 @@
 // from the notice that follows (or with undo).
 import { h, setChildren } from '../../../../base/browser/dom.js';
 import { icon } from '../../../../base/browser/icons.js';
+import { textField } from '../../../browser/widgets.js';
 import { t } from '../../../../base/common/nls.js';
 import { showContextMenu } from '../../../browser/contextMenu.js';
 import { stepSvg, stepViews } from '../../../services/render/common/renderer.js';
@@ -38,6 +39,26 @@ export class StepsPane {
     this.timer = setTimeout(() => this.render(), ms);
   }
 
+  /** The title and the text of the current step, on its card (the same as in the properties of the step). */
+  #editor(step) {
+    const set = (props) => this.s.commands.setStepProps(props);
+    const title = textField(step.title, (v) => set({ title: v }), { placeholder: t('step.titlePlaceholder'), key: 'cardTitle' });
+    const text = textField(step.text, (v) => set({ text: v }), { multiline: true, placeholder: t('step.textPlaceholder'), key: 'cardText' });
+    title.setAttribute('aria-label', t('step.title'));
+    text.setAttribute('aria-label', t('step.text'));
+    text.rows = 2;
+    // the text grows with what is written
+    const grow = () => { text.style.height = 'auto'; text.style.height = `${Math.min(220, text.scrollHeight + 2)}px`; };
+    text.addEventListener('input', grow);
+    requestAnimationFrame(grow);
+    for (const el of [title, text]) {
+      el.draggable = false;
+      el.addEventListener('click', (e) => e.stopPropagation());
+      el.addEventListener('keydown', (e) => e.stopPropagation());
+    }
+    return h('div.step-edit', title, text);
+  }
+
   #thumb(i) {
     const p = this.doc.project;
     const step = p.steps[i];
@@ -52,6 +73,11 @@ export class StepsPane {
   }
 
   render() {
+    // while the title or the text of a step is being typed on its card, the cards wait (they are redrawn
+    // when the field is left)
+    clearTimeout(this.retry);
+    const active = document.activeElement;
+    if (this.list.contains(active) && active.matches('input, textarea')) { this.retry = setTimeout(() => this.render(), 400); return; }
     const doc = this.doc;
     const steps = doc.project.steps;
     setChildren(this.list, steps.map((step, i) => {
@@ -60,7 +86,9 @@ export class StepsPane {
         class: i === doc.stepIndex ? 'step-card active' : 'step-card', role: 'button', tabIndex: 0, 'data-step': i, draggable: 'true',
         title: t('steps.dragHint'),
         // drag a step onto another to move it there
-        ondragstart: (e) => { this.dragFrom = i; card.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(i)); },
+        ondragstart: (e) => {
+          if (e.target.closest?.('.step-edit')) { e.preventDefault(); return; } // selecting text, not moving the step
+          this.dragFrom = i; card.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(i)); },
         ondragend: () => { this.dragFrom = null; for (const c of this.list.children) c.classList.remove('dragging', 'drop-before', 'drop-after'); },
         ondragover: (e) => {
           if (this.dragFrom == null || this.dragFrom === i) return;
@@ -93,7 +121,9 @@ export class StepsPane {
           h('button.icon-button', { title: t('steps.up'), disabled: i === 0, html: icon('up', 14), onclick: (e) => { e.stopPropagation(); doc.moveStep(i, i - 1); } }),
           h('button.icon-button', { title: t('steps.down'), disabled: i === steps.length - 1, html: icon('down', 14), onclick: (e) => { e.stopPropagation(); doc.moveStep(i, i + 1); } }),
           h('button.icon-button', { 'data-action': 'duplicate-step', title: t('steps.duplicate') + ' (Ctrl+Shift+D)', 'aria-label': t('steps.duplicate'), html: icon('duplicate', 14), onclick: (e) => { e.stopPropagation(); this.s.commands.duplicateStep(i); } }),
-          h('button.icon-button.danger', { title: t('steps.remove'), disabled: steps.length <= 1, html: icon('trash', 14), onclick: (e) => { e.stopPropagation(); this.s.commands.removeStep(i); } }))));
+          h('button.icon-button.danger', { title: t('steps.remove'), disabled: steps.length <= 1, html: icon('trash', 14), onclick: (e) => { e.stopPropagation(); this.s.commands.removeStep(i); } }))),
+      // the step shown: its title and its text written right on its card
+      i === doc.stepIndex ? this.#editor(step) : null);
       return card;
     }));
     // forget drawings of steps that no longer exist

@@ -11,6 +11,7 @@ import { t } from '../../../../base/common/nls.js';
 import { newId, clone, createCategory } from './commandHelpers.js';
 import { normalizeProject, GROUND_LEVEL, stepAngles, normalizeAngle, MAX_VIEWS, EXTRA_KEYS, baseOf, indexById, elevationOf, normalizeObject, createOpening, isLine, polyFromWorld, polyWorld, TERRAIN_TARGET, fitTrapezoid } from '../../model/common/model.js';
 import { rectRing } from '../../../../base/common/geometry/polygon.js';
+import { alignMoves, distributeMoves } from '../../../../base/common/geometry/alignBoxes.js';
 
 const CATEGORY_COLORS = ['#e59aa6', '#8fa9cc', '#8aa346', '#e8b464', '#a68bc9', '#6fb3a8', '#d98a6c', '#9a948c'];
 
@@ -244,26 +245,49 @@ export class CommandService {
   }
 
   alignSelection(how) {
+    if (this.#alignTexts(how, null)) return;
     const sel = this.doc.selected().filter((o) => boundsOf(o));
     if (sel.length < 2) return;
-    const axis = how === 'left' || how === 'right' || how === 'centerX' ? 0 : 1;
-    const bs = new Map(sel.map((o) => [o.id, boundsOf(o)]));
-    const lo = Math.min(...[...bs.values()].map((b) => b[axis])), hi = Math.max(...[...bs.values()].map((b) => b[axis + 2]));
-    const target = (b) => (how === 'left' || how === 'bottom' ? lo - b[axis] : how === 'right' || how === 'top' ? hi - b[axis + 2] : (lo + hi) / 2 - (b[axis] + b[axis + 2]) / 2);
-    this.#shift('object.align', new Map(sel.map((o) => [o.id, target(bs.get(o.id))])), axis);
+    const { axis, moves } = alignMoves(new Map(sel.map((o) => [o.id, boundsOf(o)])), how);
+    this.#shift('object.align', moves, axis);
   }
 
   /** Spreads three or more selected objects with equal gaps between them, along X ('x') or Y ('y'). */
   distributeSelection(along) {
+    if (this.#alignTexts(null, along)) return;
     const axis = along === 'x' ? 0 : 1;
-    const sel = this.doc.selected().filter((o) => boundsOf(o)).map((o) => ({ o, b: boundsOf(o) })).sort((p, q) => p.b[axis] - q.b[axis]);
-    if (sel.length < 3) return;
-    const total = sel.reduce((a, { b }) => a + b[axis + 2] - b[axis], 0);
-    const gap = (sel[sel.length - 1].b[axis + 2] - sel[0].b[axis] - total) / (sel.length - 1);
-    const moves = new Map();
-    let at = sel[0].b[axis];
-    for (const { o, b } of sel) { moves.set(o.id, at - b[axis]); at += b[axis + 2] - b[axis] + gap; }
-    this.#shift('object.distribute', moves, axis);
+    const moves = distributeMoves(new Map(this.doc.selected().filter((o) => boundsOf(o)).map((o) => [o.id, boundsOf(o)])), axis);
+    if (moves) this.#shift('object.distribute', moves, axis);
+  }
+
+  /** Whether the selection is two or more texts (labels and text boxes), and nothing else. */
+  get textsSelected() {
+    const sel = this.doc.selected();
+    return sel.length > 1 && sel.every((o) => o.type === 'label');
+  }
+
+  /**
+   * Texts line up by their boxes as drawn in the view open now (left, right, top and bottom of the screen):
+   * their texts move (dx, dy), their points stay. Returns false when the selection is not only texts.
+   */
+  #alignTexts(how, along) {
+    if (!this.textsSelected) return false;
+    const views = this.s.views || {};
+    const view = views[this.s.layout.tab]?.textBoxes ? views[this.s.layout.tab] : views.axon;
+    const boxes = view?.textBoxes?.(this.doc.selected().map((o) => o.id));
+    if (!boxes || boxes.size < 2) return false;
+    let moves, axis;
+    if (along) { axis = along === 'x' ? 0 : 1; moves = distributeMoves(boxes, axis); if (!moves) return true; }
+    else ({ axis, moves } = alignMoves(boxes, how, { yDown: true }));
+    this.doc.run(along ? 'object.distribute' : 'object.align', (_p, step) => {
+      for (const o of step.objects) {
+        const dv = moves.get(o.id);
+        if (!dv || Math.abs(dv) < 1e-9) continue;
+        if (axis) o.dy = round(o.dy + dv);
+        else o.dx = o.line === false ? round(o.dx + dv) : sideDx(o, dv, boxes.get(o.id));
+      }
+    });
+    return true;
   }
 
   /** Moves objects along one axis (what is stacked on them follows). */
@@ -351,7 +375,7 @@ export class CommandService {
           // what an object only carries when it has it: a colour of its own, the direction and colour of a roof,
           // the height where an arrow ends, the note and the mark of a label, the joints of a floor
           if (OPTIONAL[k]?.includes(o.type)) {
-            const keep = k === 'z2' ? v !== null && v !== '' && Number.isFinite(Number(v)) && Number(v) !== o.z : k === 'roofDir' ? v === 'w' || v === 'd' : k === 'joints' ? Number(v) > 0 : !!v;
+            const keep = k === 'z2' ? v !== null && v !== '' && Number.isFinite(Number(v)) && Number(v) !== o.z : k === 'roofDir' ? v === 'w' || v === 'd' : k === 'joints' ? Number(v) > 0 : k === 'line' ? v === false : !!v;
             if (!keep) delete o[k]; else o[k] = k === 'z2' || k === 'joints' ? Number(v) : v;
             continue;
           }
@@ -671,12 +695,27 @@ async function shrinkImage(dataUrl, max = 2200) {
   return { src: canvas.toDataURL('image/jpeg', 0.86), ratio: img.naturalHeight / img.naturalWidth };
 }
 /** Fields kept only when set, and the kinds of object that may have them. */
-const OPTIONAL = { color: ['volume'], fill: ['volume'], roofColor: ['volume'], roofDir: ['volume'], z2: ['arrow'], note: ['label'], mark: ['label'], wrap: ['label'], joints: ['area'] };
+const OPTIONAL = { color: ['volume'], fill: ['volume'], roofColor: ['volume'], roofDir: ['volume'], z2: ['arrow'], note: ['label'], mark: ['label'], wrap: ['label'], line: ['label'], joints: ['area'] };
 
 /** What was copied (shared by every open diagram). */
 let clipboard = null;
 
 /** Bounds in plan of an object: [x0, y0, x1, y1] (null for what has no place of its own). */
+/**
+ * The text of a label with a leader moved across by `mv`: its dx. The text runs right of its point when dx
+ * is positive and ends at it when negative, so a text that has to cross over its point changes sides, and
+ * dx jumps by its width (the box `b`) to keep its left side where it was sent. A place right over the point
+ * cannot be reached: the side that comes nearest is kept.
+ */
+function sideDx(o, mv, b) {
+  const right = o.dx >= 0, same = o.dx + mv;
+  if ((same >= 0) === right) return round(same);
+  const jump = 0.7 * o.size + (b[2] - b[0]);
+  const other = right ? same + jump : same - jump;
+  if ((other >= 0) !== right) return round(other);
+  return Math.abs(same) <= Math.abs(other) ? (right ? 0 : -0.001) : (right ? -0.001 : 0);
+}
+
 function boundsOf(o) {
   if (o.type === 'opening') return null;
   if (isLine(o)) return [Math.min(o.x1, o.x2), Math.min(o.y1, o.y2), Math.max(o.x1, o.x2), Math.max(o.y1, o.y2)];

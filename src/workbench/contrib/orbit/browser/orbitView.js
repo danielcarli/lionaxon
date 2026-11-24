@@ -77,8 +77,8 @@ export class OrbitView {
     this.cycle = new PickCycle(this); // Tab: the next object under the same spot
     // what the person chose for the viewer, kept between sessions: the way of the mouse, the tool of the left
     // button on the paper (orbit or pan), and whether labels are drawn (off: they hide the model while it turns)
-    this.prefs = { nav: 'rev', tool: 'orbit', labels: false };
-    try { const saved = JSON.parse(localStorage.getItem(PREFS_KEY) || '{}'); if (NAV_STYLES.includes(saved.nav)) this.prefs.nav = saved.nav; if (saved.tool === 'pan') this.prefs.tool = 'pan'; this.prefs.labels = saved.labels === true; } catch { /* no storage */ }
+    this.prefs = { nav: 'rev', tool: 'orbit', labels: false, cuts: false };
+    try { const saved = JSON.parse(localStorage.getItem(PREFS_KEY) || '{}'); if (NAV_STYLES.includes(saved.nav)) this.prefs.nav = saved.nav; if (saved.tool === 'pan') this.prefs.tool = 'pan'; this.prefs.labels = saved.labels === true; this.prefs.cuts = saved.cuts === true; } catch { /* no storage */ }
     this.pivot = null;         // the point the view turns around, when it is not the middle of the site
     this.lastMiddle = 0;       // when the middle button was last pressed (twice in a row fits the drawing)
     this.cube = h('div.view-cube', { 'aria-label': t('orbit.cube') });
@@ -87,7 +87,13 @@ export class OrbitView {
     new ResizeObserver(() => { if (this.visible) this.#applyCamera(); }).observe(this.canvas);
     this.doc.onDidChange((e) => {
       if (e.kind === 'file' || e.kind === 'tabs') return;
-      if (e.kind === 'selection') { if (this.visible) this.#renderSelection(); return; }
+      if (e.kind === 'selection') {
+        // a subtraction selected (or no longer) shows its outline (or hides it): a new drawing
+        const cutSel = this.doc.selected().some((o) => o.type === 'cut');
+        if (cutSel !== !!this.cutSel) { this.cutSel = cutSel; if (this.visible) this.render(); return; }
+        if (this.visible) this.#renderSelection();
+        return;
+      }
       // a new step (or diagram): look at it from its own angle
       if (e.kind === 'step' || e.kind === 'load') { this.loadedStep = null; if (e.kind === 'load') this.cam = null; }
       if (!this.visible) return;
@@ -161,6 +167,8 @@ export class OrbitView {
   setTool(tool) { this.prefs.tool = tool === 'pan' ? 'pan' : 'orbit'; this.canvas.dataset.tool = this.prefs.tool; this.#savePrefs(); this.#renderToolbar(); }
   /** Whether the labels are drawn in the viewer. */
   setLabels(on) { this.prefs.labels = !!on; this.#savePrefs(); this.#renderToolbar(); this.render(); }
+  /** Whether the subtractions are drawn in the viewer (their outlines; a selected one always is). */
+  setCuts(on) { this.prefs.cuts = !!on; this.#savePrefs(); this.#renderToolbar(); this.render(); }
 
   #centre() {
     const [X, Y] = project(this.view, this.#pivot());
@@ -212,7 +220,8 @@ export class OrbitView {
   // ---- rendering
 
   #markup(scale) {
-    return renderStep(this.doc.project, this.doc.stepIndex, { view: this.view, lw: 1.15 / scale, grid: true, ids: true, fmt: meters, labels: this.prefs.labels });
+    return renderStep(this.doc.project, this.doc.stepIndex, { view: this.view, lw: 1.15 / scale, grid: true, ids: true, fmt: meters, labels: this.prefs.labels,
+      showCuts: this.prefs.cuts || this.doc.selected().some((o) => o.type === 'cut') });
   }
 
   render() {
@@ -231,7 +240,7 @@ export class OrbitView {
   #heightTarget() {
     const sel = this.doc.selected();
     const o = sel.length === 1 ? sel[0] : null;
-    return o && o.type === 'volume' && o.shape !== 'sphere' && !o.locked && !o.hidden && Number.isFinite(o.h) ? o : null;
+    return o && (o.type === 'volume' || o.type === 'cut') && o.shape !== 'sphere' && !o.locked && !o.hidden && Number.isFinite(o.h) ? o : null;
   }
 
   /** Where the height handle of a volume sits: over the middle of its top. */
@@ -368,6 +377,7 @@ export class OrbitView {
         h('select', { 'data-key': 'nav', 'aria-label': t('orbit.navTip'), onchange: (e) => this.setNav(e.target.value) },
           NAV_STYLES.map((n) => h('option', { value: n, selected: this.prefs.nav === n }, n === 'rev' ? 'Rev' : 'Sketch')))),
       h('button.tool', { class: this.prefs.labels ? 'tool active' : 'tool', 'data-action': 'labels', 'aria-pressed': String(this.prefs.labels), title: t('orbit.labelsTip'), html: icon('text', 17), onclick: () => this.setLabels(!this.prefs.labels) }),
+      h('button.tool', { class: this.prefs.cuts ? 'tool active' : 'tool', 'data-action': 'cuts', 'aria-pressed': String(this.prefs.cuts), title: t('orbit.cutsTip'), html: icon('cut', 17), onclick: () => this.setCuts(!this.prefs.cuts) }),
       h('span.grow'),
       // the way to where new shapes are drawn (what can be done here is in the status bar)
       h('button.tool', { 'data-action': 'edit', title: t('orbit.editTip'), 'aria-label': t('orbit.edit'), html: icon('pencil', 17), onclick: () => this.layout.setTab('axon') }));

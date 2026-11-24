@@ -26,6 +26,9 @@ import { shade } from '../src/workbench/services/render/common/styles.js';
 import { restingHeight, trapezoidFaces } from '../src/workbench/services/render/common/solids.js';
 import { joinTerrain } from '../src/workbench/services/render/common/joinTerrain.js';
 import { parseStepRange, formatStepRange } from '../src/workbench/services/export/common/stepRange.js';
+import { parseInline, richLines, plainText } from '../src/workbench/services/render/common/richText.js';
+import { alignMoves, distributeMoves, snapBox } from '../src/base/common/geometry/alignBoxes.js';
+import { cutsTaking } from '../src/workbench/services/render/common/solids.js';
 
 let n = 0;
 const test = (name, fn) => { fn(); n++; console.log(`  ✓ ${name}`); };
@@ -721,6 +724,11 @@ test('steps to export: "7", "3-7", "3 a 7", "1, 4, 6-8", "*", an open end, empty
   assert.deepEqual(p('*').indexes.length, 8);
   assert.deepEqual(p('todas').indexes.length, 8);
   assert.deepEqual(p('6-').indexes, [5, 6, 7]);
+  assert.deepEqual(p('3 a').indexes, [2, 3, 4, 5, 6, 7], 'an open end in words runs to the last step too');
+  assert.deepEqual(p('-3').indexes, [0, 1, 2], 'and an open start from the first');
+  assert.deepEqual(p('-').indexes.length, 8, 'the dash alone: every step');
+  assert.deepEqual(p('1, 6-').indexes, [0, 5, 6, 7]);
+  assert.equal(p('a').error, 'a');
   assert.equal(p('9').error, '9');
   assert.equal(p('x').error, 'x');
   assert.equal(formatStepRange([2, 3, 4, 5, 6, 8]), '3–7, 9');
@@ -826,6 +834,65 @@ test('trapezoids: standing (its sides lean) and lying (a trapezoid in plan, cut 
   prj.steps[0].objects = [up, lying, createCut({ id: 'notch', x: 20, y: 0, w: 2, d: 2, z: 3, h: 3, target: 'ly' })];
   const m = renderStep(prj, 0, { view: makeView(-45), ids: true }).markup;
   assert.ok(m.includes('data-id="up" data-top="8"') && m.includes('data-id="ly" data-top="6"') && m.includes('data-id="ly" data-top="3"'), 'the lying one is cut by a subtraction');
+});
+
+test('rich text of labels: **bold**, *italic*, lists that hang, broken at a width; a text box has no leader', () => {
+  assert.deepEqual(parseInline('a **b** *c* ***d*** e'), [
+    { t: 'a ', b: false, i: false }, { t: 'b', b: true, i: false }, { t: ' ', b: false, i: false }, { t: 'c', b: false, i: true },
+    { t: ' ', b: false, i: false }, { t: 'd', b: true, i: true }, { t: ' e', b: false, i: false }]);
+  assert.deepEqual(parseInline('2 * 3 = **6'), [{ t: '2 * 3 = **6', b: false, i: false }], 'markers left open stay as typed');
+  assert.equal(plainText('- **one**\n2) *two*'), '• one\n2. two');
+  const lines = richLines('- first item that is long\n- **second**', { max: 10, cw: 1 });
+  assert.equal(lines[0].prefix, '•');
+  assert.ok(lines.length >= 3 && lines[1].hang && !lines[1].prefix, 'the lines of an item hang under its text');
+  assert.ok(lines.every((l) => l.chars <= 10 + 2 || l.runs.length === 1), 'broken at the width');
+  assert.equal(lines.at(-1).runs[0].b, true);
+  assert.equal(richLines('**caixa**', { caps: true })[0].runs[0].t, 'CAIXA');
+  const prj = createProject();
+  prj.steps[0].objects = [
+    createLabel({ id: 'lb', x: 5, y: 5, text: 'Title **bold**', note: '- *one*\n- two' }),
+    createLabel({ id: 'tb', x: 20, y: 5, text: 'A box', line: false, dx: 0, dy: 0, wrap: 12 }),
+  ];
+  const m = renderStep(prj, 0, { view: makeView(-45), ids: true }).markup;
+  const lb = /<g[^>]*data-id="lb"[^>]*>(.*?)<\/g>/s.exec(m)[1], tb = /<g[^>]*data-id="tb"[^>]*>(.*?)<\/g>/s.exec(m)[1];
+  assert.ok(/font-weight="\d+">BOLD</.test(lb) && /font-style="italic">one</.test(lb) && lb.includes('>•<'), 'bold, italic and the bullet drawn');
+  assert.ok(lb.includes('<path') && lb.includes('<circle'), 'a label keeps its leader and point');
+  assert.ok(!tb.includes('<path') && !tb.includes('<circle') && tb.includes('A BOX'), 'a text box has none');
+  assert.equal(normalizeProject(JSON.parse(JSON.stringify(prj))).steps[0].objects[1].line, false);
+});
+
+test('aligning texts on the screen: by their boxes, spread with equal gaps, smart guides that snap', () => {
+  const boxes = new Map([['a', [0, 0, 10, 2]], ['b', [3, 5, 9, 8]], ['c', [1, 12, 4, 13]]]);
+  const left = alignMoves(boxes, 'left', { yDown: true });
+  assert.equal(left.axis, 0);
+  assert.deepEqual([...left.moves.values()], [0, -3, -1]);
+  assert.deepEqual([...alignMoves(boxes, 'top', { yDown: true }).moves.values()], [0, -5, -12], 'on the screen the top is the smallest Y');
+  assert.deepEqual([...alignMoves(boxes, 'top').moves.values()], [11, 5, 0], 'in plan the top is the back, the largest Y');
+  assert.deepEqual([...alignMoves(boxes, 'centerX', { yDown: true }).moves.values()], [0, -1, 2.5]);
+  const spread = distributeMoves(boxes, 1);
+  // heights 2, 3, 1 over 0..13: gaps of (13 - 6) / 2 = 3.5
+  assert.deepEqual([...spread.values()], [0, 0.5, 0]);
+  assert.equal(distributeMoves(new Map([...boxes].slice(0, 2)), 0), null, 'three or more');
+  const { fix, guides } = snapBox([0.3, 20, 5.3, 22], [[0, 0, 10, 2], [20, 20.4, 30, 26]], 0.5);
+  assert.deepEqual(fix.map((v) => Math.round(v * 10) / 10), [-0.3, 0.4]);
+  assert.equal(guides.length, 2);
+  assert.deepEqual(guides[0], [[0, 0], [0, 22.4]], 'a vertical guide from the other text to the one moved');
+  assert.deepEqual(snapBox([4, 4, 6, 6], [[20, 20, 30, 30]], 0.5).fix, [0, 0], 'nothing close: no snap');
+});
+
+test('a volume that fills a void is still cut by other subtractions (a smaller one made in it later)', () => {
+  const v = { type: 'volume', id: 'v', shape: 'box', x: 10, y: 10, w: 8, d: 6, h: 4, rot: 0, fill: true };
+  const notch = { type: 'cut', id: 'c-void', shape: 'box', x: 10, y: 10, w: 8, d: 6, z: 0, h: 4, rot: 0, target: null };
+  const small = { type: 'cut', id: 'c-new', shape: 'box', x: 8, y: 8, w: 2, d: 2, z: 2, h: 2, rot: 0, target: null };
+  const other = { type: 'cut', id: 'c-far', shape: 'box', x: 40, y: 40, w: 2, d: 2, z: 0, h: 2, rot: 0, target: 'v-else' };
+  const objs = [notch, small, other];
+  const ids = (list) => [...new Set(list.map((c) => c.id))].sort();
+  assert.deepEqual(ids(cutsTaking(v, 0, objs, objs.flatMap(expandCut))), ['c-far', 'c-new'], 'the void it fills does not cut it; the new one does');
+  assert.deepEqual(ids(cutsTaking({ ...v, fill: false }, 0, objs, objs)), ['c-far', 'c-new', 'c-void'], 'a plain volume: all of them');
+  // a partial fill: a smaller volume inside the void
+  assert.deepEqual(ids(cutsTaking({ ...v, w: 3, d: 3, h: 2 }, 0, [notch], [notch])), [], 'a part of the void: still not cut by it');
+  const faces = volumeFaces(v, 0, cutsTaking(v, 0, objs, objs.flatMap(expandCut)));
+  assert.ok(faces.length > volumeFaces(v, 0, []).length, 'the new subtraction takes a piece out of it');
 });
 
 console.log(`\n${n} passed`);

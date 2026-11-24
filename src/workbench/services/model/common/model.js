@@ -212,10 +212,12 @@ function normalizeCore(o) {
       type: 'label', id, x: num(o.x, 0), y: num(o.y, 0), z: num(o.z, 0), level, dx: num(o.dx, 6), dy: num(o.dy, -6),
       text: str(o.text), size: num(o.size, 1.6, 0.2, 20), font: pick(o.font, LABEL_FONT_IDS, 'sans'), caps: o.caps !== false,
       // a second, quieter line under the text, and a mark at the point
-      ...(str(o.note).trim() ? { note: str(o.note).slice(0, 300) } : {}),
+      ...(str(o.note).trim() ? { note: str(o.note).slice(0, 2000) } : {}),
       ...(LABEL_MARKS.includes(o.mark) && o.mark ? { mark: o.mark } : {}),
       // the width the text is broken to (in drawing units, like its size); none: one line per line typed
       ...(Number(o.wrap) > 0 ? { wrap: num(o.wrap, 0, 1, 1000) } : {}),
+      // a text box: no leader and no point, the text where the label is
+      ...(o.line === false ? { line: false } : {}),
     };
     default: return null;
   }

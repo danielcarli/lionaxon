@@ -10,7 +10,7 @@ import { Emitter } from '../../../../base/common/event.js';
 export const ACTIVITIES = ['steps', 'project', 'categories', 'sheet'];
 export const TABS = ['axon', 'plan', 'elev', 'sheet', 'orbit'];
 // 'site' is not in the toolbar: it draws the outline of the site, from the Project pane
-export const TOOLS = ['select', 'align', 'box', 'cut', 'terrain', 'arrow', 'dim', 'person', 'tree', 'label', 'site'];
+export const TOOLS = ['select', 'align', 'box', 'cut', 'terrain', 'arrow', 'dim', 'person', 'tree', 'label', 'textbox', 'site'];
 export const TERRAIN_KINDS = ['platform', 'slope', 'area'];
 /** Interface themes: follow the system, light, dark, and two light themes with their own colours. */
 export const THEMES = ['auto', 'light', 'dark', 'map', 'riverfront'];

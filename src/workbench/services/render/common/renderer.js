@@ -11,6 +11,7 @@
 //   order              → back to front, from plane tests between overlapping faces (Newell), then by depth
 //   SVG                → ground (grid, site, dimensions, north), model (faces, floor lines, people,
 //                        spheres), top layer (arrows, labels, cuts and the level plane in the editor)
+import { richLines, richTspans } from './richText.js';
 import { project, depth, dot, verticalScale, makeView } from '../../../../base/common/geometry/projection.js';
 import { rectRing, bboxOf, bboxOverlap, bboxUnion, convexHull, convexOverlap, difference, union, intersection } from '../../../../base/common/geometry/polygon.js';
 import {
@@ -19,7 +20,7 @@ import {
   TERRAIN_TARGET,
 } from '../../model/common/model.js';
 import { getStyle, shade, arrowColor } from './styles.js';
-import { volumeFaces, extrusionFaces, slopeFaces, expandCut, footprintOf, shadowOf, openingShape, restingHeight, isTrapezoid, trapezoidFaces } from './solids.js';
+import { volumeFaces, extrusionFaces, slopeFaces, expandCut, footprintOf, shadowOf, openingShape, restingHeight, isTrapezoid, trapezoidFaces, cutsTaking } from './solids.js';
 import { joinTerrain } from './joinTerrain.js';
 import { labelFont } from './fonts.js';
 
@@ -332,31 +333,26 @@ const arrowBounds = (view, o) => { const g = arrowGeometry(o); return bboxOf([..
 const titleChar = (o) => o.size * labelFont(o.font).width * (o.caps ? 1 : 0.85);
 const noteChar = (o) => o.size * 0.72 * labelFont(o.font).width * 0.85;
 
-/** The lines of a paragraph broken at the spaces so that none is wider than `max` (a word longer than that stays whole). */
-function wrapLine(line, max, cw) {
-  if (!(max > 0) || line.length * cw <= max) return [line];
-  const out = [];
-  let cur = '';
-  for (const word of line.split(/\s+/).filter(Boolean)) {
-    const next = cur ? `${cur} ${word}` : word;
-    if (cur && next.length * cw > max) { out.push(cur); cur = word; } else cur = next;
-  }
-  if (cur) out.push(cur);
-  return out.length ? out : [line];
-}
+/**
+ * The lines of the text of a label and of its note, formatted (**bold**, *italic*, lists) and broken at its
+ * width when it has one; see richText.js.
+ */
+const labelLines = (o) => richLines(o.text || '', { max: o.wrap, cw: titleChar(o), caps: o.caps });
+const noteLines = (o) => (o.note ? richLines(o.note, { max: o.wrap, cw: noteChar(o) }) : []);
 
-function labelLines(o) {
-  return String(o.text || '').split('\n').map((l) => (o.caps ? l.toUpperCase() : l)).flatMap((l) => wrapLine(l, o.wrap, titleChar(o)));
-}
-const noteLines = (o) => (o.note ? String(o.note).split('\n').flatMap((l) => wrapLine(l, o.wrap, noteChar(o))) : []);
+/**
+ * Whether the text of a label runs to the right of its point (its leader goes right): else it ends at it.
+ * A text box has no leader, so it always runs to the right, wherever it is moved.
+ */
+export const textRight = (o) => o.line === false || o.dx >= 0;
 
-/** Whether the text of a label hangs under its first line (a note or a width): a block of text. */
-const hangsBelow = (o) => !!(o.note || o.wrap);
+/** Whether the text of a label hangs under its first line (a note, a width, no leader): a block of text. */
+const hangsBelow = (o) => !!(o.note || o.wrap || o.line === false);
 
 /** The box of the text of a label (no leader): its width and height in drawing units, wrapped when it has a width. */
 export function labelTextBox(o) {
   const lines = labelLines(o), notes = noteLines(o);
-  const w = Math.max(0, ...lines.map((l) => l.length * titleChar(o)), ...notes.map((l) => l.length * noteChar(o))) + o.size * 0.4;
+  const w = Math.max(0, ...lines.map((l) => l.chars * titleChar(o)), ...notes.map((l) => l.chars * noteChar(o))) + o.size * 0.4;
   const h = lines.length * o.size * 1.25 + notes.length * o.size * 0.72 * 1.3;
   return { w, h };
 }
@@ -366,7 +362,7 @@ const MARK_COLORS = { '!': '#c8322d', '×': '#c8322d', '+': '#2e8b57', '−': '#
 function labelMarkup(view, o, style, attrs) {
   const [ax, ay] = project(view, [o.x, o.y, o.z]);
   const tx = ax + o.dx, ty = ay + o.dy;
-  const right = o.dx >= 0;
+  const right = textRight(o);
   const lines = labelLines(o);
   const f = labelFont(o.font);
   const lh = o.size * 1.25;
@@ -377,18 +373,21 @@ function labelMarkup(view, o, style, attrs) {
   const hangs = hangsBelow(o);
   const y0 = hangs ? ty : ty - ((lines.length - 1) * lh + notes.length * nlh) / 2;
   const x = r3(tx + (right ? 0.35 : -0.35) * o.size);
+  const leader = o.line !== false; // a text box has no leader, no point and no mark
   let s = `<g${attrs}>`;
-  s += `<path d="M${r3(ax)} ${r3(ay)}L${r3(tx)} ${r3(ty)}" fill="none" stroke="${style.text}" stroke-width="${r3(o.size * 0.06)}"/>`;
-  s += `<circle cx="${r3(ax)}" cy="${r3(ay)}" r="${r3(o.size * 0.14)}" fill="${style.text}"/>`;
+  if (leader) {
+    s += `<path d="M${r3(ax)} ${r3(ay)}L${r3(tx)} ${r3(ty)}" fill="none" stroke="${style.text}" stroke-width="${r3(o.size * 0.06)}"/>`;
+    s += `<circle cx="${r3(ax)}" cy="${r3(ay)}" r="${r3(o.size * 0.14)}" fill="${style.text}"/>`;
+  }
   s += `<text x="${x}" y="${r3(y0)}" font-family="${esc(f.family)}" font-size="${r3(o.size)}" font-weight="${f.weight}" fill="${style.text}" text-anchor="${right ? 'start' : 'end'}" dominant-baseline="central"${o.caps ? ` letter-spacing="${r3(o.size * 0.04)}"` : ''}>`;
-  s += lines.map((line, i) => `<tspan x="${x}"${i ? ` dy="${r3(lh)}"` : ''}>${esc(line)}</tspan>`).join('') + '</text>';
+  s += richTspans(lines, { x, lh, cw: titleChar(o), end: !right, bold: Math.min(900, Number(f.weight) + 200) }) + '</text>';
   if (notes.length) {
     // the quieter second part: smaller, lighter, never in capitals
     const ny = y0 + (lines.length - 1) * lh + lh * 0.5 + nlh * 0.5;
     s += `<text class="label-note" x="${x}" y="${r3(ny)}" font-family="${esc(f.family)}" font-size="${r3(ns)}" font-weight="400" fill="${style.text}" fill-opacity="0.62" text-anchor="${right ? 'start' : 'end'}" dominant-baseline="central">`
-      + notes.map((line, i) => `<tspan x="${x}"${i ? ` dy="${r3(nlh)}"` : ''}>${esc(line)}</tspan>`).join('') + '</text>';
+      + richTspans(notes, { x, lh: nlh, cw: noteChar(o), end: !right, bold: 700 }) + '</text>';
   }
-  if (o.mark) {
+  if (o.mark && leader) {
     const r = o.size * 0.62, col = MARK_COLORS[o.mark] || style.text;
     s += `<circle cx="${r3(ax)}" cy="${r3(ay)}" r="${r3(r)}" fill="#fff" stroke="${col}" stroke-width="${r3(o.size * 0.12)}"/>`
       + `<text x="${r3(ax)}" y="${r3(ay)}" font-family="${esc(f.family)}" font-size="${r3(r * 1.5)}" font-weight="700" fill="${col}" text-anchor="middle" dominant-baseline="central">${esc(o.mark)}</text>`;
@@ -401,7 +400,8 @@ function labelBounds(view, o) {
   const { w, h } = labelTextBox(o);
   const tx = ax + o.dx, ty = ay + o.dy;
   const y0 = hangsBelow(o) ? ty - o.size * 0.625 : ty - h / 2;
-  return bboxUnion([ax, ay, ax, ay], o.dx >= 0 ? [tx, y0, tx + w, y0 + h] : [tx - w, y0, tx, y0 + h]);
+  const box = textRight(o) ? [tx, y0, tx + w, y0 + h] : [tx - w, y0, tx, y0 + h];
+  return o.line === false ? box : bboxUnion([ax, ay, ax, ay], box);
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -953,6 +953,7 @@ export function renderStep(prj, index, opts) {
     const fill = v.state === 'context' ? ctxFill : v.state === 'accent' ? style.accent : v.color ? v.color : v.cat && cats.has(v.cat) ? cats.get(v.cat) : changed.has(v.id) ? style.accent : style.volume;
     const see = v.state === 'ghost' || v.state === 'glass';
     const off = v.fromPrev ? 0 : exploded.get(v.id) || 0;
+    const vcuts = v.fromPrev ? [] : cutsTaking(v, base, cutObjects, cuts);
     // the pieces drawn: the whole volume, or one per floor
     const pieces = [];
     if (ex?.on && ex.floors && splitsFloors(v)) {
@@ -960,10 +961,10 @@ export function renderStep(prj, index, opts) {
       for (let k = 0; k < v.floors; k++) {
         const slice = { ...v, floors: 1, h: hf };
         // each floor is built where it really is (so cuts fall right), then raised
-        for (const f of volumeFaces(slice, base + k * hf, v.fromPrev || v.fill ? [] : cuts)) pieces.push({ f, dz: off + k * ex.gap });
+        for (const f of volumeFaces(slice, base + k * hf, vcuts)) pieces.push({ f, dz: off + k * ex.gap });
         if (k > 0) for (const c of footCorners(v)) projLines.push([[c[0], c[1], base + k * hf + off + (k - 1) * ex.gap], [c[0], c[1], base + k * hf + off + k * ex.gap]]);
       }
-    } else for (const f of volumeFaces(v, base, v.fromPrev || v.fill ? [] : cuts)) pieces.push({ f, dz: off });
+    } else for (const f of volumeFaces(v, base, vcuts)) pieces.push({ f, dz: off });
     if (ex?.on && off > 0) {
       // from its base down one gap, to the top of what is under it
       for (const c of footCorners(v)) projLines.push([[c[0], c[1], base + off - ex.gap], [c[0], c[1], base + off]]);
@@ -1246,7 +1247,8 @@ export function renderStep(prj, index, opts) {
       const parts = [];
       for (const v of step.objects) {
         if (v.type !== 'volume' || v.state === 'ghost' || v.state === 'glass') continue;
-        const sh = shadowOf(v, baseOf(v, byId, levels) + (exploded.get(v.id) || 0), v.fill ? [] : cuts, k);
+        const vb = baseOf(v, byId, levels);
+        const sh = shadowOf(v, vb + (exploded.get(v.id) || 0), cutsTaking(v, vb, cutObjects, cuts), k);
         if (sh.length) parts.push(sh);
       }
       // kept near the site: a low sun would otherwise stretch the drawing far beyond it

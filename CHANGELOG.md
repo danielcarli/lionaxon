@@ -2,6 +2,46 @@
 
 All notable changes to LionAxon are documented here. The project follows [Semantic Versioning](https://semver.org).
 
+## [0.21.3] — 2026-11-23
+
+### Changed
+- **Export steps**: a range with an open end runs to the last step whichever way it is written — `3-`, `3–`, `3 a`, `3 até` — and one with an open start from the first (`-5`); the dash alone is every step, like `*`. The field shows the ways to write it under the mouse, and the message when it cannot be read lists them.
+
+## [0.21.2] — 2026-11-23
+
+### Changed
+- *Align* in the properties is a single row of icons — left, centre, right · top, middle, bottom · distribute across, down — with no text on the buttons: the name of each shows when the mouse is over it.
+
+## [0.21.1] — 2026-11-23
+
+### Changed
+- The buttons of *Align* in the properties have icons, as in a drawing program: the line the objects line up on (left, centre, right, top, middle, bottom) and the two spreads (across, down).
+
+## [0.21.0] — 2026-11-23
+
+### Added
+- **Smart guides for texts**, as in a drawing program: drag the text of a label (its handle) or move a text box, and when its left side, middle or right side — or its top, middle or bottom — comes within a few pixels of the same line of another text, it snaps to it and a pink guide runs across the texts on that line. `Alt` while dragging leaves it free. The guides go when the mouse is let go.
+- **The subtractions in the 3D viewer**: a new button in its toolbar (the scissors) draws their outlines, as in the drawing; a selected subtraction always shows, and can be moved there, resized by its handles and its height pulled like a volume.
+- **Align and distribute texts by their boxes**: with two or more texts selected (labels and text boxes, nothing else), *Align* in the properties, the right-button menu and *Edit › Align* lines them up by their boxes as drawn in the view open — left, centre, right, top, middle, bottom of the screen — and *Distribute horizontally / vertically* leaves equal gaps between three or more. The texts move; the points of their leaders stay where they point. A text that has to cross over its point to get there changes sides, keeping its box where it was sent. With shapes in the selection, aligning still works in plan, as before.
+
+### Changed
+- A text box always runs to the right of where it is placed (it has no leader to go left of).
+
+### Fixed
+- **A subtraction did not cut the volume it was drawn on** in two cases. With the *terrain* option of the subtraction tool left on, a subtraction started on top of a volume went into the terrain instead, and stayed as a box inside the volume; now a subtraction started on a volume always cuts that volume (the option is for subtractions started on the ground). And a volume marked *Fills a subtraction* was left whole by every subtraction; now only the subtraction whose void it stands in leaves it whole, and a new subtraction made in it cuts it. (A subtraction already drawn with the terrain option keeps it: choose the volume in *Subtracts from* in its properties.)
+
+## [0.20.1] — 2026-11-23
+
+### Changed
+- The title and the text of a step are written only on its card, in the steps pane: the *Step* properties on the right no longer repeat them (they keep the highlight, the ghost of the previous step, the sign, the exploded view and the angles).
+
+## [0.20.0] — 2026-11-23
+
+### Added
+- **Text boxes**: a new tool, *Text box* (X), puts text on its own on the drawing — a label with no leader and no point, in a box of a width (pull its side to make it narrower or wider, as for any label), not in capitals. Any label can turn its leader off or on in its properties (*Leader line and point*); a text box moves as a whole.
+- **Bold, italic and lists in the texts of labels** — the text and the smaller note, of labels and text boxes: `**bold**`, `*italic*`, a line starting with `- ` is an item of a list (a bullet), with `1. ` of a numbered one; the lines of an item hang under its text, and long lines still break at the width. A bar of buttons (B, I, •, 1.) over each text, in the properties and in the box that opens on the drawing, and Ctrl+B / Ctrl+I in them. The sheet, the exports and the GIF draw them the same. The note of a label holds up to 2000 characters.
+- **The title and the text of a step on its card**: the card of the current step has the fields to write them, right under its drawing (the properties of the step still have them too).
+
 ## [0.19.1] — 2026-11-23
 
 ### Added

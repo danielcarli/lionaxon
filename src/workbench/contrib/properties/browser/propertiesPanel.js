@@ -11,9 +11,11 @@ import { h, setChildren } from '../../../../base/browser/dom.js';
 import { icon } from '../../../../base/browser/icons.js';
 import { t, tn } from '../../../../base/common/nls.js';
 import { numField, segmented, selectField, checkbox, textField, row, section } from '../../../browser/widgets.js';
+import { formatBar, formatKeys } from '../../../browser/formatBar.js';
 import { indexById, baseOf, elevationOf, slopeEnds, heightOf, formatElevation, SHAPES, LABEL_FONT_IDS, GROUND_LEVEL, ROOFS, AREA_KINDS, TREE_KINDS, STEP_OPS, OPENING_KINDS, OPENING_SIDES, LABEL_MARKS, TERRAIN_TARGET } from '../../../services/model/common/model.js';
 import { getStyle } from '../../../services/render/common/styles.js';
 import { LABEL_FONTS } from '../../../services/render/common/fonts.js';
+import { plainText } from '../../../services/render/common/richText.js';
 import { levelName } from '../../drawing/browser/drawingView.js';
 
 export class PropertiesPanel {
@@ -93,11 +95,8 @@ export class PropertiesPanel {
     const step = this.doc.step;
     const n = String(this.doc.stepIndex + 1).padStart(2, '0');
     return [
+      // the title and the text of the step are written on its card, in the steps pane
       section(`${t('sheet.step')} ${n}`, h('div.form',
-        h('label.form-label', t('step.title')),
-        textField(step.title, (v) => this.cmd.setStepProps({ title: v }), { placeholder: t('step.titlePlaceholder'), key: 'stepTitle' }),
-        h('label.form-label', t('step.text')),
-        textField(step.text, (v) => this.cmd.setStepProps({ text: v }), { placeholder: t('step.textPlaceholder'), multiline: true, key: 'stepText' }),
         checkbox(t('step.highlight'), step.highlight, (v) => this.cmd.setStepProps({ highlight: v })),
         h('p.pane-hint', this.doc.stepIndex === 0 ? t('step.highlightFirst') : t('step.highlightHint')),
         this.doc.stepIndex > 0 ? [
@@ -370,15 +369,23 @@ export class PropertiesPanel {
   }
 
   #labelForm(o) {
+    const leader = o.line !== false;
+    // the two texts take bold, italic and lists (a bar over each, Ctrl+B / Ctrl+I in them)
+    const rich = (field) => { field.addEventListener('keydown', (e) => formatKeys(e, field)); return [formatBar(() => field), field]; };
+    const text = textField(o.text, (v) => this.set({ text: v }), { multiline: true, key: 'text', placeholder: t('label.default') });
+    const note = textField(o.note || '', (v) => this.set({ note: v }), { multiline: true, key: 'note', placeholder: t('label.notePlaceholder') });
     return [
-      section(t('label.text'), textField(o.text, (v) => this.set({ text: v }), { multiline: true, key: 'text', placeholder: t('label.default') }),
+      section(t('label.text'), ...rich(text),
         h('p.pane-hint', t('label.textHint')),
         h('div.form', { style: { marginTop: '8px' } },
-          textField(o.note || '', (v) => this.set({ note: v }), { multiline: true, key: 'note', placeholder: t('label.notePlaceholder') }),
-          row(t('label.mark'), segmented(LABEL_MARKS.map((m) => [m, m || '—']), o.mark || '', (m) => this.set({ mark: m }), { title: t('label.markTip') })))),
+          ...rich(note),
+          h('p.pane-hint', t('format.hint')),
+          // a label with its leader and point, or a text box on its own
+          checkbox(t('label.line'), leader, (v) => this.set({ line: v ? null : false }), { 'data-key': 'line' }),
+          leader ? row(t('label.mark'), segmented(LABEL_MARKS.map((m) => [m, m || '—']), o.mark || '', (m) => this.set({ mark: m }), { title: t('label.markTip') })) : null)),
       section(t('label.font'), h('div.form',
         selectField(LABEL_FONT_IDS.map((id) => [id, LABEL_FONTS[id].name]), o.font, (v) => this.set({ font: v }), { 'data-key': 'font' }),
-        h('div.font-sample', { style: { fontFamily: LABEL_FONTS[o.font]?.family, fontWeight: LABEL_FONTS[o.font]?.weight } }, o.caps ? (o.text || t('label.default')).split('\n')[0].toUpperCase() : (o.text || t('label.default')).split('\n')[0]),
+        h('div.font-sample', { style: { fontFamily: LABEL_FONTS[o.font]?.family, fontWeight: LABEL_FONTS[o.font]?.weight } }, o.caps ? plainText(o.text || t('label.default')).split('\n')[0].toUpperCase() : plainText(o.text || t('label.default')).split('\n')[0]),
         checkbox(t('label.caps'), o.caps, (v) => this.set({ caps: v })),
         row(t('label.size'), numField({ value: o.size, unit: 'm', step: 0.1, min: 0.2, max: 20, onCommit: (v) => this.set({ size: v }) })),
         // the width the text is broken to (0: one line per line typed); also by the handle at the side of the text
@@ -386,7 +393,7 @@ export class PropertiesPanel {
         h('p.pane-hint', t('label.wrapTip')))),
       section(t('label.anchor'), h('div.form-grid.three', this.#num('X', 'x', o), this.#num('Y', 'y', o), this.#num('Z', 'z', o, { step: 0.5, title: t('prop.zOnPlane') })),
         h('div.form', { style: { marginTop: '6px' } }, this.#levelRow(o))),
-      section(t('label.offset'), h('div.form-grid', this.#num('dX', 'dx', o, { step: 1 }), this.#num('dY', 'dy', o, { step: 1 }))),
+      leader ? section(t('label.offset'), h('div.form-grid', this.#num('dX', 'dx', o, { step: 1 }), this.#num('dY', 'dy', o, { step: 1 }))) : null,
     ];
   }
 
@@ -433,15 +440,22 @@ export class PropertiesPanel {
   #multiForm(sel) {
     const vols = sel.filter((o) => o.type === 'volume');
     const same = (k) => (vols.every((v) => v[k] === vols[0][k]) ? vols[0][k] : null);
-    const al = (how, label) => h('button.btn.btn-secondary.btn-sm', { 'data-align': how, onclick: () => this.cmd.alignSelection(how) }, label);
+    const ALIGN_ICONS = { left: 'alignLeft', centerX: 'alignCenterX', right: 'alignRight', top: 'alignTop', centerY: 'alignMiddle', bottom: 'alignBottom' };
+    // only the icons, as in a drawing program; the name shows under the mouse
+    const btn = (attrs, ic, label, run) => h('button.btn.btn-secondary.btn-sm.icon-btn', { ...attrs, title: label, 'aria-label': label, onclick: run }, h('span', { html: icon(ic, 16) }));
+    const al = (how, label) => btn({ 'data-align': how }, ALIGN_ICONS[how], label, () => this.cmd.alignSelection(how));
+    // texts line up by their boxes on the screen (top and bottom), shapes in plan (back and front)
+    const texts = sel.every((o) => o.type === 'label');
     return [
       section(t('align.title'), h('div.form',
-        h('div.align-grid', al('left', t('align.leftShort')), al('centerX', t('align.centerXShort')), al('right', t('align.rightShort')),
-          al('top', t('align.topShort')), al('centerY', t('align.centerYShort')), al('bottom', t('align.bottomShort'))),
-        h('div.btn-row',
-          h('button.btn.btn-secondary.btn-sm', { 'data-distribute': 'x', disabled: sel.length < 3, onclick: () => this.cmd.distributeSelection('x') }, t('align.distributeX')),
-          h('button.btn.btn-secondary.btn-sm', { 'data-distribute': 'y', disabled: sel.length < 3, onclick: () => this.cmd.distributeSelection('y') }, t('align.distributeY'))),
-        h('p.pane-hint', t('align.hint')))),
+        h('div.align-bar',
+          al('left', t('align.left')), al('centerX', t('align.centerX')), al('right', t('align.right')),
+          h('span.align-sep'),
+          al('top', t(texts ? 'align.textTop' : 'align.top')), al('centerY', t(texts ? 'align.textMiddle' : 'align.centerY')), al('bottom', t(texts ? 'align.textBottom' : 'align.bottom')),
+          h('span.align-sep'),
+          btn({ 'data-distribute': 'x', disabled: sel.length < 3 }, 'distributeH', t(texts ? 'align.textDistributeX' : 'align.distributeX'), () => this.cmd.distributeSelection('x')),
+          btn({ 'data-distribute': 'y', disabled: sel.length < 3 }, 'distributeV', t(texts ? 'align.textDistributeY' : 'align.distributeY'), () => this.cmd.distributeSelection('y'))),
+        h('p.pane-hint', t(texts ? 'align.textHint' : 'align.hint')))),
       vols.length ? section(t('props.look'), h('div.form', row(t('prop.category'), this.#categorySelect(same('cat'))), this.#stateField(same('state')),
         row(t('prop.floors'), numField({ value: same('floors') ?? 1, unit: '', step: 1, min: 1, max: 200, digits: 0, onCommit: (v) => this.cmd.setProps({ floors: Math.round(v) }, vols.map((x) => x.id)) })))) : null,
       this.#actions(),
@@ -503,7 +517,7 @@ export function elementName(o, doc, generic = false) {
     case 'area': return `${t('area.' + o.kind)} ${i} · ${fmtZ(o.w)} × ${fmtZ(o.d)}`;
     case 'tree': return `${t('object.tree')} ${i} · ${t('tree.' + o.kind)}`;
     case 'person': return `${t('object.person')} ${i} · ${t('person.pose' + o.pose)}`;
-    case 'label': return (o.text || t('label.default')).split('\n')[0];
+    case 'label': return plainText(o.text || t('label.default')).split('\n')[0];
     case 'opening': return t('opening.' + o.kind);
     default: return o.id;
   }

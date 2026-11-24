@@ -13,7 +13,7 @@ Simple to learn in an afternoon. The same app on Windows, macOS and Linux. Free.
 
 **English** · [Português (Brasil)](docs/README.pt-BR.md)
 
-![Version 0.19.1](https://img.shields.io/badge/version-0.19.1-23272b)
+![Version 0.21.3](https://img.shields.io/badge/version-0.21.3-23272b)
 ![Experimental](https://img.shields.io/badge/status-experimental-b5532d)
 ![Platforms: Windows, macOS, Linux](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-23272b)
 ![10 languages](https://img.shields.io/badge/languages-10-d0673f)
@@ -77,10 +77,11 @@ Free software (GPL-3.0). No account, no subscription, no telemetry, and it works
 ## What you get
 
 **Tell the story**
-- **Steps** with title and text, reordered by dragging; changes applied to the following steps with one click; signs between steps (+ − = →).
+- **Steps** with title and text, written right on the card of the current step, reordered by dragging; changes applied to the following steps with one click; signs between steps (+ − = →).
 - **Categories** with colour *and* hatch (circulation, stair core, theatre…), so the legend reads in grey print and for people who do not tell colours apart.
 - **Align faces** (`L`): click the face to align to, then the face of another shape, and it moves until the two lie in the same plane — sides with sides, tops with tops.
-- **Arrows, people, labels, dimension lines and trees** — people at their real height, to give the scale (the person and tree tools stay on: one more at each click); people and trees stand on whatever is under them (a plateau, a slope, a roof). Double-click a label to write its text — and the smaller note under it — right on the drawing.
+- **Arrows, people, labels, dimension lines and trees** — people at their real height, to give the scale (the person and tree tools stay on: one more at each click); people and trees stand on whatever is under them (a plateau, a slope, a roof). Double-click a label to write its text — and the smaller note under it — right on the drawing, with **bold**, *italic* and lists. A **text box** is a label with no leader: text on its own, in a box resized by its side.
+- **Texts in line**: drag a text near another and it snaps to its left side, middle, right side, top or bottom, with a pink guide across them (`Alt`: free); select several and *Align* lines them up by their boxes as drawn — left, centre, right, top, middle, bottom — or *Distribute* leaves equal gaps between them, across or down. The texts move; the points of their leaders stay.
 
 **Shape the site**
 - **Terrain**: platforms, slopes, pits, reference planes with level lines in the elevation; a site of any outline. **Join terrain** (a switch in the toolbar of the drawing) draws platforms and slopes that touch as one piece, without the lines between them.
@@ -93,7 +94,7 @@ Free software (GPL-3.0). No account, no subscription, no telemetry, and it works
 
 **See it from anywhere**
 - **Axonometric, plan and four elevations**, with **sections**.
-- A **3D viewer** that turns all the way round — and where you can **select, move, resize and pull heights** too. The mouse has **two modes, Rev and Sketch** (your choice), with a view cube in the corner. A blue frame tells you that you are in it.
+- A **3D viewer** that turns all the way round — and where you can **select, move, resize and pull heights** too, and see the subtractions (a button in its toolbar). The mouse has **two modes, Rev and Sketch** (your choice), with a view cube in the corner. A blue frame tells you that you are in it.
 - **Duplicate a step** with one click, to tell the next move from where the last one stopped.
 - **`Tab` reaches what is behind**: the next object under the same spot takes an outline in another colour and the rest fades.
 - **Exploded views**, and one step **seen from several angles side by side** on the sheet.
@@ -103,7 +104,7 @@ Free software (GPL-3.0). No account, no subscription, no telemetry, and it works
 - **Text blocks** beside the drawings (strategy, pros and cons with + and −), the **legend** under the title or along the foot; labels with a quieter second line and marks (! × + −), broken into lines at the width you pull the side of their text box to. The terrain can be drawn on the sheet **as a grid**, as in the editor.
 - Sheets in row, grid, column or vertical layouts, A4 to A0, to scale, on as many pages as needed; when the drawings are held by the height, the captions go beside them and the drawings grow. The preview is zoomed with the wheel and dragged like the drawing, page by page.
 - Sheets with or without the **number and title** of each step.
-- **Export the steps you write** — `7`, `3-7`, `1, 4, 6-8` — each in a file of its own, or as one sheet with just those steps.
+- **Export the steps you write** — `7`, `3-7`, `1, 4, 6-8`, `3-` to the last, `-5` from the first — each in a file of its own, or as one sheet with just those steps.
 - **Eight drawing styles**, light and dark interface, and two coloured themes.
 
 <table>
@@ -122,6 +123,10 @@ Free software (GPL-3.0). No account, no subscription, no telemetry, and it works
 <tr>
 <td><img src="docs/screenshots/openings.png" alt="A garage with an arch, a round opening and a red roof"><br><sub>Openings on the walls, roofs with their own colour</sub></td>
 <td><img src="docs/screenshots/sheet-blocks.png" alt="A sheet with text blocks on the right and the legend along the foot"><br><sub>Text blocks and the legend along the foot</sub></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/align-texts.png" alt="A text dragged near the left side of two others, a pink guide across them"><br><sub>Texts in line: a guide while one is dragged</sub></td>
+<td><img src="docs/screenshots/label-edit.png" alt="The text of a label written on the drawing"><br><sub>A label written on the drawing</sub></td>
 </tr>
 <tr>
 <td><img src="docs/screenshots/align-faces.png" alt="The align tool: one face picked, another about to come to it"><br><sub>Align faces: the reference, then the face that comes to it</sub></td>
@@ -154,7 +159,7 @@ Download the installer for your system. The links always bring the **latest vers
 
 > The installers are not signed with a paid certificate yet. On first launch, Windows may show "Windows protected your PC" (**More info › Run anyway**) and macOS asks you to allow the app in **System Settings › Privacy & Security › Open Anyway**. The checksums of every file are in [`SHA256SUMS.txt`](https://github.com/danielcarli/lionaxon/releases/latest/download/SHA256SUMS.txt).
 
-LionAxon is **experimental** (version 0.19): it already makes a whole parti diagram and exports it, but the file format and the behaviour may still change before 1.0. **Updating from the app.** Click the version number in the bottom-right corner, then *Check now*: if there is a newer version, *Update now* downloads the installer of your copy (the setup wizard, the `.dmg`, the AppImage, the `.deb` or the `.rpm`), checks its SHA-256 against the release and opens it. Both steps happen only when you click.
+LionAxon is **experimental** (version 0.21): it already makes a whole parti diagram and exports it, but the file format and the behaviour may still change before 1.0. **Updating from the app.** Click the version number in the bottom-right corner, then *Check now*: if there is a newer version, *Update now* downloads the installer of your copy (the setup wizard, the `.dmg`, the AppImage, the `.deb` or the `.rpm`), checks its SHA-256 against the release and opens it. Both steps happen only when you click.
 
 The installers are built by GitHub Actions for each version tag (`.github/workflows/release.yml`), on Windows, macOS and Linux machines, from the code of this repository.
 
@@ -179,7 +184,7 @@ The app opens on a start screen with six examples — from the five-step parti t
 
 | Shortcut | Action |
 |---|---|
-| `V` `B` `S` `G` `A` `P` `T` | Select · volume · subtract · terrain · arrow · person · label |
+| `V` `B` `S` `G` `A` `P` `T` `X` | Select · volume · subtract · terrain · arrow · person · label · text box |
 | `D` · `E` | Dimension line · tree |
 | `L` | Align faces: the face to align to, then the face to bring to it |
 | `Enter` · double-click | End an outline drawn point by point |
@@ -190,7 +195,8 @@ The app opens on a start screen with six examples — from the five-step parti t
 | `0`–`9` with a shape selected | Type its size: width × depth × height |
 | `Tab` · `Shift+Tab` | The next · previous object under the same spot (the others fade) |
 | Drag the edge of a wall · a corner (shape selected) | Move the wall straight out or in (`Shift`: any direction) · move the corner |
-| Double-click a label · `Enter` with it selected | Write its text and its note on the drawing (`Enter` applies, `Shift+Enter` new line, `Tab` the other text, `Esc` gives up) |
+| Drag a text near another · `Alt` while dragging | It lines up with the other (a pink guide) · free |
+| Double-click a label · `Enter` with it selected | Write its text and its note on the drawing (`Enter` applies, `Shift+Enter` new line, `Tab` the other text, `Ctrl+B` bold, `Ctrl+I` italic, `Esc` gives up) |
 | `F2` · `Ctrl+L` · `Ctrl+H` | Rename · lock · hide the selection |
 | Right button | The menu of the object (or of the paper) |
 | `R` · `Space` · `Shift` | Turn the selection 90° (`Shift`: 15°); `Space` also while moving; hold `Space` and drag to pan |
@@ -245,7 +251,7 @@ A project is one `.lionaxon` file: indented JSON with a `schemaVersion`, readabl
 }
 ```
 
-Other objects: `area` (a flat street, lawn, water or paving, with `joints`), `opening` (a door, window, arch or oculus on a wall of the box `on`), `tree`, `dim` (a dimension line), and volumes or cuts with `"shape": "poly"` and their `pts`; a box may have `roof`, `roofH`, `roofDir` and `roofColor`; a trapezoid the length `top` of its short side: the top of a standing one (`"shape": "trapezoid"`), the back of a lying one (`"trapezoidLying"`, a trapezoid in plan); a volume a `color` of its own and `fill` (it fills the void of a subtraction: none cuts it); a cut the `target` `"~terrain"` (it digs into the terrain); an arrow `z2` (where it ends); a label `note` and `mark`; the sheet `legendPlace`, `blocks` and `heads` (the number and title of each step); a step may have `ghostPrev` and `op`.
+Other objects: `area` (a flat street, lawn, water or paving, with `joints`), `opening` (a door, window, arch or oculus on a wall of the box `on`), `tree`, `dim` (a dimension line), and volumes or cuts with `"shape": "poly"` and their `pts`; a box may have `roof`, `roofH`, `roofDir` and `roofColor`; a trapezoid the length `top` of its short side: the top of a standing one (`"shape": "trapezoid"`), the back of a lying one (`"trapezoidLying"`, a trapezoid in plan); a volume a `color` of its own and `fill` (it fills the void of a subtraction: that one leaves it whole, others still cut it); a cut the `target` `"~terrain"` (it digs into the terrain); an arrow `z2` (where it ends); a label `note` and `mark`, and `line: false` for a text box (its texts take `**bold**`, `*italic*` and lines starting with `- ` or `1. `); the sheet `legendPlace`, `blocks` and `heads` (the number and title of each step); a step may have `ghostPrev` and `op`.
 
 Measures are in metres, angles in degrees; `x`, `y` is the centre of a volume; `z` is the height over its plane (`level`); `on` is the volume it sits on. Files of 0.1 (`schemaVersion` 1) open as they are, with everything on the ground plane.
 
@@ -315,6 +321,8 @@ Code, comments, identifiers and documentation are in English. The interface is t
 
 ## Roadmap
 
+- **0.21** ✓ — texts lined up as in a drawing program: smart guides while one is dragged, and align and distribute by their boxes on the screen; the subtractions in the 3D viewer; a subtraction started on a volume always cuts it.
+- **0.20** ✓ — text boxes (labels with no leader, resized by their side); bold, italic and lists in the texts of labels; the title and text of a step written on its card.
 - **0.19** ✓ — trapezoids, standing (the sides leaning in to a narrower top) and lying (a trapezoid in plan, its walls straight up), as volumes and as subtractions; walls moved by their edges, corners by their handles.
 - **0.18** ✓ — a shape that fills the void of a subtraction, all of it or part; subtractions of the terrain (pits, notches in platforms); people and trees placed one after another; sheets without the number and title of the steps.
 - **0.17** ✓ — export the steps you write (3-7, 1, 4, 6), as files or one sheet; the sheet preview zoomed and dragged like the drawing, page by page; captions beside the drawings when that makes them larger; a label's text box resized by its side, and its small text written on the drawing; the import from IFC taken out until it reads real models.
@@ -335,7 +343,7 @@ Code, comments, identifiers and documentation are in English. The interface is t
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) — current version: **0.19.1**.
+See [CHANGELOG.md](CHANGELOG.md) — current version: **0.21.3**.
 
 ## Credits
 
